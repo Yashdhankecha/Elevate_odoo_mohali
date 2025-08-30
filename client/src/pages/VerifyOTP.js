@@ -91,8 +91,9 @@ const VerifyOTP = () => {
       const otpString = otp.join('');
       const result = await verifyOTP(userId, otpString);
       if (result.success) {
-        // OTP verification successful, user will be redirected by auth context
-        navigate('/');
+        // OTP verification successful
+        // Navigation is handled automatically by AuthContext after successful OTP verification
+        // No need to manually navigate here
       }
       // If verification fails, error will be shown by auth context
     } catch (error) {

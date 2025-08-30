@@ -1,11 +1,8 @@
 import React, { useState } from 'react';
 import Sidebar from './components/Sidebar';
-import TopNavbar from './components/TopNavbar';
 import DashboardOverview from './components/DashboardOverview';
-import AdminApproval from './components/AdminApproval';
+import TPOApproval from './components/TPOApproval';
 import CompanyApproval from './components/CompanyApproval';
-import InstitutionManagement from './components/InstitutionManagement';
-import SystemSettings from './components/SystemSettings';
 
 const SuperadminDashboard = () => {
   const [activeSection, setActiveSection] = useState('dashboard');
@@ -19,14 +16,10 @@ const SuperadminDashboard = () => {
     switch (activeSection) {
       case 'dashboard':
         return <DashboardOverview />;
-      case 'admin-approval':
-        return <AdminApproval />;
+      case 'tpo-approval':
+        return <TPOApproval />;
       case 'company-approval':
         return <CompanyApproval />;
-      case 'institutions':
-        return <InstitutionManagement />;
-      case 'settings':
-        return <SystemSettings />;
       default:
         return <DashboardOverview />;
     }
@@ -43,11 +36,8 @@ const SuperadminDashboard = () => {
       
       {/* Main Content Area */}
       <div className={`transition-all duration-300 ${sidebarCollapsed ? 'ml-16' : 'ml-64'}`}>
-        {/* Top Navbar */}
-        <TopNavbar toggleSidebar={toggleSidebar} />
-        
         {/* Main Content */}
-        <main className="pt-16 px-6 pb-6">
+        <main className="pt-6 px-6 pb-6">
           <div className="max-w-7xl mx-auto">
             {renderContent()}
           </div>

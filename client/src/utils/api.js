@@ -73,52 +73,6 @@ export const loginUser = async (credentials) => {
     const response = await api.post('/auth/login', credentials);
     return response.data;
   } catch (error) {
-    // If API is not available, provide mock data for testing
-    if (error.code === 'ERR_NETWORK' || error.message.includes('Network Error')) {
-      console.warn('API not available, using mock data for testing');
-      
-      // Mock user data based on email
-      const mockUsers = {
-        'student@test.com': {
-          id: 1,
-          name: 'Test Student',
-          email: 'student@test.com',
-          role: 'student',
-          avatar: null
-        },
-        'company@test.com': {
-          id: 2,
-          name: 'Test Company',
-          email: 'company@test.com',
-          role: 'company',
-          avatar: null
-        },
-        'tpo@test.com': {
-          id: 3,
-          name: 'Test TPO',
-          email: 'tpo@test.com',
-          role: 'tpo',
-          avatar: null
-        },
-        'admin@test.com': {
-          id: 4,
-          name: 'Test Admin',
-          email: 'admin@test.com',
-          role: 'superadmin',
-          avatar: null
-        }
-      };
-      
-      const mockUser = mockUsers[credentials.email.toLowerCase()];
-      if (mockUser && credentials.password === 'password') {
-        return {
-          token: 'mock-jwt-token-' + Date.now(),
-          user: mockUser
-        };
-      } else {
-        throw new Error('Invalid credentials');
-      }
-    }
     throw error;
   }
 };
@@ -155,16 +109,192 @@ export const getCurrentUser = async () => {
     const response = await api.get('/auth/me');
     return response.data;
   } catch (error) {
-    // If API is not available, try to get user from localStorage as fallback
-    const savedUser = localStorage.getItem('user');
-    if (savedUser) {
-      try {
-        const userData = JSON.parse(savedUser);
-        return { user: userData };
-      } catch (parseError) {
-        console.error('Failed to parse saved user data:', parseError);
-      }
+    throw error;
+  }
+};
+
+// Student Dashboard API functions
+export const getStudentProfile = async () => {
+  try {
+    const response = await api.get('/auth/me');
+    if (response.data.success) {
+      return response.data.user;
     }
+    throw new Error(response.data.message || 'Failed to fetch profile');
+  } catch (error) {
+    console.error('Error fetching student profile:', error);
+    throw error;
+  }
+};
+
+export const getStudentDetails = async (studentId) => {
+  try {
+    const response = await api.get(`/user/students/${studentId}`);
+    if (response.data.success) {
+      return response.data.data;
+    }
+    throw new Error(response.data.message || 'Failed to fetch student details');
+  } catch (error) {
+    console.error('Error fetching student details:', error);
+    throw error;
+  }
+};
+
+export const getStudentStats = async () => {
+  try {
+    const response = await api.get('/user/student-stats');
+    if (response.data.success) {
+      return response.data.data;
+    }
+    throw new Error(response.data.message || 'Failed to fetch student statistics');
+  } catch (error) {
+    console.error('Error fetching student statistics:', error);
+    throw error;
+  }
+};
+
+export const getSkillProgress = async () => {
+  try {
+    const response = await api.get('/user/skill-progress');
+    if (response.data.success) {
+      return response.data.data;
+    }
+    throw new Error(response.data.message || 'Failed to fetch skill progress');
+  } catch (error) {
+    console.error('Error fetching skill progress:', error);
+    throw error;
+  }
+};
+
+export const getPracticeHistory = async () => {
+  try {
+    const response = await api.get('/user/practice-history');
+    if (response.data.success) {
+      return response.data.data;
+    }
+    throw new Error(response.data.message || 'Failed to fetch practice history');
+  } catch (error) {
+    console.error('Error fetching practice history:', error);
+    throw error;
+  }
+};
+
+export const getStudentAchievements = async () => {
+  try {
+    const response = await api.get('/user/achievements');
+    if (response.data.success) {
+      return response.data.data;
+    }
+    throw new Error(response.data.message || 'Failed to fetch achievements');
+  } catch (error) {
+    console.error('Error fetching achievements:', error);
+    throw error;
+  }
+};
+
+export const getStudentExperience = async () => {
+  try {
+    const response = await api.get('/user/experience');
+    if (response.data.success) {
+      return response.data.data;
+    }
+    throw new Error(response.data.message || 'Failed to fetch experience');
+  } catch (error) {
+    console.error('Error fetching experience:', error);
+    throw error;
+  }
+};
+
+export const getStudentAlerts = async () => {
+  try {
+    const response = await api.get('/user/alerts');
+    if (response.data.success) {
+      return response.data.data;
+    }
+    throw new Error(response.data.message || 'Failed to fetch alerts');
+  } catch (error) {
+    console.error('Error fetching alerts:', error);
+    throw error;
+  }
+};
+
+export const getPerformanceAnalytics = async (timeRange = '30days') => {
+  try {
+    const response = await api.get(`/user/performance-analytics?range=${timeRange}`);
+    if (response.data.success) {
+      return response.data.data;
+    }
+    throw new Error(response.data.message || 'Failed to fetch performance analytics');
+  } catch (error) {
+    console.error('Error fetching performance analytics:', error);
+    throw error;
+  }
+};
+
+export const updateStudentProfile = async (profileData) => {
+  try {
+    const response = await api.put('/user/student-profile', profileData);
+    if (response.data.success) {
+      return response.data.data;
+    }
+    throw new Error(response.data.message || 'Failed to update profile');
+  } catch (error) {
+    console.error('Error updating student profile:', error);
+    throw error;
+  }
+};
+
+// Superadmin Dashboard API functions
+export const getSuperadminOverview = async () => {
+  try {
+    const response = await api.get('/superadmin/overview');
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getAdminApprovals = async () => {
+  try {
+    const response = await api.get('/superadmin/admin-approvals');
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getCompanyApprovals = async () => {
+  try {
+    const response = await api.get('/superadmin/company-approvals');
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const approveUser = async (userId, status, reason = '') => {
+  try {
+    const response = await api.post(`/superadmin/approve/${userId}`, { status, reason });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getInstitutions = async () => {
+  try {
+    const response = await api.get('/superadmin/institutions');
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getSystemAnalytics = async () => {
+  try {
+    const response = await api.get('/superadmin/system-analytics');
+    return response.data;
+  } catch (error) {
     throw error;
   }
 };

@@ -37,6 +37,11 @@ const tpoSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  status: {
+    type: String,
+    enum: ['pending', 'active', 'rejected'],
+    default: 'pending'
+  },
   emailVerificationOTP: {
     code: String,
     expiresAt: Date
@@ -164,4 +169,5 @@ tpoSchema.methods.toJSON = function() {
 };
 
 module.exports = mongoose.model('TPO', tpoSchema);
+
 

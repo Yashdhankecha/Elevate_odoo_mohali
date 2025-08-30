@@ -60,8 +60,8 @@ const Login = () => {
     try {
       const result = await login(formData.email, formData.password);
       if (result.success) {
-        // Don't navigate here as AuthContext.login() already handles role-based redirection
-        // navigate(from, { replace: true });
+        // Navigation is now handled automatically by AuthContext
+        // No need to manually navigate
       } else if (result.requiresVerification) {
         // Redirect to OTP verification if account is not verified
         navigate('/verify-otp', { 

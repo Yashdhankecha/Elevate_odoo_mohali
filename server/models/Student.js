@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const studentSchema = new mongoose.Schema({
+  // Basic Information
   name: {
     type: String,
     required: [true, 'Name is required'],
@@ -22,6 +23,8 @@ const studentSchema = new mongoose.Schema({
     required: [true, 'Password is required'],
     minlength: [6, 'Password must be at least 6 characters long']
   },
+  
+  // Academic Information
   rollNumber: {
     type: String,
     required: [true, 'Roll Number is required'],
@@ -31,7 +34,8 @@ const studentSchema = new mongoose.Schema({
   branch: {
     type: String,
     required: [true, 'Branch is required'],
-    trim: true
+    trim: true,
+    enum: ['Computer Science', 'Information Technology', 'Electronics & Communication', 'Mechanical Engineering', 'Civil Engineering', 'Electrical Engineering', 'Chemical Engineering', 'Biotechnology', 'Aerospace Engineering', 'Other']
   },
   graduationYear: {
     type: Number,
@@ -44,6 +48,194 @@ const studentSchema = new mongoose.Schema({
     required: [true, 'College Name is required'],
     trim: true
   },
+  semester: {
+    type: Number,
+    min: 1,
+    max: 8,
+    default: 6
+  },
+  
+  // Academic Performance
+  cgpa: {
+    type: Number,
+    min: 0,
+    max: 10,
+    default: 0
+  },
+  sgpa: [{
+    semester: Number,
+    gpa: Number
+  }],
+  backlogHistory: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  currentBacklogs: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  
+  // Personal Information
+  dateOfBirth: {
+    type: Date
+  },
+  gender: {
+    type: String,
+    enum: ['Male', 'Female', 'Other', 'Prefer not to say']
+  },
+  phoneNumber: {
+    type: String,
+    trim: true,
+    match: [/^[+]?[\d\s\-\(\)]+$/, 'Please enter a valid phone number']
+  },
+  address: {
+    street: String,
+    city: String,
+    state: String,
+    country: {
+      type: String,
+      default: 'India'
+    },
+    zipCode: String
+  },
+  
+  // Skills and Certifications
+  skills: [{
+    name: String,
+    proficiency: {
+      type: String,
+      enum: ['Beginner', 'Intermediate', 'Advanced', 'Expert']
+    }
+  }],
+  certifications: [{
+    name: String,
+    issuer: String,
+    issueDate: Date,
+    expiryDate: Date,
+    certificateUrl: String
+  }],
+  languages: [{
+    name: String,
+    proficiency: {
+      type: String,
+      enum: ['Basic', 'Conversational', 'Fluent', 'Native']
+    }
+  }],
+  
+  // Resume and Portfolio
+  resume: {
+    type: String,
+    default: ''
+  },
+  portfolioUrl: String,
+  githubUrl: String,
+  linkedinUrl: String,
+  
+  // Placement Information
+  isPlaced: {
+    type: Boolean,
+    default: false
+  },
+  placementDetails: {
+    company: String,
+    package: {
+      amount: Number,
+      currency: {
+        type: String,
+        default: 'INR'
+      },
+      type: {
+        type: String,
+        enum: ['CTC', 'In-Hand', 'Gross']
+      }
+    },
+    role: String,
+    location: String,
+    placementDate: Date,
+    offerLetterUrl: String
+  },
+  
+  // Application Tracking
+  applications: [{
+    jobId: String,
+    companyName: String,
+    position: String,
+    appliedDate: Date,
+    status: {
+      type: String,
+      enum: ['Applied', 'Under Review', 'Shortlisted', 'Interview Scheduled', 'Interview Completed', 'Selected', 'Rejected', 'Withdrawn']
+    },
+    interviewRounds: [{
+      round: Number,
+      date: Date,
+      type: {
+        type: String,
+        enum: ['Online', 'Offline', 'Phone', 'Video Call']
+      },
+      status: {
+        type: String,
+        enum: ['Scheduled', 'Completed', 'Cancelled', 'Rescheduled']
+      },
+      feedback: String,
+      score: Number
+    }],
+    notes: String
+  }],
+  
+  // Internship Experience
+  internships: [{
+    company: String,
+    role: String,
+    duration: {
+      startDate: Date,
+      endDate: Date
+    },
+    stipend: Number,
+    description: String,
+    certificateUrl: String
+  }],
+  
+  // Projects
+  projects: [{
+    title: String,
+    description: String,
+    technologies: [String],
+    githubUrl: String,
+    liveUrl: String,
+    duration: {
+      startDate: Date,
+      endDate: Date
+    }
+  }],
+  
+  // Achievements and Activities
+  achievements: [{
+    title: String,
+    description: String,
+    date: Date,
+    certificateUrl: String
+  }],
+  extracurricularActivities: [String],
+  
+  // Preferences
+  preferredLocations: [String],
+  preferredCompanies: [String],
+  expectedPackage: {
+    min: Number,
+    max: Number,
+    currency: {
+      type: String,
+      default: 'INR'
+    }
+  },
+  workMode: {
+    type: String,
+    enum: ['On-site', 'Remote', 'Hybrid', 'Any']
+  },
+  
+  // System Fields
   isVerified: {
     type: Boolean,
     default: false
@@ -69,26 +261,15 @@ const studentSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
-  // Placement related fields
-  isPlaced: {
+  isActive: {
     type: Boolean,
-    default: false
+    default: true
   },
-  placementDetails: {
-    company: String,
-    package: String,
-    role: String,
-    placementDate: Date
-  },
-  resume: {
-    type: String,
-    default: ''
-  },
-  skills: [String],
-  cgpa: {
+  profileCompletion: {
     type: Number,
     min: 0,
-    max: 10
+    max: 100,
+    default: 0
   }
 }, {
   timestamps: true
@@ -142,6 +323,43 @@ studentSchema.methods.isPasswordResetTokenExpired = function() {
   return this.passwordResetToken && this.passwordResetToken.expiresAt < new Date();
 };
 
+// Method to calculate profile completion percentage
+studentSchema.methods.calculateProfileCompletion = function() {
+  let completed = 0;
+  let total = 0;
+  
+  // Basic info (25%)
+  if (this.name) completed += 1;
+  if (this.email) completed += 1;
+  if (this.phoneNumber) completed += 1;
+  if (this.address?.city) completed += 1;
+  total += 4;
+  
+  // Academic info (25%)
+  if (this.rollNumber) completed += 1;
+  if (this.branch) completed += 1;
+  if (this.graduationYear) completed += 1;
+  if (this.collegeName) completed += 1;
+  total += 4;
+  
+  // Skills and resume (25%)
+  if (this.skills && this.skills.length > 0) completed += 1;
+  if (this.resume) completed += 1;
+  if (this.projects && this.projects.length > 0) completed += 1;
+  if (this.certifications && this.certifications.length > 0) completed += 1;
+  total += 4;
+  
+  // Preferences (25%)
+  if (this.preferredLocations && this.preferredLocations.length > 0) completed += 1;
+  if (this.expectedPackage?.min) completed += 1;
+  if (this.workMode) completed += 1;
+  if (this.profilePicture) completed += 1;
+  total += 4;
+  
+  this.profileCompletion = Math.round((completed / total) * 100);
+  return this.profileCompletion;
+};
+
 // Remove sensitive fields when converting to JSON
 studentSchema.methods.toJSON = function() {
   const student = this.toObject();
@@ -152,4 +370,3 @@ studentSchema.methods.toJSON = function() {
 };
 
 module.exports = mongoose.model('Student', studentSchema);
-

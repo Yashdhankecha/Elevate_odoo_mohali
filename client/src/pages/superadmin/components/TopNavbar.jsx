@@ -2,8 +2,6 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
 import { 
-  FaSearch, 
-  FaBell, 
   FaUser, 
   FaCog, 
   FaSignOutAlt,
@@ -13,15 +11,8 @@ import {
 
 const TopNavbar = ({ toggleSidebar }) => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-
-  const notifications = [
-    { id: 1, message: 'New admin registration: John Smith', time: '2 min ago', type: 'admin' },
-    { id: 2, message: 'Company approval request: TechCorp Solutions', time: '1 hour ago', type: 'company' },
-    { id: 3, message: 'System backup completed successfully', time: '3 hours ago', type: 'system' }
-  ];
 
   const handleProfile = () => {
     setIsProfileOpen(false);
@@ -44,39 +35,10 @@ const TopNavbar = ({ toggleSidebar }) => {
           >
             <FaBars className="text-gray-600" />
           </button>
-          
-          <div className="flex items-center space-x-3">
-            
-            <div>
-             </div>
-          </div>
-        </div>
-
-        {/* Center Section - Search */}
-        <div className="flex-1 max-w-md mx-8">
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search users, companies, institutions..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-            />
-            <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-          </div>
         </div>
 
         {/* Right Section */}
         <div className="flex items-center space-x-4">
-          {/* Notifications */}
-          <div className="relative">
-            <button className="p-2 rounded-lg hover:bg-gray-100 transition-colors relative">
-              <FaBell className="text-gray-600" />
-              <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                3
-              </span>
-            </button>
-          </div>
 
           {/* Profile Dropdown */}
           <div className="relative">

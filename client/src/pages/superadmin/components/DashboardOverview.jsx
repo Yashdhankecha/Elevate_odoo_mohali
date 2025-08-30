@@ -1,149 +1,143 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   FaUsers, 
   FaBuilding, 
-  FaGraduationCap, 
-  FaUserShield,
   FaChartLine,
+  FaChartPie,
   FaShieldAlt,
-  FaClock,
-  FaCheckCircle,
-  FaExclamationTriangle,
-  FaDatabase
+  FaDatabase,
+  FaBriefcase,
+  FaFileAlt,
+  FaClock
 } from 'react-icons/fa';
+import axios from 'axios';
+
+// Create axios instance with base configuration
+const api = axios.create({
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  withCredentials: true,
+});
+
+// Request interceptor to add auth token
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
 
 const DashboardOverview = () => {
-  const stats = [
-    {
-      title: 'Total Users',
-      value: '15,847',
-      change: '+12%',
-      changeType: 'positive',
-      icon: FaUsers,
-      color: 'bg-blue-500',
-      bgColor: 'bg-blue-50',
-      textColor: 'text-blue-600'
-    },
-    {
-      title: 'Active Companies',
-      value: '289',
-      change: '+8',
-      changeType: 'positive',
-      icon: FaBuilding,
-      color: 'bg-green-500',
-      bgColor: 'bg-green-50',
-      textColor: 'text-green-600'
-    },
-    {
-      title: 'Institutions',
-      value: '156',
-      change: '+5',
-      changeType: 'positive',
-      icon: FaGraduationCap,
-      color: 'bg-purple-500',
-      bgColor: 'bg-purple-50',
-      textColor: 'text-purple-600'
-    },
-    {
-      title: 'Pending Approvals',
-      value: '23',
-      change: '+3',
-      changeType: 'warning',
-      icon: FaUserShield,
-      color: 'bg-orange-500',
-      bgColor: 'bg-orange-50',
-      textColor: 'text-orange-600'
-    },
-    {
-      title: 'System Health',
-      value: '99.8%',
-      change: '+0.2%',
-      changeType: 'positive',
-      icon: FaShieldAlt,
-      color: 'bg-indigo-500',
-      bgColor: 'bg-indigo-50',
-      textColor: 'text-indigo-600'
-    },
-    {
-      title: 'Data Storage',
-      value: '2.4TB',
-      change: '+15%',
-      changeType: 'neutral',
-      icon: FaDatabase,
-      color: 'bg-pink-500',
-      bgColor: 'bg-pink-50',
-      textColor: 'text-pink-600'
-    }
-  ];
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [dashboardData, setDashboardData] = useState({
+    totalStudents: 0,
+    totalCompanies: 0,
+    totalJobPostings: 0,
+    totalApplications: 0,
+    recentActivities: []
+  });
 
-  const recentActivities = [
-    { 
-      id: 1, 
-      message: 'New admin registration: John Smith from IIT Delhi', 
-      time: '2 min ago', 
-      type: 'admin',
-      status: 'pending'
-    },
-    { 
-      id: 2, 
-      message: 'Company approval request: TechCorp Solutions', 
-      time: '1 hour ago', 
-      type: 'company',
-      status: 'pending'
-    },
-    { 
-      id: 3, 
-      message: 'System backup completed successfully', 
-      time: '3 hours ago', 
-      type: 'system',
-      status: 'completed'
-    },
-    { 
-      id: 4, 
-      message: 'Security alert: Multiple failed login attempts detected', 
-      time: '5 hours ago', 
-      type: 'security',
-      status: 'warning'
-    },
-    { 
-      id: 5, 
-      message: 'New institution registration: NIT Surathkal', 
-      time: '1 day ago', 
-      type: 'institution',
-      status: 'completed'
-    }
-  ];
 
-  const pendingApprovals = [
-    { type: 'Admin', count: 8, priority: 'high' },
-    { type: 'Company', count: 15, priority: 'medium' },
-    { type: 'Institution', count: 3, priority: 'low' }
-  ];
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Get current date and previous month date
+        const now = new Date();
+        const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        
+        // Fetch all data in parallel
+        const [studentsRes, companiesRes, jobsRes, applicationsRes, activitiesRes] = await Promise.all([
+          api.get('/admin/total-students'),
+          api.get('/admin/total-companies'),
+          api.get('/admin/total-job-postings'),
+          api.get('/admin/total-applications'),
+          api.get('/admin/recent-activities')
+        ]);
 
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'completed':
-        return <FaCheckCircle className="text-green-500" />;
-      case 'pending':
-        return <FaClock className="text-orange-500" />;
-      case 'warning':
-        return <FaExclamationTriangle className="text-red-500" />;
-      default:
-        return <FaClock className="text-gray-500" />;
-    }
-  };
+        const currentStudents = studentsRes.data.count || 0;
+        const currentCompanies = companiesRes.data.count || 0;
+        const currentJobs = jobsRes.data.count || 0;
+        const currentApplications = applicationsRes.data.count || 0;
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'completed':
-        return 'bg-green-100 text-green-800';
-      case 'pending':
-        return 'bg-orange-100 text-orange-800';
-      case 'warning':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
+
+
+        setDashboardData({
+          totalStudents: currentStudents,
+          totalCompanies: currentCompanies,
+          totalJobPostings: currentJobs,
+          totalApplications: currentApplications,
+          recentActivities: activitiesRes.data.activities || []
+        });
+      } catch (err) {
+        console.error('Error fetching dashboard data:', err);
+        setError(err.response?.data?.message || err.message || 'Failed to load dashboard data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading dashboard overview...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-500 text-6xl mb-4">⚠️</div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Oops! Something went wrong</h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const { 
+    totalStudents, 
+    totalCompanies, 
+    totalJobPostings, 
+    totalApplications, 
+    recentActivities
+  } = dashboardData;
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   return (
@@ -151,102 +145,208 @@ const DashboardOverview = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+          <div className="flex items-center gap-2">
             <FaShieldAlt className="text-red-600" />
-            System Overview
-          </h2>
-          <p className="text-gray-600">Monitor system health, user activities, and pending approvals</p>
+            <h2 className="text-2xl font-bold text-gray-800">System Overview</h2>
         </div>
-        <div className="flex gap-2">
-          <button className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors">
-            <FaUserShield className="w-4 h-4" />
-            Review Approvals
+          <div className="flex items-center gap-4">
+            <p className="text-gray-600">Monitor system health, user activities, and platform statistics</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+              title="Refresh data"
+            >
+              🔄 Refresh
           </button>
         </div>
       </div>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {stats.map((stat, index) => {
-          const Icon = stat.icon;
-          return (
-            <div key={index} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between mb-4">
-                <div className={`${stat.color} p-3 rounded-lg`}>
-                  <Icon className="w-6 h-6 text-white" />
-                </div>
-                <span className={`text-sm font-medium ${
-                  stat.changeType === 'positive' ? 'text-green-600' :
-                  stat.changeType === 'warning' ? 'text-orange-600' :
-                  'text-gray-600'
-                }`}>
-                  {stat.change}
-                </span>
-              </div>
-              <div className="text-3xl font-bold text-gray-800 mb-2">{stat.value}</div>
-              <div className="text-sm text-gray-600">{stat.title}</div>
-            </div>
-          );
-        })}
       </div>
 
-      {/* Main Content Grid */}
+      {/* Stats Grid - 4 responsive cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Total Students */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+          <div className="mb-4"></div>
+          <div className="text-3xl font-bold text-gray-800 mb-2">{totalStudents.toLocaleString()}</div>
+          <div className="text-sm text-gray-600">Total Students</div>
+        </div>
+
+        {/* Total Companies */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+          <div className="mb-4"></div>
+          <div className="text-3xl font-bold text-gray-800 mb-2">{totalCompanies.toLocaleString()}</div>
+          <div className="text-sm text-gray-600">Total Companies</div>
+        </div>
+
+        {/* Total Job Postings */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+          <div className="mb-4"></div>
+          <div className="text-3xl font-bold text-gray-800 mb-2">{totalJobPostings.toLocaleString()}</div>
+          <div className="text-sm text-gray-600">Job Postings</div>
+        </div>
+
+        {/* Total Applications */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+                        <div className="mb-4"></div>
+          <div className="text-3xl font-bold text-gray-800 mb-2">{totalApplications.toLocaleString()}</div>
+          <div className="text-sm text-gray-600">Applications</div>
+            </div>
+      </div>
+
+
+
+                     {/* Interactive Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Pending Approvals */}
-        <div className="lg:col-span-1 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          {/* User Distribution Bar Chart */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              <FaUsers className="text-blue-600" />
+              User Distribution
+            </h3>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Students</span>
+                <span className="text-lg font-bold text-blue-600">{totalStudents.toLocaleString()}</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-4">
+                <div 
+                  className="bg-gradient-to-r from-blue-500 to-blue-600 h-4 rounded-full transition-all duration-700 shadow-sm"
+                  style={{ width: `${Math.min((totalStudents / (totalStudents + totalCompanies)) * 100, 100)}%` }}
+                ></div>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Companies</span>
+                <span className="text-lg font-bold text-green-600">{totalCompanies.toLocaleString()}</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-4">
+                <div 
+                  className="bg-gradient-to-r from-green-500 to-green-600 h-4 rounded-full transition-all duration-700 shadow-sm"
+                  style={{ width: `${Math.min((totalCompanies / (totalStudents + totalCompanies)) * 100, 100)}%` }}
+                ></div>
+              </div>
+            </div>
+          </div>
+
+          {/* Job Postings vs Applications Chart */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-            <FaUserShield className="text-orange-600" />
-            Pending Approvals
+              <FaBriefcase className="text-purple-600" />
+              Job Market Activity
           </h3>
           <div className="space-y-4">
-            {pendingApprovals.map((approval, index) => (
-              <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div>
-                  <p className="font-medium text-gray-800">{approval.type}</p>
-                  <p className="text-sm text-gray-600">{approval.count} requests</p>
-                </div>
-                <span className={`px-2 py-1 rounded-full text-xs ${
-                  approval.priority === 'high' ? 'bg-red-100 text-red-700' :
-                  approval.priority === 'medium' ? 'bg-orange-100 text-orange-700' :
-                  'bg-green-100 text-green-700'
-                }`}>
-                  {approval.priority}
-                </span>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Job Postings</span>
+                <span className="text-lg font-bold text-purple-600">{totalJobPostings.toLocaleString()}</span>
               </div>
-            ))}
+              <div className="w-full bg-gray-200 rounded-full h-4">
+                <div 
+                  className="bg-gradient-to-r from-purple-500 to-purple-600 h-4 rounded-full transition-all duration-700 shadow-sm"
+                  style={{ width: `${Math.min((totalJobPostings / Math.max(totalJobPostings, totalApplications, 1)) * 100, 100)}%` }}
+                ></div>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Applications</span>
+                <span className="text-lg font-bold text-orange-600">{totalApplications.toLocaleString()}</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-4">
+                <div 
+                  className="bg-gradient-to-r from-orange-500 to-orange-600 h-4 rounded-full transition-all duration-700 shadow-sm"
+                  style={{ width: `${Math.min((totalApplications / Math.max(totalJobPostings, totalApplications, 1)) * 100, 100)}%` }}
+                ></div>
+              </div>
+            </div>
           </div>
-          <button className="w-full mt-4 bg-orange-600 hover:bg-orange-700 text-white py-2 rounded-lg transition-colors">
-            Review All Approvals
-          </button>
+
+          {/* Interactive Donut Chart */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              <FaChartPie className="text-indigo-600" />
+              Platform Overview
+            </h3>
+            <div className="relative w-32 h-32 mx-auto mb-4">
+              <svg className="w-32 h-32 transform -rotate-90" viewBox="0 0 36 36">
+                <path
+                  d="M18 2.0845
+                    a 15.9155 15.9155 0 0 1 0 31.831
+                    a 15.9155 15.9155 0 0 1 0 -31.831"
+                  fill="none"
+                  stroke="#e5e7eb"
+                  strokeWidth="3"
+                />
+                <path
+                  d="M18 2.0845
+                    a 15.9155 15.9155 0 0 1 0 31.831
+                    a 15.9155 15.9155 0 0 1 0 -31.831"
+                  fill="none"
+                  stroke="#3b82f6"
+                  strokeWidth="3"
+                  strokeDasharray={`${(totalStudents / (totalStudents + totalCompanies)) * 100}, 100`}
+                  className="transition-all duration-700"
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="text-lg font-bold text-gray-800">{((totalStudents / (totalStudents + totalCompanies)) * 100).toFixed(1)}%</div>
+                  <div className="text-xs text-gray-500">Students</div>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                  <span className="text-gray-600">Students</span>
+                </div>
+                <span className="font-medium">{totalStudents}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
+                  <span className="text-gray-600">Companies</span>
+                </div>
+                <span className="font-medium">{totalCompanies}</span>
+                </div>
+              </div>
+          </div>
         </div>
 
+       {/* Main Content Grid */}
+       <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
+
         {/* Recent Activities */}
-        <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
             <FaChartLine className="text-blue-600" />
             Recent Activities
           </h3>
           <div className="space-y-4">
-            {recentActivities.map((activity) => (
-              <div key={activity.id} className="flex items-start gap-3 p-3 hover:bg-gray-50 rounded-lg transition-colors">
-                <div className="mt-1">
-                  {getStatusIcon(activity.status)}
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm text-gray-800">{activity.message}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(activity.status)}`}>
-                      {activity.type}
-                    </span>
-                    <span className="text-xs text-gray-500">{activity.time}</span>
+            {recentActivities.length > 0 ? (
+              recentActivities.map((activity, index) => (
+                <div key={index} className="flex items-start gap-3 p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                  <div className="mt-1">
+                    <FaClock className="text-blue-500" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-800">{activity.message}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-700">
+                        {activity.type}
+                      </span>
+                      <span className="text-xs text-gray-500">{formatDate(activity.date)}</span>
+                    </div>
                   </div>
                 </div>
+              ))
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <FaDatabase className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                <p>No recent activities</p>
               </div>
-            ))}
+            )}
           </div>
-          <button className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg transition-colors">
-            View All Activities
-          </button>
+
         </div>
       </div>
     </div>

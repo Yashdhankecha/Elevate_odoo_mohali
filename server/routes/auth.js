@@ -60,8 +60,8 @@ const getValidationRules = (role) => {
           .notEmpty()
           .withMessage('Branch is required'),
         body('graduationYear')
-          .isInt({ min: new Date().getFullYear() - 1, max: new Date().getFullYear() + 10 })
-          .withMessage('Graduation Year must be between last year and 10 years ahead'),
+          .isInt({ min: new Date().getFullYear(), max: new Date().getFullYear() + 10 })
+          .withMessage('Graduation Year must be between current year and 10 years ahead'),
         body('collegeName')
           .notEmpty()
           .withMessage('College Name is required')
@@ -92,31 +92,6 @@ const getValidationRules = (role) => {
           .withMessage('Please enter a valid contact number')
       ];
     
-    case 'admin':
-      return [
-        ...baseRules,
-        body('name')
-          .isLength({ min: 2, max: 50 })
-          .withMessage('Name must be between 2 and 50 characters'),
-        body('contactNumber')
-          .matches(/^[+]?[\d\s\-\(\)]+$/)
-          .withMessage('Please enter a valid contact number'),
-        body('department')
-          .notEmpty()
-          .withMessage('Department is required')
-      ];
-    
-    case 'superadmin':
-      return [
-        ...baseRules,
-        body('name')
-          .isLength({ min: 2, max: 50 })
-          .withMessage('Name must be between 2 and 50 characters'),
-        body('contactNumber')
-          .matches(/^[+]?[\d\s\-\(\)]+$/)
-          .withMessage('Please enter a valid contact number')
-      ];
-    
     default:
       return baseRules;
   }
@@ -132,10 +107,10 @@ router.post('/register', async (req, res) => {
     console.log('📝 Registration attempt:', { role, email: userData.email });
 
     // Validate role
-    if (!role || !['student', 'company', 'tpo', 'admin', 'superadmin'].includes(role)) {
+    if (!role || !['student', 'company', 'tpo'].includes(role)) {
       return res.status(400).json({
         success: false,
-        message: 'Valid role is required (student, company, tpo, admin, or superadmin)'
+        message: 'Valid role is required (student, company, or tpo)'
       });
     }
 
@@ -181,7 +156,8 @@ router.post('/register', async (req, res) => {
     const userFields = {
       email: userData.email,
       password: userData.password,
-      role: role
+      role: role,
+      status: 'pending' // Set status as pending for admin approval (except superadmin)
     };
 
     // Add role-specific data
@@ -208,24 +184,6 @@ router.post('/register', async (req, res) => {
           name: userData.name,
           instituteName: userData.instituteName,
           contactNumber: userData.contactNumber
-        };
-        break;
-      
-      case 'admin':
-        userFields.admin = {
-          name: userData.name,
-          contactNumber: userData.contactNumber,
-          department: userData.department,
-          permissions: userData.permissions || ['user_management', 'reports']
-        };
-        break;
-      
-      case 'superadmin':
-        userFields.superadmin = {
-          name: userData.name,
-          contactNumber: userData.contactNumber,
-          systemAccess: true,
-          permissions: ['admin_approval', 'company_approval', 'institution_management', 'system_settings']
         };
         break;
     }
@@ -262,11 +220,20 @@ router.post('/register', async (req, res) => {
 
     console.log('🎉 Registration completed successfully for user:', user._id);
 
+    // For TPOs, always require superadmin approval
+    let message = 'Registration successful! Please check your email for verification code.';
+    if (userData.role === 'tpo') {
+      message += ' Your TPO account requires superadmin approval before activation.';
+    } else {
+      message += ' Your account will be activated after admin approval.';
+    }
+
     res.status(201).json({
       success: true,
-      message: 'Registration successful! Please check your email for verification code.',
+      message: message,
       userId: user._id,
-      role: user.role
+      role: user.role,
+      status: 'pending'
     });
 
   } catch (error) {
@@ -348,19 +315,18 @@ router.post('/verify-otp', [
     user.emailVerificationOTP = undefined;
     await user.save();
 
-    // Generate token and set cookie
-    const token = generateToken(user._id);
-    setTokenCookie(res, token);
+    // Note: Status remains 'pending' until admin approval (except for superadmin)
+    // Only email verification is completed here
 
     res.json({
       success: true,
-      message: 'Account verified successfully!',
-      token,
+      message: 'Email verified successfully! Your account is pending admin approval. You will be notified once approved.',
       user: {
         id: user._id,
         email: user.email,
         role: user.role,
         isVerified: user.isVerified,
+        status: user.status,
         displayName: user.getDisplayName()
       }
     });
@@ -411,14 +377,28 @@ router.post('/login', [
       });
     }
 
-    // Check if user is verified
-    if (!user.isVerified) {
-      return res.status(403).json({
-        success: false,
-        message: 'Please verify your email before logging in. Check your email for OTP.',
-        requiresVerification: true,
-        userId: user._id
-      });
+    // Check if user status is active (block pending and rejected users)
+    // Superadmin users are exempt from status checks
+    if (user.role !== 'superadmin' && user.status !== 'active') {
+      if (user.status === 'pending') {
+        let approvalMessage = 'Your registration is pending approval. Please wait for admin approval before logging in.';
+        if (user.role === 'tpo') {
+          approvalMessage = 'Your TPO account requires superadmin approval before activation. Please wait for approval.';
+        }
+        return res.status(403).json({
+          success: false,
+          message: approvalMessage,
+          requiresApproval: true,
+          userId: user._id
+        });
+      } else if (user.status === 'rejected') {
+        return res.status(403).json({
+          success: false,
+          message: 'Your registration has been rejected. Please contact support for more information.',
+          registrationRejected: true,
+          userId: user._id
+        });
+      }
     }
 
     // Update last login
@@ -437,6 +417,7 @@ router.post('/login', [
         id: user._id,
         email: user.email,
         role: user.role,
+        status: user.status,
         isVerified: user.isVerified,
         displayName: user.getDisplayName(),
         profilePicture: user.profilePicture

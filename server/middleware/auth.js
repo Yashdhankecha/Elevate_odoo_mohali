@@ -27,6 +27,22 @@ const authenticateToken = async (req, res, next) => {
       });
     }
 
+    // Check if user status is active (block pending and rejected users)
+    // Superadmin users are exempt from status checks
+    if (user.role !== 'superadmin' && user.status !== 'active') {
+      if (user.status === 'pending') {
+        return res.status(403).json({
+          success: false,
+          message: 'Your registration is pending approval. Please wait for admin approval.'
+        });
+      } else if (user.status === 'rejected') {
+        return res.status(403).json({
+          success: false,
+          message: 'Your registration has been rejected. Please contact support for more information.'
+        });
+      }
+    }
+
     // Check if user is email verified (only for non-Google users and non-admin roles)
     if (!user.googleId && !user.isVerified && !['admin', 'superadmin'].includes(user.role)) {
       return res.status(403).json({

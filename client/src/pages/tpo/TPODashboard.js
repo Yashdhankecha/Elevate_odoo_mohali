@@ -1,4 +1,8 @@
-import React, { useState } from 'react';
+
+
+
+
+import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import TopNavbar from './components/TopNavbar';
 import DashboardOverview from './components/DashboardOverview';
@@ -9,14 +13,33 @@ import TrainingPrograms from './components/TrainingPrograms';
 import InternshipRecords from './components/InternshipRecords';
 import ReportsAnalytics from './components/ReportsAnalytics';
 import Settings from './components/Settings';
+import ApprovalPending from './components/ApprovalPending';
 
 const TPODashboard = () => {
   const [activeSection, setActiveSection] = useState('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [userStatus, setUserStatus] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   const toggleSidebar = () => {
     setSidebarCollapsed(!sidebarCollapsed);
   };
+
+  useEffect(() => {
+    const checkUserStatus = () => {
+      try {
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        setUserStatus(user.status || 'pending');
+        setLoading(false);
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+        setUserStatus('pending');
+        setLoading(false);
+      }
+    };
+
+    checkUserStatus();
+  }, []);
 
   const renderContent = () => {
     switch (activeSection) {
@@ -40,6 +63,23 @@ const TPODashboard = () => {
         return <DashboardOverview />;
     }
   };
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Checking account status...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show approval pending if user status is not 'active'
+  if (userStatus !== 'active') {
+    return <ApprovalPending />;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
