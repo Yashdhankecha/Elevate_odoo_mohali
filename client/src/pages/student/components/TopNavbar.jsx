@@ -15,7 +15,7 @@ import {
   FaTimes
 } from 'react-icons/fa';
 
-const TopNavbar = ({ toggleSidebar }) => {
+const TopNavbar = ({ toggleSidebar, sidebarCollapsed }) => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -86,7 +86,7 @@ const TopNavbar = ({ toggleSidebar }) => {
   }, []);
 
   return (
-    <div className="bg-white shadow-sm border-b border-gray-200 h-16 fixed top-0 right-0 left-64 z-40">
+    <div className={`bg-white shadow-sm border-b border-gray-200 h-16 fixed top-0 right-0 z-40 transition-all duration-300 ${sidebarCollapsed ? 'left-16' : 'left-64'}`}>
       <div className="flex items-center justify-between h-full px-6">
         {/* Left Section */}
         <div className="flex items-center space-x-4">

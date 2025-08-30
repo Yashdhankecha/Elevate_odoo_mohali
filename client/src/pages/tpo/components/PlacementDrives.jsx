@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   FaBriefcase, 
   FaPlus, 
@@ -7,368 +7,390 @@ import {
   FaEdit, 
   FaEye, 
   FaTrash,
-  FaCalendarAlt,
-  FaClock,
-  FaMapMarkerAlt,
-  FaUsers,
   FaCheckCircle,
   FaTimesCircle,
+  FaClock,
+  FaCalendarAlt,
   FaBuilding,
-  FaGraduationCap,
-  FaPhone,
-  FaEnvelope
+  FaUsers,
+  FaMapMarkerAlt,
+  FaChevronLeft,
+  FaChevronRight
 } from 'react-icons/fa';
+import tpoApi from '../../../services/tpoApi';
 
 const PlacementDrives = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
-  const [filterType, setFilterType] = useState('All');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [placementDrives, setPlacementDrives] = useState([]);
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalJobs: 0,
+    hasNext: false,
+    hasPrev: false
+  });
 
-  const drives = [
-    {
-      id: 1,
-      company: 'Google Inc.',
-      logo: 'G',
-      position: 'Software Engineer',
-      date: 'Dec 20, 2024',
-      time: '10:00 AM - 5:00 PM',
-      type: 'On-Campus',
-      location: 'Main Auditorium',
-      status: 'Scheduled',
-      totalPositions: 15,
-      registeredStudents: 247,
-      shortlistedStudents: 89,
-      requirements: {
-        minCGPA: 7.5,
-        skills: ['Python', 'Java', 'Algorithms', 'Data Structures'],
-        branches: ['CSE', 'IT', 'ECE']
-      },
-      rounds: [
-        { name: 'Aptitude Test', date: 'Dec 20, 2024', time: '10:00 AM - 11:30 AM' },
-        { name: 'Technical Interview', date: 'Dec 20, 2024', time: '2:00 PM - 5:00 PM' }
-      ],
-      package: '₹18.5 LPA',
-      contactPerson: 'John Smith',
-      contactPhone: '+1-650-253-0000',
-      contactEmail: 'john.smith@google.com'
-    },
-    {
-      id: 2,
-      company: 'Microsoft Corporation',
-      logo: 'M',
-      position: 'Data Scientist',
-      date: 'Dec 25, 2024',
-      time: '9:00 AM - 4:00 PM',
-      type: 'On-Campus',
-      location: 'Seminar Hall 1',
-      status: 'Scheduled',
-      totalPositions: 12,
-      registeredStudents: 189,
-      shortlistedStudents: 67,
-      requirements: {
-        minCGPA: 7.0,
-        skills: ['Machine Learning', 'Python', 'Statistics', 'SQL'],
-        branches: ['CSE', 'IT', 'ECE', 'ME']
-      },
-      rounds: [
-        { name: 'Technical Test', date: 'Dec 25, 2024', time: '9:00 AM - 10:30 AM' },
-        { name: 'Technical Interview', date: 'Dec 25, 2024', time: '11:00 AM - 1:00 PM' },
-        { name: 'HR Round', date: 'Dec 25, 2024', time: '2:00 PM - 4:00 PM' }
-      ],
-      package: '₹16.2 LPA',
-      contactPerson: 'Sarah Johnson',
-      contactPhone: '+1-425-882-8080',
-      contactEmail: 'sarah.johnson@microsoft.com'
-    },
-    {
-      id: 3,
-      company: 'Amazon Web Services',
-      logo: 'A',
-      position: 'SDE Intern',
-      date: 'Jan 10, 2025',
-      time: '11:00 AM - 6:00 PM',
-      type: 'Virtual',
-      location: 'Online Platform',
-      status: 'Upcoming',
-      totalPositions: 20,
-      registeredStudents: 356,
-      shortlistedStudents: 120,
-      requirements: {
-        minCGPA: 7.8,
-        skills: ['AWS', 'Python', 'DevOps', 'Cloud Computing'],
-        branches: ['CSE', 'IT']
-      },
-      rounds: [
-        { name: 'Online Assessment', date: 'Jan 10, 2025', time: '11:00 AM - 12:30 PM' },
-        { name: 'Virtual Interview', date: 'Jan 10, 2025', time: '2:00 PM - 6:00 PM' }
-      ],
-      package: '₹80K/month',
-      contactPerson: 'Mike Davis',
-      contactPhone: '+1-206-266-1000',
-      contactEmail: 'mike.davis@aws.amazon.com'
-    },
-    {
-      id: 4,
-      company: 'Tata Consultancy Services',
-      logo: 'T',
-      position: 'System Engineer',
-      date: 'Dec 30, 2024',
-      time: '9:00 AM - 3:00 PM',
-      type: 'On-Campus',
-      location: 'Computer Lab 3',
-      status: 'Completed',
-      totalPositions: 50,
-      registeredStudents: 423,
-      shortlistedStudents: 156,
-      requirements: {
-        minCGPA: 6.5,
-        skills: ['Java', 'Spring', 'MySQL', 'Agile'],
-        branches: ['CSE', 'IT', 'ECE', 'ME', 'CE']
-      },
-      rounds: [
-        { name: 'Written Test', date: 'Dec 30, 2024', time: '9:00 AM - 10:30 AM' },
-        { name: 'Technical Interview', date: 'Dec 30, 2024', time: '11:00 AM - 1:00 PM' },
-        { name: 'HR Round', date: 'Dec 30, 2024', time: '2:00 PM - 3:00 PM' }
-      ],
-      package: '₹8.5 LPA',
-      contactPerson: 'Priya Sharma',
-      contactPhone: '+91-22-6778-9999',
-      contactEmail: 'priya.sharma@tcs.com'
+  const statuses = ['All', 'active', 'inactive', 'completed'];
+
+  useEffect(() => {
+    fetchPlacementDrives();
+  }, [searchQuery, filterStatus, pagination.currentPage]);
+
+  const fetchPlacementDrives = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const params = {
+        page: pagination.currentPage,
+        limit: 10
+      };
+
+      if (searchQuery) params.search = searchQuery;
+      if (filterStatus !== 'All') params.status = filterStatus;
+
+      const response = await tpoApi.getPlacementDrives(params);
+      setPlacementDrives(response.data.placementDrives);
+      setPagination(response.data.pagination);
+    } catch (err) {
+      console.error('Error fetching placement drives:', err);
+      setError(err.message || 'Failed to load placement drives');
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
-  const statuses = ['All', 'Scheduled', 'Upcoming', 'Completed', 'Cancelled'];
-  const types = ['All', 'On-Campus', 'Virtual', 'Hybrid'];
+  const handleSearch = (e) => {
+    e.preventDefault();
+    setPagination(prev => ({ ...prev, currentPage: 1 }));
+  };
+
+  const handleFilterChange = () => {
+    setPagination(prev => ({ ...prev, currentPage: 1 }));
+  };
+
+  const handlePageChange = (newPage) => {
+    setPagination(prev => ({ ...prev, currentPage: newPage }));
+  };
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'Scheduled': return 'bg-blue-100 text-blue-800';
-      case 'Upcoming': return 'bg-green-100 text-green-800';
-      case 'Completed': return 'bg-gray-100 text-gray-800';
-      case 'Cancelled': return 'bg-red-100 text-red-800';
+      case 'active': return 'bg-green-100 text-green-800';
+      case 'inactive': return 'bg-red-100 text-red-800';
+      case 'completed': return 'bg-blue-100 text-blue-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const getTypeColor = (type) => {
-    switch (type) {
-      case 'On-Campus': return 'bg-purple-100 text-purple-800';
-      case 'Virtual': return 'bg-orange-100 text-orange-800';
-      case 'Hybrid': return 'bg-indigo-100 text-indigo-800';
-      default: return 'bg-gray-100 text-gray-800';
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'active': return <FaCheckCircle className="w-4 h-4" />;
+      case 'inactive': return <FaTimesCircle className="w-4 h-4" />;
+      case 'completed': return <FaClock className="w-4 h-4" />;
+      default: return <FaClock className="w-4 h-4" />;
     }
   };
 
-  const filteredDrives = drives.filter(drive => {
-    const matchesSearch = drive.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         drive.position.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = filterStatus === 'All' || drive.status === filterStatus;
-    const matchesType = filterType === 'All' || drive.type === filterType;
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const formatSalary = (salary) => {
+    if (!salary) return 'Not specified';
+    if (salary >= 100000) {
+      return `₹${(salary / 100000).toFixed(1)}L PA`;
+    } else if (salary >= 1000) {
+      return `₹${(salary / 1000).toFixed(1)}K PA`;
+    }
+    return `₹${salary} PA`;
+  };
+
+  const getDaysUntilDeadline = (deadline) => {
+    const today = new Date();
+    const deadlineDate = new Date(deadline);
+    const diffTime = deadlineDate - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     
-    return matchesSearch && matchesStatus && matchesType;
-  });
+    if (diffDays < 0) return 'Expired';
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Tomorrow';
+    return `${diffDays} days left`;
+  };
+
+  if (loading && placementDrives.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="animate-pulse">
+            <div className="h-8 bg-gray-300 rounded w-1/4 mb-4"></div>
+            <div className="space-y-3">
+              {[...Array(5)].map((_, index) => (
+                <div key={index} className="h-16 bg-gray-200 rounded"></div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-            <FaBriefcase className="text-orange-600" />
-            Placement Drives
-          </h2>
-          <p className="text-gray-600">Manage scheduled drives, registrations, and drive details</p>
+          <h1 className="text-2xl font-bold text-gray-800">Placement Drives</h1>
+          <p className="text-gray-600">Manage and track placement drives and job postings</p>
         </div>
-        <button className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors">
-          <FaPlus className="w-4 h-4" />
-          Schedule Drive
-        </button>
-      </div>
-
-      {/* Filters */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="relative">
-            <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search drives..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-            />
-          </div>
-          
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-          >
-            {statuses.map(status => (
-              <option key={status} value={status}>{status}</option>
-            ))}
-          </select>
-          
-          <select
-            value={filterType}
-            onChange={(e) => setFilterType(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-          >
-            {types.map(type => (
-              <option key={type} value={type}>{type}</option>
-            ))}
-          </select>
-          
-          <button className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors">
-            <FaFilter className="w-4 h-4" />
-            More Filters
+        <div className="flex items-center space-x-3">
+          <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2">
+            <FaPlus className="w-4 h-4" />
+            <span>Add Drive</span>
           </button>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Total Drives</p>
-              <p className="text-2xl font-bold text-gray-800">23</p>
+      {/* Search and Filters */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <form onSubmit={handleSearch} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Search */}
+            <div className="relative">
+              <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <input
+                type="text"
+                placeholder="Search drives..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
             </div>
-            <FaBriefcase className="w-8 h-8 text-orange-500" />
+
+            {/* Status Filter */}
+            <select
+              value={filterStatus}
+              onChange={(e) => {
+                setFilterStatus(e.target.value);
+                handleFilterChange();
+              }}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              {statuses.map((status) => (
+                <option key={status} value={status}>
+                  {status.charAt(0).toUpperCase() + status.slice(1)}
+                </option>
+              ))}
+            </select>
+
+            {/* Search Button */}
+            <button
+              type="submit"
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
+            >
+              <FaSearch className="w-4 h-4" />
+              <span>Search</span>
+            </button>
           </div>
-        </div>
-        
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Scheduled</p>
-              <p className="text-2xl font-bold text-blue-600">8</p>
-            </div>
-            <FaCalendarAlt className="w-8 h-8 text-blue-500" />
-          </div>
-        </div>
-        
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Completed</p>
-              <p className="text-2xl font-bold text-green-600">12</p>
-            </div>
-            <FaCheckCircle className="w-8 h-8 text-green-500" />
-          </div>
-        </div>
-        
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Total Registrations</p>
-              <p className="text-2xl font-bold text-purple-600">1,215</p>
-            </div>
-            <FaUsers className="w-8 h-8 text-purple-500" />
-          </div>
-        </div>
+        </form>
       </div>
 
-      {/* Drives Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company & Position</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Schedule</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requirements</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Registrations</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredDrives.map((drive) => (
-                <tr key={drive.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="w-12 h-12 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg flex items-center justify-center">
-                        <span className="text-white font-bold text-lg">{drive.logo}</span>
-                      </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">{drive.company}</div>
-                        <div className="text-sm text-gray-500">{drive.position}</div>
-                        <div className="flex items-center text-xs text-gray-400 mt-1">
-                          <FaMapMarkerAlt className="w-3 h-3 mr-1" />
-                          {drive.location}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm">
-                      <div className="font-medium">{drive.date}</div>
-                      <div className="text-gray-500">{drive.time}</div>
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getTypeColor(drive.type)}`}>
-                        {drive.type}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="space-y-1">
-                      <div className="text-sm">
-                        <span className="font-medium">Min CGPA:</span> {drive.requirements.minCGPA}
-                      </div>
-                      <div className="text-sm">
-                        <span className="font-medium">Positions:</span> {drive.totalPositions}
-                      </div>
-                      <div className="flex flex-wrap gap-1">
-                        {drive.requirements.skills.slice(0, 2).map((skill, index) => (
-                          <span key={index} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                            {skill}
-                          </span>
-                        ))}
-                        {drive.requirements.skills.length > 2 && (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                            +{drive.requirements.skills.length - 2}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="space-y-1">
-                      <div className="text-sm">
-                        <span className="font-medium">Registered:</span> {drive.registeredStudents}
-                      </div>
-                      <div className="text-sm">
-                        <span className="font-medium">Shortlisted:</span> {drive.shortlistedStudents}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        Package: {drive.package}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(drive.status)}`}>
-                      {drive.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex items-center space-x-2">
-                      <button className="text-blue-600 hover:text-blue-900">
-                        <FaEye className="w-4 h-4" />
-                      </button>
-                      <button className="text-green-600 hover:text-green-900">
-                        <FaEdit className="w-4 h-4" />
-                      </button>
-                      <button className="text-red-600 hover:text-red-900">
-                        <FaTrash className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+          <div className="flex items-center">
+            <FaTimesCircle className="w-5 h-5 text-red-500 mr-3" />
+            <div>
+              <h3 className="text-red-800 font-medium">Error Loading Placement Drives</h3>
+              <p className="text-red-600 text-sm mt-1">{error}</p>
+              <button 
+                onClick={fetchPlacementDrives}
+                className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Retry
+              </button>
+            </div>
+          </div>
         </div>
+      )}
+
+      {/* Placement Drives Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {placementDrives.map((drive) => (
+          <div key={drive._id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-blue-500 rounded-lg flex items-center justify-center">
+                  <FaBriefcase className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-800">{drive.title}</h3>
+                  <p className="text-sm text-gray-500">{drive.company?.companyName || 'Company not specified'}</p>
+                </div>
+              </div>
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(drive.status)}`}>
+                {getStatusIcon(drive.status)}
+                <span className="ml-1">{drive.status}</span>
+              </span>
+            </div>
+
+            <div className="space-y-3 mb-4">
+              <div className="flex items-center text-sm text-gray-600">
+                <FaMapMarkerAlt className="w-4 h-4 mr-2 text-gray-400" />
+                <span>{drive.location || 'Location not specified'}</span>
+              </div>
+              <div className="flex items-center text-sm text-gray-600">
+                <FaCalendarAlt className="w-4 h-4 mr-2 text-gray-400" />
+                <span>Deadline: {formatDate(drive.deadline)}</span>
+              </div>
+              {drive.salary && (
+                <div className="flex items-center text-sm text-gray-600">
+                  <FaBriefcase className="w-4 h-4 mr-2 text-gray-400" />
+                  <span>Salary: {formatSalary(drive.salary)}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="border-t border-gray-200 pt-4">
+              <div className="flex items-center justify-between text-sm">
+                <div>
+                  <p className="text-gray-600">Applications</p>
+                  <p className="font-semibold text-gray-800">{drive.totalApplications || 0}</p>
+                </div>
+                <div>
+                  <p className="text-gray-600">Accepted</p>
+                  <p className="font-semibold text-green-600">{drive.acceptedApplications || 0}</p>
+                </div>
+                <div>
+                  <p className="text-gray-600">Time Left</p>
+                  <p className={`font-semibold ${
+                    getDaysUntilDeadline(drive.deadline) === 'Expired' ? 'text-red-600' : 'text-blue-600'
+                  }`}>
+                    {getDaysUntilDeadline(drive.deadline)}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {drive.description && (
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <p className="text-sm text-gray-600 line-clamp-2">{drive.description}</p>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
+              <div className="flex space-x-2">
+                <button className="text-blue-600 hover:text-blue-900 p-2 rounded-lg hover:bg-blue-50 transition-colors">
+                  <FaEye className="w-4 h-4" />
+                </button>
+                <button className="text-green-600 hover:text-green-900 p-2 rounded-lg hover:bg-green-50 transition-colors">
+                  <FaEdit className="w-4 h-4" />
+                </button>
+                <button className="text-red-600 hover:text-red-900 p-2 rounded-lg hover:bg-red-50 transition-colors">
+                  <FaTrash className="w-4 h-4" />
+                </button>
+              </div>
+              <button className="text-sm text-blue-600 hover:text-blue-800 font-medium">
+                View Details
+              </button>
+            </div>
+          </div>
+        ))}
       </div>
+
+      {/* Empty State */}
+      {!loading && placementDrives.length === 0 && (
+        <div className="text-center py-12">
+          <FaBriefcase className="w-16 h-16 mx-auto text-gray-400 mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No placement drives found</h3>
+          <p className="text-gray-500 mb-6">
+            {searchQuery || filterStatus !== 'All' 
+              ? 'Try adjusting your search or filters'
+              : 'Get started by adding your first placement drive'
+            }
+          </p>
+          <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+            Add Drive
+          </button>
+        </div>
+      )}
+
+      {/* Pagination */}
+      {pagination.totalPages > 1 && (
+        <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6 rounded-xl shadow-sm border border-gray-200">
+          <div className="flex-1 flex justify-between sm:hidden">
+            <button
+              onClick={() => handlePageChange(pagination.currentPage - 1)}
+              disabled={!pagination.hasPrev}
+              className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Previous
+            </button>
+            <button
+              onClick={() => handlePageChange(pagination.currentPage + 1)}
+              disabled={!pagination.hasNext}
+              className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
+          </div>
+          <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm text-gray-700">
+                Showing <span className="font-medium">{((pagination.currentPage - 1) * 10) + 1}</span> to{' '}
+                <span className="font-medium">
+                  {Math.min(pagination.currentPage * 10, pagination.totalJobs)}
+                </span>{' '}
+                of <span className="font-medium">{pagination.totalJobs}</span> results
+              </p>
+            </div>
+            <div>
+              <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                <button
+                  onClick={() => handlePageChange(pagination.currentPage - 1)}
+                  disabled={!pagination.hasPrev}
+                  className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <FaChevronLeft className="w-4 h-4" />
+                </button>
+                
+                {[...Array(pagination.totalPages)].map((_, index) => {
+                  const pageNumber = index + 1;
+                  const isCurrentPage = pageNumber === pagination.currentPage;
+                  
+                  return (
+                    <button
+                      key={pageNumber}
+                      onClick={() => handlePageChange(pageNumber)}
+                      className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                        isCurrentPage
+                          ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                          : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                      }`}
+                    >
+                      {pageNumber}
+                    </button>
+                  );
+                })}
+                
+                <button
+                  onClick={() => handlePageChange(pagination.currentPage + 1)}
+                  disabled={!pagination.hasNext}
+                  className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <FaChevronRight className="w-4 h-4" />
+                </button>
+              </nav>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

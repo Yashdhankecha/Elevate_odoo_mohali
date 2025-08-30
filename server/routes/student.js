@@ -827,6 +827,36 @@ router.get('/placement-history', authenticateToken, ensureStudent, async (req, r
   }
 });
 
+// @route   GET /api/student/profile
+// @desc    Get student profile
+// @access  Private (Student)
+router.get('/profile', authenticateToken, ensureStudent, async (req, res) => {
+  try {
+    const studentId = req.user._id;
+    
+    const user = await User.findById(studentId).select('student');
+    
+    if (!user || !user.student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student profile not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: user.student
+    });
+
+  } catch (error) {
+    console.error('Profile fetch error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+});
+
 // @route   PUT /api/student/profile
 // @desc    Update student profile
 // @access  Private (Student)
@@ -835,7 +865,7 @@ router.put('/profile', [
   ensureStudent,
   body('name').optional().isLength({ min: 2 }).withMessage('Name must be at least 2 characters'),
   body('cgpa').optional().isFloat({ min: 0, max: 10 }).withMessage('CGPA must be between 0 and 10'),
-  body('skills').optional().isArray().withMessage('Skills must be an array')
+  body('skills').optional().isObject().withMessage('Skills must be an object')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -1131,5 +1161,145 @@ function calculateProfileCompletion(profileData) {
 
   return Math.round((completedFields / fields.length) * 100);
 }
+
+// @route   GET /api/student/ai-coach
+// @desc    Get AI coach data and insights
+// @access  Private (Student)
+router.get('/ai-coach', authenticateToken, ensureStudent, async (req, res) => {
+  try {
+    const studentId = req.user._id;
+
+    // Get student's recent activities for AI insights
+    const recentApplications = await JobApplication.find({ student: studentId })
+      .populate('jobPosting', 'title category')
+      .sort({ appliedDate: -1 })
+      .limit(5);
+
+    const recentPracticeSessions = await PracticeSession.find({ student: studentId })
+      .sort({ completedAt: -1 })
+      .limit(5);
+
+    const skillProgress = await SkillProgress.find({ student: studentId });
+
+    // Generate AI insights based on student data
+    const aiInsights = [];
+    
+    // Interview performance analysis
+    if (recentPracticeSessions.length > 0) {
+      const avgScore = recentPracticeSessions.reduce((sum, session) => sum + (session.score || 0), 0) / recentPracticeSessions.length;
+      if (avgScore < 70) {
+        aiInsights.push({
+          title: 'Interview Performance Analysis',
+          description: 'Based on your recent mock interviews, focus on system design questions',
+          icon: 'FaLightbulb',
+          color: 'text-yellow-500',
+          bgColor: 'bg-yellow-50'
+        });
+      }
+    }
+
+    // Resume optimization suggestion
+    const student = await User.findById(studentId).select('student');
+    if (student.student.profileCompletion < 80) {
+      aiInsights.push({
+        title: 'Resume Optimization',
+        description: 'Your resume could be improved by adding more quantifiable achievements',
+        icon: 'FaStar',
+        color: 'text-blue-500',
+        bgColor: 'bg-blue-50'
+      });
+    }
+
+    // Career path recommendation
+    if (recentApplications.length > 0) {
+      const categories = recentApplications.map(app => app.jobPosting?.category).filter(Boolean);
+      if (categories.length > 0) {
+        aiInsights.push({
+          title: 'Career Path Recommendation',
+          description: `Consider exploring ${categories[0]} roles based on your profile`,
+          icon: 'FaUserGraduate',
+          color: 'text-green-500',
+          bgColor: 'bg-green-50'
+        });
+      }
+    }
+
+    // Recent conversations (mock data for now)
+    const recentConversations = [
+      {
+        id: 1,
+        topic: 'System Design Interview Tips',
+        date: '2 hours ago',
+        status: 'completed'
+      },
+      {
+        id: 2,
+        topic: 'Resume Feedback Request',
+        date: '1 day ago',
+        status: 'in-progress'
+      },
+      {
+        id: 3,
+        topic: 'Career Path Discussion',
+        date: '3 days ago',
+        status: 'completed'
+      }
+    ];
+
+    // Performance metrics
+    const performanceMetrics = {
+      coachingSessions: recentPracticeSessions.length,
+      interviewSuccess: recentApplications.filter(app => app.status === 'offer_received').length > 0 ? 92 : 75,
+      skillsImproved: skillProgress.filter(skill => skill.proficiency >= 80).length,
+      coachRating: 4.8
+    };
+
+    res.json({
+      success: true,
+      data: {
+        aiInsights,
+        recentConversations,
+        performanceMetrics
+      }
+    });
+
+  } catch (error) {
+    console.error('AI Coach error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+});
+
+// @route   POST /api/student/ai-coach/session
+// @desc    Create a new AI coaching session
+// @access  Private (Student)
+router.post('/ai-coach/session', authenticateToken, ensureStudent, async (req, res) => {
+  try {
+    const { topic, type } = req.body;
+    const studentId = req.user._id;
+
+    // For now, just return success
+    // In a real implementation, this would create a session with an AI service
+    res.json({
+      success: true,
+      message: 'AI coaching session created successfully',
+      data: {
+        sessionId: Date.now(),
+        topic,
+        type,
+        status: 'active'
+      }
+    });
+
+  } catch (error) {
+    console.error('AI Session creation error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+});
 
 module.exports = router;

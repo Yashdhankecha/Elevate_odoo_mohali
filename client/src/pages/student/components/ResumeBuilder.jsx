@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { 
   FaFileAlt, 
   FaDownload, 
@@ -16,6 +16,8 @@ import {
   FaCheck
 } from 'react-icons/fa';
 import { usePDF } from 'react-to-pdf';
+import { studentApi } from '../../../services/studentApi';
+import { toast } from 'react-hot-toast';
 
 // Memoized Input Component
 const MemoizedInput = React.memo(({ 
@@ -96,7 +98,129 @@ const ResumeBuilder = () => {
 
   const [currentStep, setCurrentStep] = useState(0);
   const [showPreview, setShowPreview] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const { toPDF, targetRef } = usePDF({ filename: `${formData.personalInfo.fullName || 'resume'}.pdf` });
+
+  // Load profile data on component mount
+  useEffect(() => {
+    loadProfileData();
+  }, []);
+
+  const loadProfileData = async () => {
+    try {
+      setLoading(true);
+      const response = await studentApi.getProfile();
+      
+      if (response.success && response.data) {
+        const profileData = response.data;
+        console.log('Profile data received:', profileData);
+        
+        // Map profile data to form data
+        setFormData({
+          personalInfo: {
+            fullName: profileData.name || '',
+            email: profileData.email || '',
+            phone: profileData.phone || '',
+            address: profileData.address || '',
+            linkedin: profileData.linkedin || '',
+            summary: profileData.summary || ''
+          },
+          education: profileData.education || [{
+            degree: '',
+            institution: '',
+            year: '',
+            gpa: '',
+            achievements: ''
+          }],
+          experience: profileData.experience || [{
+            title: '',
+            company: '',
+            duration: '',
+            description: ''
+          }],
+          skills: (() => {
+            if (!profileData.skills) return '';
+            
+            // Handle the skills object structure from the database
+            if (profileData.skills.technicalSkills && profileData.skills.softSkills) {
+              const technicalSkills = Array.isArray(profileData.skills.technicalSkills) ? profileData.skills.technicalSkills : [];
+              const softSkills = Array.isArray(profileData.skills.softSkills) ? profileData.skills.softSkills : [];
+              return [...technicalSkills, ...softSkills].join(', ');
+            }
+            
+            // Handle simple array
+            if (Array.isArray(profileData.skills)) {
+              return profileData.skills.join(', ');
+            }
+            
+            // Handle string
+            if (typeof profileData.skills === 'string') {
+              return profileData.skills;
+            }
+            
+            return '';
+          })(),
+          projects: profileData.projects || [{
+            name: '',
+            description: '',
+            technologies: '',
+            link: ''
+          }],
+          certifications: profileData.certifications || [{
+            name: '',
+            issuer: '',
+            year: ''
+          }]
+        });
+      }
+    } catch (error) {
+      console.error('Error loading profile data:', error);
+      toast.error('Failed to load profile data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveProfileData = async () => {
+    try {
+      setSaving(true);
+      
+      // Convert form data to profile format
+      const profileData = {
+        name: formData.personalInfo.fullName,
+        email: formData.personalInfo.email,
+        phone: formData.personalInfo.phone,
+        address: formData.personalInfo.address,
+        linkedin: formData.personalInfo.linkedin,
+        summary: formData.personalInfo.summary,
+        education: formData.education,
+        experience: formData.experience,
+        skills: (() => {
+          if (!formData.skills) return { technicalSkills: [], softSkills: [] };
+          
+          const skillsArray = formData.skills.split(',').map(skill => skill.trim()).filter(skill => skill);
+          
+          // For now, we'll put all skills in technicalSkills
+          // In a more sophisticated implementation, you might want to categorize them
+          return {
+            technicalSkills: skillsArray,
+            softSkills: []
+          };
+        })(),
+        projects: formData.projects,
+        certifications: formData.certifications
+      };
+
+      await studentApi.updateProfile(profileData);
+      toast.success('Profile updated successfully!');
+    } catch (error) {
+      console.error('Error saving profile data:', error);
+      toast.error('Failed to save profile data');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const steps = useMemo(() => [
     { id: 0, title: 'Personal Info', icon: FaUser, completed: false },
@@ -112,7 +236,8 @@ const ResumeBuilder = () => {
     setFormData(prev => {
       if (index !== null) {
         // For array items
-        const newSection = [...prev[section]];
+        const currentSection = Array.isArray(prev[section]) ? prev[section] : [];
+        const newSection = [...currentSection];
         newSection[index] = { ...newSection[index], [field]: value };
         return { ...prev, [section]: newSection };
       } else {
@@ -129,18 +254,22 @@ const ResumeBuilder = () => {
   const addItem = useCallback((section) => {
     setFormData(prev => {
       const emptyItem = getEmptyItem(section);
+      const currentSection = Array.isArray(prev[section]) ? prev[section] : [];
       return {
         ...prev,
-        [section]: [...prev[section], emptyItem]
+        [section]: [...currentSection, emptyItem]
       };
     });
   }, []);
 
   const removeItem = useCallback((section, index) => {
-    setFormData(prev => ({
-      ...prev,
-      [section]: prev[section].filter((_, i) => i !== index)
-    }));
+    setFormData(prev => {
+      const currentSection = Array.isArray(prev[section]) ? prev[section] : [];
+      return {
+        ...prev,
+        [section]: currentSection.filter((_, i) => i !== index)
+      };
+    });
   }, []);
 
   const getEmptyItem = useCallback((section) => {
@@ -179,15 +308,15 @@ const ResumeBuilder = () => {
       case 0: // Personal Info
         return formData.personalInfo.fullName && formData.personalInfo.email;
       case 1: // Education
-        return formData.education.some(edu => edu.degree && edu.institution);
+        return Array.isArray(formData.education) && formData.education.some(edu => edu.degree && edu.institution);
       case 2: // Experience
-        return formData.experience.some(exp => exp.title && exp.company);
+        return Array.isArray(formData.experience) && formData.experience.some(exp => exp.title && exp.company);
       case 3: // Skills
         return formData.skills.trim().length > 0;
       case 4: // Projects
-        return formData.projects.some(project => project.name);
+        return Array.isArray(formData.projects) && formData.projects.some(project => project.name);
       case 5: // Certifications
-        return formData.certifications.some(cert => cert.name);
+        return Array.isArray(formData.certifications) && formData.certifications.some(cert => cert.name);
       default:
         return false;
     }
@@ -320,11 +449,11 @@ const ResumeBuilder = () => {
         </button>
       </div>
       
-      {formData.education.map((edu, index) => (
+             {Array.isArray(formData.education) && formData.education.map((edu, index) => (
         <div key={`education-${index}`} className="border border-gray-200 rounded-lg p-4 mb-4">
           <div className="flex justify-between items-center mb-3">
             <h5 className="font-medium text-gray-700">Education #{index + 1}</h5>
-            {formData.education.length > 1 && (
+                         {Array.isArray(formData.education) && formData.education.length > 1 && (
               <button
                 onClick={() => removeItem('education', index)}
                 className="text-red-600 hover:text-red-700 text-sm"
@@ -403,11 +532,11 @@ const ResumeBuilder = () => {
         </button>
       </div>
       
-      {formData.experience.map((exp, index) => (
+             {Array.isArray(formData.experience) && formData.experience.map((exp, index) => (
         <div key={`experience-${index}`} className="border border-gray-200 rounded-lg p-4 mb-4">
           <div className="flex justify-between items-center mb-3">
             <h5 className="font-medium text-gray-700">Experience #{index + 1}</h5>
-            {formData.experience.length > 1 && (
+                         {Array.isArray(formData.experience) && formData.experience.length > 1 && (
               <button
                 onClick={() => removeItem('experience', index)}
                 className="text-red-600 hover:text-red-700 text-sm"
@@ -501,11 +630,11 @@ const ResumeBuilder = () => {
         </button>
       </div>
       
-      {formData.projects.map((project, index) => (
+             {Array.isArray(formData.projects) && formData.projects.map((project, index) => (
         <div key={`project-${index}`} className="border border-gray-200 rounded-lg p-4 mb-4">
           <div className="flex justify-between items-center mb-3">
             <h5 className="font-medium text-gray-700">Project #{index + 1}</h5>
-            {formData.projects.length > 1 && (
+                         {Array.isArray(formData.projects) && formData.projects.length > 1 && (
               <button
                 onClick={() => removeItem('projects', index)}
                 className="text-red-600 hover:text-red-700 text-sm"
@@ -576,11 +705,11 @@ const ResumeBuilder = () => {
         </button>
       </div>
       
-      {formData.certifications.map((cert, index) => (
+             {Array.isArray(formData.certifications) && formData.certifications.map((cert, index) => (
         <div key={`certification-${index}`} className="border border-gray-200 rounded-lg p-4 mb-4">
           <div className="flex justify-between items-center mb-3">
             <h5 className="font-medium text-gray-700">Certification #{index + 1}</h5>
-            {formData.certifications.length > 1 && (
+                         {Array.isArray(formData.certifications) && formData.certifications.length > 1 && (
               <button
                 onClick={() => removeItem('certifications', index)}
                 className="text-red-600 hover:text-red-700 text-sm"
@@ -700,13 +829,13 @@ const ResumeBuilder = () => {
           </div>
         )}
 
-        {/* Education */}
-        {formData.education.some(edu => edu.degree || edu.institution) && (
+                 {/* Education */}
+         {Array.isArray(formData.education) && formData.education.some(edu => edu.degree || edu.institution) && (
           <div className="mb-6">
             <h2 className="text-xl font-semibold text-gray-800 mb-3 border-b-2 border-gray-300 pb-1">
               Education
             </h2>
-            {formData.education.map((edu, index) => (
+            {Array.isArray(formData.education) && formData.education.map((edu, index) => (
               (edu.degree || edu.institution) && (
                 <div key={index} className="mb-4">
                   <div className="flex justify-between items-start">
@@ -728,13 +857,13 @@ const ResumeBuilder = () => {
           </div>
         )}
 
-        {/* Experience */}
-        {formData.experience.some(exp => exp.title || exp.company) && (
+                 {/* Experience */}
+         {Array.isArray(formData.experience) && formData.experience.some(exp => exp.title || exp.company) && (
           <div className="mb-6">
             <h2 className="text-xl font-semibold text-gray-800 mb-3 border-b-2 border-gray-300 pb-1">
               Work Experience
             </h2>
-            {formData.experience.map((exp, index) => (
+            {Array.isArray(formData.experience) && formData.experience.map((exp, index) => (
               (exp.title || exp.company) && (
                 <div key={index} className="mb-4">
                   <div className="flex justify-between items-start mb-2">
@@ -761,13 +890,13 @@ const ResumeBuilder = () => {
           </div>
         )}
 
-        {/* Projects */}
-        {formData.projects.some(project => project.name) && (
+                 {/* Projects */}
+         {Array.isArray(formData.projects) && formData.projects.some(project => project.name) && (
           <div className="mb-6">
             <h2 className="text-xl font-semibold text-gray-800 mb-3 border-b-2 border-gray-300 pb-1">
               Projects
             </h2>
-            {formData.projects.map((project, index) => (
+            {Array.isArray(formData.projects) && formData.projects.map((project, index) => (
               project.name && (
                 <div key={index} className="mb-4">
                   <div className="flex justify-between items-start mb-2">
@@ -790,13 +919,13 @@ const ResumeBuilder = () => {
           </div>
         )}
 
-        {/* Certifications */}
-        {formData.certifications.some(cert => cert.name) && (
+                 {/* Certifications */}
+         {Array.isArray(formData.certifications) && formData.certifications.some(cert => cert.name) && (
           <div className="mb-6">
             <h2 className="text-xl font-semibold text-gray-800 mb-3 border-b-2 border-gray-300 pb-1">
               Certifications
             </h2>
-            {formData.certifications.map((cert, index) => (
+            {Array.isArray(formData.certifications) && formData.certifications.map((cert, index) => (
               cert.name && (
                 <div key={index} className="mb-2">
                   <div className="flex justify-between items-start">
@@ -825,6 +954,14 @@ const ResumeBuilder = () => {
     </div>
   ), [formData, targetRef, handleDownloadPDF]);
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -833,6 +970,23 @@ const ResumeBuilder = () => {
           <h2 className="text-2xl font-bold text-gray-800">Resume Builder</h2>
           <p className="text-gray-600">Create your professional resume step by step</p>
         </div>
+        <button
+          onClick={saveProfileData}
+          disabled={saving}
+          className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition disabled:opacity-50"
+        >
+          {saving ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              Saving...
+            </>
+          ) : (
+            <>
+              <FaCheck className="w-4 h-4" />
+              Save Profile
+            </>
+          )}
+        </button>
       </div>
 
       {showPreview ? (

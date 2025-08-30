@@ -23,9 +23,11 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://tripod:karanharshyash
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/user', require('./routes/user'));
-
+app.use('/api/student', require('./routes/student'));
+app.use('/api/tpo', require('./routes/tpo'));
 app.use('/api/superadmin', require('./routes/superadmin'));
 app.use('/api/admin', require('./routes/admin'));
+app.use('/api/notifications', require('./routes/notifications'));
 
 
 // Health check route

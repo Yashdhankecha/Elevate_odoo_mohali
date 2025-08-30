@@ -80,6 +80,11 @@ export const studentApi = {
   },
 
   // Profile
+  getProfile: async () => {
+    const response = await api.get('/student/profile');
+    return response.data;
+  },
+
   updateProfile: async (profileData) => {
     const response = await api.put('/student/profile', profileData);
     return response.data;
@@ -133,6 +138,17 @@ export const studentApi = {
 
   markNotificationsAsRead: async (notificationIds) => {
     const response = await api.put('/student/notifications/mark-read', { notificationIds });
+    return response.data;
+  },
+
+  // AI Career Coach
+  getAICoachData: async () => {
+    const response = await api.get('/student/ai-coach');
+    return response.data;
+  },
+
+  createAISession: async (sessionData) => {
+    const response = await api.post('/student/ai-coach/session', sessionData);
     return response.data;
   },
 };
