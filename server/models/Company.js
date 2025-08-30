@@ -32,6 +32,11 @@ const companySchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  status: {
+    type: String,
+    enum: ['pending', 'active', 'rejected'],
+    default: 'pending'
+  },
   emailVerificationOTP: {
     code: String,
     expiresAt: Date
@@ -166,4 +171,5 @@ companySchema.methods.toJSON = function() {
 };
 
 module.exports = mongoose.model('Company', companySchema);
+
 

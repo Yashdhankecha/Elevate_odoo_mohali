@@ -1,122 +1,64 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
+import { AuthProvider } from './contexts/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
-import Home from './pages/Home';
+import RoleBasedRoute from './components/RoleBasedRoute';
+import Navbar from './components/Navbar';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import VerifyOTP from './pages/VerifyOTP';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import Profile from './pages/Profile';
-
+import ApprovalInProcess from './pages/ApprovalInProcess';
 import StudentDashboard from './pages/student/StudentDashboard';
-import TPODashboard from './pages/tpo/TPODashboard';
 import CompanyDashboard from './pages/company/CompanyDashboard';
+import TPODashboard from './pages/tpo/TPODashboard';
 import SuperadminDashboard from './pages/superadmin/SuperadminDashboard';
 
-function AppRoutes() {
-  const { user } = useAuth();
+// Component to conditionally render Navbar and styling
+function ConditionalNavbar() {
+  const location = useLocation();
+  const isDashboardPage = location.pathname.includes('-dashboard') || 
+                          location.pathname === '/dashboard' ||
+                          location.pathname === '/approval-pending';
+  const isAuthPage = location.pathname === '/login' || 
+                     location.pathname === '/signup' || 
+                     location.pathname === '/verify-otp' || 
+                     location.pathname === '/forgot-password' || 
+                     location.pathname === '/reset-password';
   
-  // Helper function to get dashboard route based on user role
-  const getDashboardRoute = () => {
-    if (!user) return '/login';
-    switch (user.role) {
-      case 'student':
-        return '/student-dashboard';
-      case 'tpo':
-        return '/tpo-dashboard';
-      case 'company':
-        return '/company-dashboard';
-      case 'superadmin':
-        return '/superadmin-dashboard';
-      default:
-        return '/login';
-    }
-  };
+  // Don't render Navbar on dashboard pages, approval pending page, and auth pages
+  if (isDashboardPage || isAuthPage) {
+    return null;
+  }
+  
+  return <Navbar />;
+}
 
+// Component to conditionally apply main styling
+function ConditionalMain({ children }) {
+  const location = useLocation();
+  const isDashboardPage = location.pathname.includes('-dashboard') || location.pathname === '/dashboard';
+  const isAuthPage = location.pathname === '/login' || 
+                     location.pathname === '/signup' || 
+                     location.pathname === '/verify-otp' || 
+                     location.pathname === '/forgot-password' || 
+                     location.pathname === '/reset-password';
+  
+  if (isDashboardPage || isAuthPage) {
+    return <>{children}</>;
+  }
+  
   return (
-    <Routes>
-      {/* Public routes */}
-      <Route path="/login" element={<Login />} />
-      <Route path="/signup" element={<Signup />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
-      <Route path="/verify-otp" element={<VerifyOTP />} />
-      
-      {/* Default route: redirect to appropriate dashboard if logged in, else login */}
-      <Route path="/" element={<Navigate to={getDashboardRoute()} replace />} />
-      
-      {/* Role-based dashboards */}
-      <Route 
-        path="/student-dashboard" 
-        element={
-          <PrivateRoute>
-            <div className="min-h-screen bg-gray-50 flex flex-col">
-              <Navbar />
-              <div className="flex-1">
-                <StudentDashboard />
-              </div>
-            </div>
-          </PrivateRoute>
-        } 
-      />
-      <Route path="/tpo-dashboard" element={<PrivateRoute><TPODashboard /></PrivateRoute>} />
-      <Route 
-        path="/company-dashboard" 
-        element={
-          <PrivateRoute>
-            <div className="min-h-screen bg-gray-50 flex flex-col">
-              <Navbar />
-              <div className="flex-1">
-                <CompanyDashboard />
-              </div>
-            </div>
-          </PrivateRoute>
-        } 
-      />
-      <Route path="/superadmin-dashboard" element={<PrivateRoute><SuperadminDashboard /></PrivateRoute>} />
-      
-      {/* Generic protected routes with layout */}
-      <Route
-        path="/dashboard"
-        element={
-          <PrivateRoute>
-            <div className="min-h-screen bg-gray-50 flex flex-col">
-              <Navbar />
-              <div className="flex flex-1">
-                <Sidebar />
-                <main className="flex-1 px-4 py-8 ml-0 md:ml-64 mt-20">
-                  <Home />
-                </main>
-              </div>
-            </div>
-          </PrivateRoute>
-        }
-      />
-
-
-
-
-
-
-
-      <Route
-        path="/profile"
-        element={
-          <PrivateRoute>
-            <Profile />
-          </PrivateRoute>
-        }
-      />
-      
-      {/* Catch all route - redirect to appropriate dashboard */}
-      <Route path="*" element={<Navigate to={getDashboardRoute()} replace />} />
-    </Routes>
+    <main className="container mx-auto px-4 py-8">
+      {children}
+    </main>
   );
 }
 
@@ -124,8 +66,69 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <NotificationProvider>
-          <AppRoutes />
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+          <ConditionalNavbar />
+          <ConditionalMain>
+            <Routes>
+              <Route path="/" element={<Navigate to="/login" replace />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/verify-otp" element={<VerifyOTP />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/approval-pending" element={<ApprovalInProcess />} />
+              
+              {/* Role-based dashboard routes */}
+              <Route 
+                path="/dashboard" 
+                element={
+                  <PrivateRoute>
+                    <RoleBasedRoute />
+                  </PrivateRoute>
+                } 
+              />
+              
+              {/* Individual dashboard routes */}
+              <Route 
+                path="/student-dashboard" 
+                element={
+                  <RoleBasedRoute allowedRoles={['student']} />
+                } 
+              />
+              
+              <Route 
+                path="/company-dashboard" 
+                element={
+                  <RoleBasedRoute allowedRoles={['company']} />
+                } 
+              />
+              
+              <Route 
+                path="/tpo-dashboard" 
+                element={
+                  <RoleBasedRoute allowedRoles={['tpo']} />
+                } 
+              />
+              
+              <Route 
+                path="/superadmin-dashboard" 
+                element={
+                  <RoleBasedRoute allowedRoles={['superadmin']} />
+                } 
+              />
+              
+              <Route 
+                path="/profile" 
+                element={
+                  <PrivateRoute>
+                    <Profile />
+                  </PrivateRoute>
+                } 
+              />
+              
+              <Route path="*" element={<Navigate to="/login" replace />} />
+            </Routes>
+          </ConditionalMain>
           <Toaster 
             position="top-right"
             toastOptions={{
@@ -150,7 +153,8 @@ function App() {
               },
             }}
           />
-        </NotificationProvider>
+
+        </div>
       </AuthProvider>
     </Router>
   );

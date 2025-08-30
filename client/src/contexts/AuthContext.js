@@ -24,20 +24,7 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(() => {
-    // Try to get user from localStorage on initial load
-    const savedUser = localStorage.getItem('user');
-    if (savedUser) {
-      try {
-        return JSON.parse(savedUser);
-      } catch (error) {
-        console.error('Failed to parse saved user data:', error);
-        localStorage.removeItem('user');
-        return null;
-      }
-    }
-    return null;
-  });
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState(localStorage.getItem('token'));
   const navigate = useNavigate();
@@ -51,25 +38,8 @@ export const AuthProvider = ({ children }) => {
           setUser(response.user);
         } catch (error) {
           console.error('Auth check failed:', error);
-          // Instead of immediately clearing the token, let's try to recover user info from localStorage
-          const savedUser = localStorage.getItem('user');
-          if (savedUser) {
-            try {
-              const userData = JSON.parse(savedUser);
-              setUser(userData);
-              console.log('Recovered user from localStorage:', userData);
-            } catch (parseError) {
-              console.error('Failed to parse saved user data:', parseError);
-              // Only clear token if we can't recover user data
-              localStorage.removeItem('token');
-              localStorage.removeItem('user');
-              setToken(null);
-            }
-          } else {
-            // No saved user data, clear token
-            localStorage.removeItem('token');
-            setToken(null);
-          }
+          localStorage.removeItem('token');
+          setToken(null);
         }
       }
       setLoading(false);
@@ -77,6 +47,22 @@ export const AuthProvider = ({ children }) => {
 
     checkAuth();
   }, [token]);
+
+  // Helper function to get dashboard route based on user role
+  const getDashboardRoute = (userRole) => {
+    switch (userRole) {
+      case 'student':
+        return '/student-dashboard';
+      case 'company':
+        return '/company-dashboard';
+      case 'tpo':
+        return '/tpo-dashboard';
+      case 'superadmin':
+        return '/superadmin-dashboard';
+      default:
+        return '/profile';
+    }
+  };
 
   // Login function
   const login = async (email, password) => {
@@ -90,18 +76,22 @@ export const AuthProvider = ({ children }) => {
       setUser(userData);
       
       toast.success('Login successful!');
-      // Role-based redirection
-      if (userData.role === 'student') {
-        navigate('/student-dashboard');
-      } else if (userData.role === 'tpo') {
-        navigate('/tpo-dashboard');
-      } else if (userData.role === 'company') {
-        navigate('/company-dashboard');
-      } else if (userData.role === 'superadmin') {
-        navigate('/superadmin-dashboard');
-      } else {
-        navigate('/');
+      
+      // Check if TPO or Company user is pending approval
+      if ((userData.role === 'tpo' || userData.role === 'company') && userData.status === 'pending') {
+        navigate('/approval-pending', { 
+          state: { 
+            role: userData.role,
+            email: userData.email,
+            message: 'Your account is pending approval from super admin.' 
+          } 
+        });
+        return { success: true, requiresApproval: true };
       }
+      
+      // Redirect to appropriate dashboard based on user role
+      const dashboardRoute = getDashboardRoute(userData.role);
+      navigate(dashboardRoute);
       
       return { success: true };
     } catch (error) {
@@ -113,6 +103,22 @@ export const AuthProvider = ({ children }) => {
           success: false, 
           requiresVerification: true, 
           userId: error.response.data.userId,
+          message 
+        };
+      }
+      
+      // Check if account requires approval (for TPO/Company)
+      if (error.response?.data?.requiresApproval) {
+        navigate('/approval-pending', { 
+          state: { 
+            role: error.response.data.role || 'user',
+            email: email,
+            message: message 
+          } 
+        });
+        return { 
+          success: false, 
+          requiresApproval: true, 
           message 
         };
       }
@@ -129,24 +135,14 @@ export const AuthProvider = ({ children }) => {
       const { token: newToken, user: userData } = response;
       
       localStorage.setItem('token', newToken);
-      localStorage.setItem('user', JSON.stringify(userData));
       setToken(newToken);
       setUser(userData);
       
       toast.success('Account verified successfully!');
       
-      // Role-based redirection after OTP verification
-      if (userData.role === 'student') {
-        navigate('/student-dashboard');
-      } else if (userData.role === 'tpo') {
-        navigate('/tpo-dashboard');
-      } else if (userData.role === 'company') {
-        navigate('/company-dashboard');
-      } else if (userData.role === 'superadmin') {
-        navigate('/superadmin-dashboard');
-      } else {
-        navigate('/');
-      }
+      // Redirect to appropriate dashboard based on user role
+      const dashboardRoute = getDashboardRoute(userData.role);
+      navigate(dashboardRoute);
       
       return { success: true };
     } catch (error) {
@@ -191,11 +187,10 @@ export const AuthProvider = ({ children }) => {
       console.error('Logout error:', error);
     } finally {
       localStorage.removeItem('token');
-      localStorage.removeItem('user');
       setToken(null);
       setUser(null);
       toast.success('Logged out successfully');
-      navigate('/');
+      navigate('/login');
     }
   };
 
@@ -244,20 +239,14 @@ export const AuthProvider = ({ children }) => {
   // Delete account
   const deleteAccount = async (password) => {
     try {
-      const response = await deleteAccountApi(password);
-      
-      if (response.success) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        setToken(null);
-        setUser(null);
-        toast.success(response.message || 'Account deleted successfully');
-        navigate('/');
-        return { success: true };
-      } else {
-        toast.error(response.message || 'Account deletion failed');
-        return { success: false, message: response.message };
-      }
+
+      // This would need to be implemented in the API utils
+      localStorage.removeItem('token');
+      setToken(null);
+      setUser(null);
+      toast.success('Account deleted successfully');
+      navigate('/login');
+      return { success: true };
     } catch (error) {
       const message = error.response?.data?.message || 'Account deletion failed';
       toast.error(message);

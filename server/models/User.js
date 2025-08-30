@@ -2,7 +2,6 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
-  // Common fields for all roles
   email: {
     type: String,
     required: [true, 'Email is required'],
@@ -19,7 +18,12 @@ const userSchema = new mongoose.Schema({
   role: {
     type: String,
     required: [true, 'Role is required'],
-    enum: ['student', 'company', 'tpo', 'admin', 'superadmin']
+    enum: ['student', 'company', 'tpo', 'superadmin']
+  },
+  status: {
+    type: String,
+    enum: ['pending', 'active', 'rejected'],
+    default: 'pending'
   },
   isVerified: {
     type: Boolean,
@@ -74,22 +78,67 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
-
-  // Student specific fields
+  // Student-specific data
   student: {
     name: String,
-    rollNumber: String,
-    branch: String,
-    graduationYear: Number,
-    collegeName: String,
-    isPlaced: {
-      type: Boolean,
-      default: false
+    rollNumber: {
+      type: String,
+      unique: true,
+      sparse: true
     },
-    placementDetails: {
-      company: String,
-      package: String,
-      role: String,
+    branch: String,
+    graduationYear: String,
+    collegeName: String,
+    // Additional student fields
+    personalInfo: {
+      dateOfBirth: Date,
+      gender: String,
+      phoneNumber: String,
+      address: String,
+      linkedinProfile: String,
+      githubProfile: String
+    },
+    academicInfo: {
+      cgpa: Number,
+      currentSemester: Number,
+      totalSemesters: Number,
+      backlogHistory: [String],
+      achievements: [String]
+    },
+    skills: {
+      technicalSkills: [String],
+      softSkills: [String],
+      certifications: [{
+        name: String,
+        issuer: String,
+        dateObtained: Date,
+        expiryDate: Date
+      }]
+    },
+    experience: {
+      internships: [{
+        company: String,
+        role: String,
+        duration: String,
+        description: String,
+        technologies: [String]
+      }],
+      projects: [{
+        title: String,
+        description: String,
+        technologies: [String],
+        githubLink: String,
+        liveLink: String
+      }]
+    },
+    placementInfo: {
+      isPlaced: {
+        type: Boolean,
+        default: false
+      },
+      placementCompany: String,
+      placementRole: String,
+      placementPackage: String,
       placementDate: Date
     },
     resume: String,
@@ -181,125 +230,30 @@ const userSchema = new mongoose.Schema({
         enum: ['full-time', 'internship', 'part-time', 'contract'],
         default: 'full-time'
       }
+
     }
   },
-
-  // Company specific fields
+  // Company-specific data
   company: {
-    companyName: String,
+    companyName: {
+      type: String,
+      required: function() { return this.role === 'company'; }
+    },
     contactNumber: String,
     industry: String,
-    companySize: {
-      type: String,
-      enum: ['startup', 'small', 'medium', 'large', 'enterprise']
-    },
+    companySize: String,
     website: String,
-    address: {
-      street: String,
-      city: String,
-      state: String,
-      country: String,
-      zipCode: String
-    },
     description: String,
-    jobPostings: [{
-      title: String,
-      description: String,
-      requirements: [String],
-      package: {
-        min: Number,
-        max: Number,
-        currency: {
-          type: String,
-          default: 'INR'
-        }
-      },
-      location: String,
-      type: {
-        type: String,
-        enum: ['full-time', 'internship', 'contract']
-      },
-      isActive: {
-        type: Boolean,
-        default: true
-      },
-      postedAt: {
-        type: Date,
-        default: Date.now
-      }
-    }]
+    location: String
   },
-
-  // TPO specific fields
+  // TPO-specific data
   tpo: {
     name: String,
     instituteName: String,
     contactNumber: String,
     designation: String,
     department: String,
-    instituteType: {
-      type: String,
-      enum: ['university', 'college', 'institute', 'school']
-    },
-    address: {
-      street: String,
-      city: String,
-      state: String,
-      country: String,
-      zipCode: String
-    },
-    totalStudents: {
-      type: Number,
-      default: 0
-    },
-    placedStudents: {
-      type: Number,
-      default: 0
-    },
-    averagePackage: {
-      type: Number,
-      default: 0
-    },
-    highestPackage: {
-      type: Number,
-      default: 0
-    },
-    placementStats: [{
-      year: Number,
-      totalStudents: Number,
-      placedStudents: Number,
-      averagePackage: Number,
-      highestPackage: Number
-    }]
-  },
-
-  // Admin specific fields
-  admin: {
-    name: String,
-    contactNumber: String,
-    department: String,
-    permissions: [{
-      type: String,
-      enum: ['user_management', 'company_approval', 'reports', 'settings']
-    }],
-    assignedInstitutions: [{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Institution'
-    }]
-  },
-
-  // Superadmin specific fields
-  superadmin: {
-    name: String,
-    contactNumber: String,
-    systemAccess: {
-      type: Boolean,
-      default: true
-    },
-    permissions: [{
-      type: String,
-      enum: ['admin_approval', 'company_approval', 'institution_management', 'system_settings']
-    }]
+    location: String
   }
 }, {
   timestamps: true
@@ -353,7 +307,7 @@ userSchema.methods.isPasswordResetTokenExpired = function() {
   return this.passwordResetToken && this.passwordResetToken.expiresAt < new Date();
 };
 
-// Method to get display name based on role
+// Method to get display name
 userSchema.methods.getDisplayName = function() {
   switch (this.role) {
     case 'student':
@@ -362,10 +316,8 @@ userSchema.methods.getDisplayName = function() {
       return this.company?.companyName || 'Company';
     case 'tpo':
       return this.tpo?.name || 'TPO';
-    case 'admin':
-      return this.admin?.name || 'Admin';
     case 'superadmin':
-      return this.superadmin?.name || 'Super Admin';
+      return 'Super Admin';
     default:
       return 'User';
   }
@@ -380,12 +332,8 @@ userSchema.methods.getRoleData = function() {
       return this.company;
     case 'tpo':
       return this.tpo;
-    case 'admin':
-      return this.admin;
-    case 'superadmin':
-      return this.superadmin;
     default:
-      return {};
+      return null;
   }
 };
 

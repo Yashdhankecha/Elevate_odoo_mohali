@@ -1,154 +1,110 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   FaBuilding, 
   FaSearch, 
-  FaFilter, 
   FaEye, 
   FaCheck, 
   FaTimes, 
-  FaEnvelope,
-  FaPhone,
-  FaMapMarkerAlt,
-  FaGlobe,
-  FaIndustry,
-  FaUsers,
-  FaCalendarAlt,
-  FaDownload,
-  FaSort,
-  FaStar
+  FaSort
 } from 'react-icons/fa';
+import axios from 'axios';
+
+// Create axios instance with base configuration
+const api = axios.create({
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  withCredentials: true,
+});
+
+// Request interceptor to add auth token
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
 
 const CompanyApproval = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState('All');
-  const [filterSector, setFilterSector] = useState('All');
   const [selectedCompany, setSelectedCompany] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [companyRequests, setCompanyRequests] = useState([]);
+  const [processingApproval, setProcessingApproval] = useState(false);
 
-  const companyRequests = [
-    {
-      id: 1,
-      name: 'TechCorp Solutions',
-      email: 'hr@techcorp.com',
-      phone: '+91-98765-43210',
-      website: 'www.techcorp.com',
-      sector: 'Technology',
-      industry: 'Software Development',
-      location: 'Bangalore, Karnataka',
-      founded: '2015',
-      employees: '500-1000',
-      revenue: '₹50-100 Cr',
-      status: 'pending',
-      submittedDate: '2024-12-15',
-      documents: ['Company Registration', 'GST Certificate', 'PAN Card', 'Bank Statement'],
-      reason: 'Looking to hire fresh graduates for software development roles',
-      priority: 'high',
-      rating: 4.2,
-      description: 'Leading software development company specializing in enterprise solutions'
-    },
-    {
-      id: 2,
-      name: 'InnovateTech Systems',
-      email: 'careers@innovatetech.com',
-      phone: '+91-87654-32109',
-      website: 'www.innovatetech.com',
-      sector: 'Technology',
-      industry: 'Artificial Intelligence',
-      location: 'Hyderabad, Telangana',
-      founded: '2018',
-      employees: '200-500',
-      revenue: '₹20-50 Cr',
-      status: 'pending',
-      submittedDate: '2024-12-14',
-      documents: ['Company Registration', 'GST Certificate', 'PAN Card'],
-      reason: 'Seeking talented engineers for AI/ML projects',
-      priority: 'medium',
-      rating: 4.0,
-      description: 'AI-focused technology company developing cutting-edge solutions'
-    },
-    {
-      id: 3,
-      name: 'Global Finance Ltd',
-      email: 'recruitment@globalfinance.com',
-      phone: '+91-76543-21098',
-      website: 'www.globalfinance.com',
-      sector: 'Finance',
-      industry: 'Banking & Financial Services',
-      location: 'Mumbai, Maharashtra',
-      founded: '2010',
-      employees: '1000+',
-      revenue: '₹500+ Cr',
-      status: 'approved',
-      submittedDate: '2024-12-10',
-      documents: ['Company Registration', 'GST Certificate', 'PAN Card', 'Bank Statement', 'Audit Reports'],
-      reason: 'Regular campus recruitment for various banking roles',
-      priority: 'high',
-      rating: 4.5,
-      description: 'Established financial services company with nationwide presence'
-    },
-    {
-      id: 4,
-      name: 'Green Energy Solutions',
-      email: 'hr@greenenergy.com',
-      phone: '+91-65432-10987',
-      website: 'www.greenenergy.com',
-      sector: 'Energy',
-      industry: 'Renewable Energy',
-      location: 'Chennai, Tamil Nadu',
-      founded: '2020',
-      employees: '100-200',
-      revenue: '₹10-20 Cr',
-      status: 'rejected',
-      submittedDate: '2024-12-08',
-      documents: ['Company Registration', 'GST Certificate'],
-      reason: 'Hiring engineers for solar energy projects',
-      priority: 'low',
-      rating: 3.8,
-      description: 'Startup focused on renewable energy solutions'
-    }
-  ];
+  useEffect(() => {
+    fetchCompanyRequests();
+  }, []);
 
-  const statuses = ['All', 'Pending', 'Approved', 'Rejected'];
-  const sectors = ['All', 'Technology', 'Finance', 'Energy', 'Healthcare', 'Manufacturing', 'Consulting'];
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'approved': return 'bg-green-100 text-green-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
-      case 'pending': return 'bg-orange-100 text-orange-800';
-      default: return 'bg-gray-100 text-gray-800';
+  const fetchCompanyRequests = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await api.get('/admin/pending-registrations');
+      
+      // Filter only company registrations
+      const companyOnly = response.data.pendingUsers.filter(user => user.role === 'company');
+      setCompanyRequests(companyOnly);
+    } catch (err) {
+      console.error('Error fetching company requests:', err);
+      setError(err.response?.data?.message || err.message || 'Failed to load company requests');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const getPriorityColor = (priority) => {
-    switch (priority) {
-      case 'high': return 'bg-red-100 text-red-700';
-      case 'medium': return 'bg-orange-100 text-orange-700';
-      case 'low': return 'bg-green-100 text-green-700';
-      default: return 'bg-gray-100 text-gray-700';
+  const handleApproveCompany = async (companyId) => {
+    try {
+      setProcessingApproval(true);
+      await api.post(`/admin/approve-user/${companyId}`);
+      alert('Company approved successfully!');
+      fetchCompanyRequests(); // Refresh the list
+      setShowModal(false);
+      setSelectedCompany(null);
+    } catch (error) {
+      console.error('Error approving company:', error);
+      alert('Failed to approve company: ' + (error.response?.data?.message || error.message));
+    } finally {
+      setProcessingApproval(false);
     }
   };
 
-  const getSectorColor = (sector) => {
-    switch (sector) {
-      case 'Technology': return 'bg-blue-100 text-blue-700';
-      case 'Finance': return 'bg-green-100 text-green-700';
-      case 'Energy': return 'bg-yellow-100 text-yellow-700';
-      case 'Healthcare': return 'bg-red-100 text-red-700';
-      case 'Manufacturing': return 'bg-purple-100 text-purple-700';
-      case 'Consulting': return 'bg-indigo-100 text-indigo-700';
-      default: return 'bg-gray-100 text-gray-700';
+  const handleRejectCompany = async (companyId) => {
+    try {
+      setProcessingApproval(true);
+      await api.post(`/admin/reject-user/${companyId}`);
+      alert('Company rejected successfully!');
+      fetchCompanyRequests(); // Refresh the list
+      setShowModal(false);
+      setSelectedCompany(null);
+    } catch (error) {
+      console.error('Error rejecting company:', error);
+      alert('Failed to reject company: ' + (error.response?.data?.message || error.message));
+    } finally {
+      setProcessingApproval(false);
     }
   };
+
+
+
+
 
   const filteredCompanies = companyRequests.filter(company => {
     const matchesSearch = company.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         company.sector.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         company.location.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = filterStatus === 'All' || company.status === filterStatus.toLowerCase();
-    const matchesSector = filterSector === 'All' || company.sector === filterSector;
+                         company.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         (company.instituteName && company.instituteName.toLowerCase().includes(searchQuery.toLowerCase()));
     
-    return matchesSearch && matchesStatus && matchesSector;
+    // Only show pending companies for approval
+    return matchesSearch && company.status === 'pending';
   });
 
   const handleViewDetails = (company) => {
@@ -156,15 +112,34 @@ const CompanyApproval = () => {
     setShowModal(true);
   };
 
-  const handleApprove = (companyId) => {
-    // Handle approval logic
-    console.log('Approving company:', companyId);
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading company approval requests...</p>
+        </div>
+      </div>
+    );
+  }
 
-  const handleReject = (companyId) => {
-    // Handle rejection logic
-    console.log('Rejecting company:', companyId);
-  };
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-500 text-6xl mb-4">⚠️</div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Oops! Something went wrong</h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button 
+            onClick={fetchCompanyRequests} 
+            className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -173,56 +148,32 @@ const CompanyApproval = () => {
         <div>
           <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
             <FaBuilding className="text-purple-600" />
-            Company Approval Management
+            Pending Company Approvals
           </h2>
-          <p className="text-gray-600">Review and approve company registration requests for campus recruitment</p>
+          <p className="text-gray-600">Review and approve pending company registration requests</p>
         </div>
         <div className="flex gap-2">
-          <button className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors">
-            <FaDownload className="w-4 h-4" />
-            Export Data
+          <button
+            onClick={fetchCompanyRequests}
+            className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+            title="Refresh data"
+          >
+            🔄 Refresh
           </button>
         </div>
       </div>
 
-      {/* Filters */}
+      {/* Search */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1">
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search by company name, sector, or location..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              />
-              <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-            >
-              {statuses.map(status => (
-                <option key={status} value={status}>{status}</option>
-              ))}
-            </select>
-            <select
-              value={filterSector}
-              onChange={(e) => setFilterSector(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-            >
-              {sectors.map(sector => (
-                <option key={sector} value={sector}>{sector}</option>
-              ))}
-            </select>
-            <button className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-              <FaFilter className="w-4 h-4" />
-            </button>
-          </div>
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Search by company name, email, or institute..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+          />
+          <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
         </div>
       </div>
 
@@ -233,25 +184,16 @@ const CompanyApproval = () => {
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  <div className="flex items-center gap-2">
-                    Company Details
-                    <FaSort className="w-3 h-3" />
-                  </div>
+                  Company Details
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Sector & Industry
+                  Email
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Company Info
+                  Role
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Priority
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Submitted
+                  Registered
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
@@ -259,76 +201,71 @@ const CompanyApproval = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredCompanies.map((company) => (
-                <tr key={company.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
-                        <FaBuilding className="w-5 h-5 text-white" />
+              {filteredCompanies.length > 0 ? (
+                filteredCompanies.map((company) => (
+                  <tr key={company.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
+                          <FaBuilding className="w-5 h-5 text-white" />
+                        </div>
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900">{company.name}</div>
+                          <div className="text-sm text-gray-500">{company.instituteName || 'N/A'}</div>
+                        </div>
                       </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">{company.name}</div>
-                        <div className="text-sm text-gray-500">{company.email}</div>
-                        <div className="text-sm text-gray-500">{company.phone}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getSectorColor(company.sector)}`}>
-                        {company.sector}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{company.email}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-700">
+                        {company.role.toUpperCase()}
                       </span>
-                      <div className="text-sm text-gray-500 mt-1">{company.industry}</div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm text-gray-900">{company.location}</div>
-                      <div className="text-sm text-gray-500">{company.employees} employees</div>
-                      <div className="text-sm text-gray-500">Est. {company.founded}</div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(company.status)}`}>
-                      {company.status.charAt(0).toUpperCase() + company.status.slice(1)}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(company.priority)}`}>
-                      {company.priority.charAt(0).toUpperCase() + company.priority.slice(1)}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {company.submittedDate}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleViewDetails(company)}
-                        className="text-blue-600 hover:text-blue-900 p-1"
-                      >
-                        <FaEye className="w-4 h-4" />
-                      </button>
-                      {company.status === 'pending' && (
-                        <>
-                          <button
-                            onClick={() => handleApprove(company.id)}
-                            className="text-green-600 hover:text-green-900 p-1"
-                          >
-                            <FaCheck className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleReject(company.id)}
-                            className="text-red-600 hover:text-red-900 p-1"
-                          >
-                            <FaTimes className="w-4 h-4" />
-                          </button>
-                        </>
-                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {company.createdAt ? new Date(company.createdAt).toLocaleDateString() : 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleViewDetails(company)}
+                          className="text-blue-600 hover:text-blue-900 p-1"
+                          title="View Details"
+                        >
+                          <FaEye className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleApproveCompany(company.id)}
+                          disabled={processingApproval}
+                          className="text-green-600 hover:text-green-900 p-1 disabled:opacity-50"
+                          title="Approve Company"
+                        >
+                          <FaCheck className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleRejectCompany(company.id)}
+                          disabled={processingApproval}
+                          className="text-red-600 hover:text-red-900 p-1 disabled:opacity-50"
+                          title="Reject Company"
+                        >
+                          <FaTimes className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="5" className="px-6 py-12 text-center">
+                    <div className="text-gray-500">
+                      <FaBuilding className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                      <p className="text-lg font-medium">No pending company approvals</p>
+                      <p className="text-sm">There are currently no company registration requests waiting for approval.</p>
                     </div>
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
@@ -356,80 +293,41 @@ const CompanyApproval = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="text-sm font-medium text-gray-600">Company Name</label>
-                      <p className="text-gray-800">{selectedCompany.name}</p>
+                      <p className="text-gray-800">{selectedCompany.name || 'N/A'}</p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-600">Website</label>
-                      <p className="text-gray-800">{selectedCompany.website}</p>
+                      <label className="text-sm font-medium text-gray-600">Institute/Company Name</label>
+                      <p className="text-gray-800">{selectedCompany.instituteName || 'N/A'}</p>
                     </div>
                     <div>
                       <label className="text-sm font-medium text-gray-600">Email</label>
-                      <p className="text-gray-800">{selectedCompany.email}</p>
+                      <p className="text-gray-800">{selectedCompany.email || 'N/A'}</p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-600">Phone</label>
-                      <p className="text-gray-800">{selectedCompany.phone}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Business Information */}
-                <div>
-                  <h4 className="text-lg font-semibold text-gray-800 mb-3">Business Information</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">Sector</label>
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getSectorColor(selectedCompany.sector)}`}>
-                        {selectedCompany.sector}
+                      <label className="text-sm font-medium text-gray-600">Role</label>
+                      <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-700">
+                        {selectedCompany.role?.toUpperCase() || 'N/A'}
                       </span>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-600">Industry</label>
-                      <p className="text-gray-800">{selectedCompany.industry}</p>
+                      <label className="text-sm font-medium text-gray-600">Status</label>
+                      <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-700">
+                        {selectedCompany.status?.charAt(0).toUpperCase() + selectedCompany.status?.slice(1) || 'N/A'}
+                      </span>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-600">Location</label>
-                      <p className="text-gray-800">{selectedCompany.location}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">Founded</label>
-                      <p className="text-gray-800">{selectedCompany.founded}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">Employees</label>
-                      <p className="text-gray-800">{selectedCompany.employees}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">Revenue</label>
-                      <p className="text-gray-800">{selectedCompany.revenue}</p>
+                      <label className="text-sm font-medium text-gray-600">Registration Date</label>
+                      <p className="text-gray-800">{selectedCompany.createdAt ? new Date(selectedCompany.createdAt).toLocaleDateString() : 'N/A'}</p>
                     </div>
                   </div>
                 </div>
 
-                {/* Company Description */}
+                {/* Additional Information */}
                 <div>
-                  <h4 className="text-lg font-semibold text-gray-800 mb-3">Company Description</h4>
-                  <p className="text-gray-800">{selectedCompany.description}</p>
-                </div>
-
-                {/* Request Details */}
-                <div>
-                  <h4 className="text-lg font-semibold text-gray-800 mb-3">Request Details</h4>
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">Reason for Registration</label>
-                    <p className="text-gray-800 mt-1">{selectedCompany.reason}</p>
-                  </div>
-                  <div className="mt-4">
-                    <label className="text-sm font-medium text-gray-600">Submitted Documents</label>
-                    <div className="mt-2 space-y-1">
-                      {selectedCompany.documents.map((doc, index) => (
-                        <div key={index} className="flex items-center gap-2">
-                          <FaDownload className="w-3 h-3 text-gray-400" />
-                          <span className="text-sm text-gray-600">{doc}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  <h4 className="text-lg font-semibold text-gray-800 mb-3">Additional Information</h4>
+                  <p className="text-gray-600 text-sm">
+                    This company registration is currently pending approval. Review the details above and use the action buttons below to approve or reject the registration.
+                  </p>
                 </div>
 
                 {/* Action Buttons */}
@@ -437,20 +335,22 @@ const CompanyApproval = () => {
                   <div className="flex gap-3 pt-4 border-t border-gray-200">
                     <button
                       onClick={() => {
-                        handleApprove(selectedCompany.id);
+                        handleApproveCompany(selectedCompany.id);
                         setShowModal(false);
                       }}
-                      className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                      disabled={processingApproval}
+                      className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                     >
                       <FaCheck className="w-4 h-4" />
                       Approve
                     </button>
                     <button
                       onClick={() => {
-                        handleReject(selectedCompany.id);
+                        handleRejectCompany(selectedCompany.id);
                         setShowModal(false);
                       }}
-                      className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                      disabled={processingApproval}
+                      className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                     >
                       <FaTimes className="w-4 h-4" />
                       Reject
@@ -467,3 +367,4 @@ const CompanyApproval = () => {
 };
 
 export default CompanyApproval;
+

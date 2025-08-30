@@ -84,7 +84,6 @@ export const loginUser = async (credentials) => {
     const response = await api.post('/auth/login', credentials);
     return response.data;
   } catch (error) {
-    console.error('Login error:', error);
     throw error;
   }
 };
@@ -121,10 +120,10 @@ export const getCurrentUser = async () => {
     const response = await api.get('/auth/me');
     return response.data;
   } catch (error) {
-    console.error('Get current user error:', error);
     throw error;
   }
 };
+
 
 export const updateUserProfile = async (profileData) => {
   try {
@@ -148,17 +147,31 @@ export const updateUserProfile = async (profileData) => {
     console.error('Response data:', error.response?.data);
     console.error('Full error object:', error);
     
+
+// Student Dashboard API functions
+export const getStudentProfile = async () => {
+  try {
+    const response = await api.get('/auth/me');
+    if (response.data.success) {
+      return response.data.user;
+    }
+    throw new Error(response.data.message || 'Failed to fetch profile');
+  } catch (error) {
+    console.error('Error fetching student profile:', error);
+
     throw error;
   }
 };
 
-// Notification API functions
-export const getNotifications = async (params = {}) => {
+export const getStudentDetails = async (studentId) => {
   try {
-    const response = await api.get('/notifications', { params });
-    return response.data;
+    const response = await api.get(`/user/students/${studentId}`);
+    if (response.data.success) {
+      return response.data.data;
+    }
+    throw new Error(response.data.message || 'Failed to fetch student details');
   } catch (error) {
-    console.error('Error fetching notifications:', error);
+    console.error('Error fetching student details:', error);
     throw error;
   }
 };
@@ -173,15 +186,18 @@ export const markNotificationsAsRead = async (notificationIds) => {
   }
 };
 
+
 export const markAllNotificationsAsRead = async () => {
   try {
     const response = await api.put('/notifications/mark-all-read');
     return response.data;
   } catch (error) {
     console.error('Error marking all notifications as read:', error);
+
     throw error;
   }
 };
+
 
 export const deleteNotification = async (notificationId) => {
   try {
@@ -189,9 +205,21 @@ export const deleteNotification = async (notificationId) => {
     return response.data;
   } catch (error) {
     console.error('Error deleting notification:', error);
+
+export const getPracticeHistory = async () => {
+  try {
+    const response = await api.get('/user/practice-history');
+    if (response.data.success) {
+      return response.data.data;
+    }
+    throw new Error(response.data.message || 'Failed to fetch practice history');
+  } catch (error) {
+    console.error('Error fetching practice history:', error);
+
     throw error;
   }
 };
+
 
 export const getUnreadCount = async () => {
   try {
@@ -199,9 +227,20 @@ export const getUnreadCount = async () => {
     return response.data;
   } catch (error) {
     console.error('Error getting unread count:', error);
+
+export const getStudentAchievements = async () => {
+  try {
+    const response = await api.get('/user/achievements');
+    if (response.data.success) {
+      return response.data.data;
+    }
+    throw new Error(response.data.message || 'Failed to fetch achievements');
+  } catch (error) {
+    console.error('Error fetching achievements:', error);
     throw error;
   }
 };
+
 
 // Password and account management API functions
 export const changePasswordApi = async (currentPassword, newPassword) => {
@@ -213,9 +252,21 @@ export const changePasswordApi = async (currentPassword, newPassword) => {
     return response.data;
   } catch (error) {
     console.error('Error changing password:', error);
+
+export const getStudentExperience = async () => {
+  try {
+    const response = await api.get('/user/experience');
+    if (response.data.success) {
+      return response.data.data;
+    }
+    throw new Error(response.data.message || 'Failed to fetch experience');
+  } catch (error) {
+    console.error('Error fetching experience:', error);
+
     throw error;
   }
 };
+
 
 export const deleteAccountApi = async (password) => {
   try {
@@ -225,6 +276,97 @@ export const deleteAccountApi = async (password) => {
     return response.data;
   } catch (error) {
     console.error('Error deleting account:', error);
+
+export const getStudentAlerts = async () => {
+  try {
+    const response = await api.get('/user/alerts');
+    if (response.data.success) {
+      return response.data.data;
+    }
+    throw new Error(response.data.message || 'Failed to fetch alerts');
+  } catch (error) {
+    console.error('Error fetching alerts:', error);
+    throw error;
+  }
+};
+
+export const getPerformanceAnalytics = async (timeRange = '30days') => {
+  try {
+    const response = await api.get(`/user/performance-analytics?range=${timeRange}`);
+    if (response.data.success) {
+      return response.data.data;
+    }
+    throw new Error(response.data.message || 'Failed to fetch performance analytics');
+  } catch (error) {
+    console.error('Error fetching performance analytics:', error);
+    throw error;
+  }
+};
+
+export const updateStudentProfile = async (profileData) => {
+  try {
+    const response = await api.put('/user/student-profile', profileData);
+    if (response.data.success) {
+      return response.data.data;
+    }
+    throw new Error(response.data.message || 'Failed to update profile');
+  } catch (error) {
+    console.error('Error updating student profile:', error);
+    throw error;
+  }
+};
+
+// Superadmin Dashboard API functions
+export const getSuperadminOverview = async () => {
+  try {
+    const response = await api.get('/superadmin/overview');
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getAdminApprovals = async () => {
+  try {
+    const response = await api.get('/superadmin/admin-approvals');
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getCompanyApprovals = async () => {
+  try {
+    const response = await api.get('/superadmin/company-approvals');
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const approveUser = async (userId, status, reason = '') => {
+  try {
+    const response = await api.post(`/superadmin/approve/${userId}`, { status, reason });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getInstitutions = async () => {
+  try {
+    const response = await api.get('/superadmin/institutions');
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getSystemAnalytics = async () => {
+  try {
+    const response = await api.get('/superadmin/system-analytics');
+    return response.data;
+  } catch (error) {
     throw error;
   }
 };

@@ -4,8 +4,6 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { useNotifications } from '../../../contexts/NotificationContext';
 import { getUserDisplayName, getUserInitials } from '../../../utils/helpers';
 import { 
-  FaSearch, 
-  FaBell, 
   FaUser, 
   FaCog, 
   FaSignOutAlt,
@@ -15,13 +13,10 @@ import {
 
 const TopNavbar = ({ toggleSidebar }) => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+
   const { user, logout } = useAuth();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const navigate = useNavigate();
-  const notificationRef = useRef();
-  const profileRef = useRef();
 
   const handleProfile = () => {
     setIsProfileOpen(false);
@@ -94,93 +89,11 @@ const TopNavbar = ({ toggleSidebar }) => {
           >
             <FaBars className="text-gray-600" />
           </button>
-          
-          <div className="flex items-center space-x-3">
-            
-            <div>
-             </div>
-          </div>
-        </div>
-
-        {/* Center Section - Search */}
-        <div className="flex-1 max-w-md mx-8">
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search users, companies, institutions..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-            />
-            <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-          </div>
         </div>
 
         {/* Right Section */}
         <div className="flex items-center space-x-4">
-          {/* Notifications */}
-          <div className="relative" ref={notificationRef}>
-            <button 
-              onClick={() => setShowNotifications(!showNotifications)}
-              className="p-2 rounded-lg hover:bg-gray-100 transition-colors relative"
-            >
-              <FaBell className="text-gray-600" />
-              {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                  {unreadCount > 99 ? '99+' : unreadCount}
-                </span>
-              )}
-            </button>
 
-            {/* Notifications Dropdown */}
-            {showNotifications && (
-              <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-                <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-                  <h3 className="font-semibold text-gray-800">Notifications</h3>
-                  {unreadCount > 0 && (
-                    <button 
-                      onClick={handleMarkAllRead}
-                      className="text-xs text-blue-600 hover:text-blue-800 font-medium"
-                    >
-                      Mark all read
-                    </button>
-                  )}
-                </div>
-                <div className="max-h-64 overflow-y-auto">
-                  {notifications.length > 0 ? (
-                    notifications.map((notification) => (
-                      <div
-                        key={notification._id}
-                        onClick={() => handleNotificationClick(notification)}
-                        className={`p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${
-                          !notification.isRead ? 'bg-blue-50' : ''
-                        }`}
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <p className="text-sm text-gray-800 mb-1">{notification.message}</p>
-                            <p className="text-xs text-gray-500">{formatTime(notification.createdAt)}</p>
-                          </div>
-                          {!notification.isRead && (
-                            <div className="w-2 h-2 bg-blue-500 rounded-full mt-1 ml-2"></div>
-                          )}
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="p-4 text-center text-gray-500">
-                      <p className="text-sm">No notifications</p>
-                    </div>
-                  )}
-                </div>
-                <div className="p-3 border-t border-gray-200">
-                  <button className="text-sm text-blue-600 hover:text-blue-700 font-medium w-full text-center">
-                    View All Notifications
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
 
           {/* Profile Dropdown */}
           <div className="relative" ref={profileRef}>

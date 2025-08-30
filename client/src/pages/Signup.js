@@ -119,7 +119,8 @@ const Signup = () => {
       
       if (response.success) {
         toast.success(response.message);
-        // Navigate to OTP verification with user ID
+        
+        // All users (including Company and TPO) must go through OTP verification first
         navigate('/verify-otp', { 
           state: { 
             userId: response.userId, 
@@ -446,4 +447,5 @@ const Signup = () => {
 };
 
 export default Signup;
+
 
