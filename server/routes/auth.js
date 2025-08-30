@@ -1,16 +1,11 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
-const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
 const { sendOTPEmail, sendPasswordResetEmail } = require('../utils/emailService');
 const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
-
-// Google OAuth client
-const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // Helper function to generate JWT token
 const generateToken = (userId) => {
@@ -31,27 +26,102 @@ const setTokenCookie = (res, token) => {
   });
 };
 
+// Validation rules for different roles
+const getValidationRules = (role) => {
+  const baseRules = [
+    body('email')
+      .isEmail()
+      .normalizeEmail()
+      .withMessage('Please provide a valid email'),
+    body('password')
+      .isLength({ min: 6 })
+      .withMessage('Password must be at least 6 characters long'),
+    body('confirmPassword')
+      .custom((value, { req }) => {
+        if (value !== req.body.password) {
+          throw new Error('Password confirmation does not match password');
+        }
+        return true;
+      })
+      .withMessage('Password confirmation does not match password')
+  ];
+
+  switch (role) {
+    case 'student':
+      return [
+        ...baseRules,
+        body('name')
+          .isLength({ min: 2, max: 50 })
+          .withMessage('Name must be between 2 and 50 characters'),
+        body('rollNumber')
+          .notEmpty()
+          .withMessage('Roll Number is required'),
+        body('branch')
+          .notEmpty()
+          .withMessage('Branch is required'),
+        body('graduationYear')
+          .isInt({ min: new Date().getFullYear(), max: new Date().getFullYear() + 10 })
+          .withMessage('Graduation Year must be between current year and 10 years ahead'),
+        body('collegeName')
+          .notEmpty()
+          .withMessage('College Name is required')
+      ];
+    
+    case 'company':
+      return [
+        ...baseRules,
+        body('companyName')
+          .isLength({ min: 2, max: 100 })
+          .withMessage('Company Name must be between 2 and 100 characters'),
+        body('contactNumber')
+          .matches(/^[+]?[\d\s\-\(\)]+$/)
+          .withMessage('Please enter a valid contact number')
+      ];
+    
+    case 'tpo':
+      return [
+        ...baseRules,
+        body('name')
+          .isLength({ min: 2, max: 50 })
+          .withMessage('Name must be between 2 and 50 characters'),
+        body('instituteName')
+          .notEmpty()
+          .withMessage('Institute Name is required'),
+        body('contactNumber')
+          .matches(/^[+]?[\d\s\-\(\)]+$/)
+          .withMessage('Please enter a valid contact number')
+      ];
+    
+    default:
+      return baseRules;
+  }
+};
+
 // @route   POST /api/auth/register
-// @desc    Register a new user
+// @desc    Register a new user with role-based fields
 // @access  Public
-router.post('/register', [
-  body('username')
-    .isLength({ min: 3, max: 30 })
-    .withMessage('Username must be between 3 and 30 characters')
-    .matches(/^[a-zA-Z0-9_]+$/)
-    .withMessage('Username can only contain letters, numbers, and underscores'),
-  body('email')
-    .isEmail()
-    .normalizeEmail()
-    .withMessage('Please provide a valid email'),
-  body('password')
-    .isLength({ min: 6 })
-    .withMessage('Password must be at least 6 characters long')
-], async (req, res) => {
+router.post('/register', async (req, res) => {
   try {
+    const { role, ...userData } = req.body;
+
+    console.log('📝 Registration attempt:', { role, email: userData.email });
+
+    // Validate role
+    if (!role || !['student', 'company', 'tpo'].includes(role)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid role is required (student, company, or tpo)'
+      });
+    }
+
+    // Apply role-specific validation
+    const validationRules = getValidationRules(role);
+    await Promise.all(validationRules.map(validation => validation.run(req)));
+
     // Check for validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.log('❌ Validation errors:', errors.array());
       return res.status(400).json({
         success: false,
         message: 'Validation failed',
@@ -59,56 +129,121 @@ router.post('/register', [
       });
     }
 
-    const { username, email, password } = req.body;
-
     // Check if user already exists
-    const existingUser = await User.findOne({
-      $or: [{ email }, { username }]
-    });
-
+    const existingUser = await User.findOne({ email: userData.email });
     if (existingUser) {
       return res.status(400).json({
         success: false,
-        message: existingUser.email === email 
-          ? 'Email already registered' 
-          : 'Username already taken'
+        message: 'Email already registered'
       });
     }
 
+    // Check for unique constraints based on role
+    if (role === 'student' && userData.rollNumber) {
+      const existingStudent = await User.findOne({
+        role: 'student',
+        'student.rollNumber': userData.rollNumber
+      });
+      if (existingStudent) {
+        return res.status(400).json({
+          success: false,
+          message: 'Roll Number already registered'
+        });
+      }
+    }
+
+    // Prepare user data based on role
+    const userFields = {
+      email: userData.email,
+      password: userData.password,
+      role: role
+    };
+
+    // Add role-specific data
+    switch (role) {
+      case 'student':
+        userFields.student = {
+          name: userData.name,
+          rollNumber: userData.rollNumber,
+          branch: userData.branch,
+          graduationYear: userData.graduationYear,
+          collegeName: userData.collegeName
+        };
+        break;
+      
+      case 'company':
+        userFields.company = {
+          companyName: userData.companyName,
+          contactNumber: userData.contactNumber
+        };
+        break;
+      
+      case 'tpo':
+        userFields.tpo = {
+          name: userData.name,
+          instituteName: userData.instituteName,
+          contactNumber: userData.contactNumber
+        };
+        break;
+    }
+
+    console.log('👤 Creating user with fields:', { email: userFields.email, role: userFields.role });
+
     // Create new user
-    const user = new User({
-      username,
-      email,
-      password
-    });
+    const user = new User(userFields);
 
     // Generate OTP and send verification email
     const otp = user.generateOTP();
+    console.log('🔐 Generated OTP for user:', user._id);
+
+    // Save user first
     await user.save();
+    console.log('✅ User saved successfully:', user._id);
 
     // Send OTP email
-    const emailSent = await sendOTPEmail(email, username, otp);
+    console.log('📧 Attempting to send OTP email...');
+    const emailSent = await sendOTPEmail(userData.email, user.getDisplayName(), otp);
     
     if (!emailSent) {
-      // If email fails, delete the user
-      await User.findByIdAndDelete(user._id);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to send verification email. Please try again.'
-      });
+      console.log('❌ Email failed, but continuing in development mode');
+      // In development mode, we continue even if email fails
+      if (process.env.NODE_ENV === 'production') {
+        // If email fails in production, delete the user
+        await User.findByIdAndDelete(user._id);
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to send verification email. Please try again.'
+        });
+      }
     }
+
+    console.log('🎉 Registration completed successfully for user:', user._id);
 
     res.status(201).json({
       success: true,
       message: 'Registration successful! Please check your email for verification code.',
-      userId: user._id
+      userId: user._id,
+      role: user.role
     });
 
   } catch (error) {
-    console.error('Registration error:', error);
+    console.error('❌ Registration error:', error);
+    
+    // Provide more specific error messages
+    let errorMessage = 'Server error. Please try again.';
+    
+    if (error.name === 'ValidationError') {
+      errorMessage = 'Validation error: ' + Object.values(error.errors).map(e => e.message).join(', ');
+    } else if (error.name === 'MongoError' && error.code === 11000) {
+      errorMessage = 'Duplicate field value. Please check your input.';
+    } else if (error.name === 'CastError') {
+      errorMessage = 'Invalid data format. Please check your input.';
+    }
+    
     res.status(500).json({
       success: false,
-      message: 'Server error. Please try again.'
+      message: errorMessage,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
@@ -142,10 +277,10 @@ router.post('/verify-otp', [
     }
 
     // Check if user is already verified
-    if (user.isEmailVerified) {
+    if (user.isVerified) {
       return res.status(400).json({
         success: false,
-        message: 'Email is already verified'
+        message: 'Account is already verified'
       });
     }
 
@@ -166,7 +301,7 @@ router.post('/verify-otp', [
     }
 
     // Activate account
-    user.isEmailVerified = true;
+    user.isVerified = true;
     user.emailVerificationOTP = undefined;
     await user.save();
 
@@ -176,13 +311,14 @@ router.post('/verify-otp', [
 
     res.json({
       success: true,
-      message: 'Email verified successfully!',
+      message: 'Account verified successfully!',
       token,
       user: {
         id: user._id,
-        username: user.username,
         email: user.email,
-        isEmailVerified: user.isEmailVerified
+        role: user.role,
+        isVerified: user.isVerified,
+        displayName: user.getDisplayName()
       }
     });
 
@@ -219,15 +355,7 @@ router.post('/login', [
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid credentials'
-      });
-    }
-
-    // Check if user is email verified (only for non-Google users)
-    if (!user.googleId && !user.isEmailVerified) {
-      return res.status(403).json({
-        success: false,
-        message: 'Please verify your email before logging in'
+        message: 'Invalid email or password'
       });
     }
 
@@ -236,7 +364,17 @@ router.post('/login', [
     if (!isPasswordValid) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid credentials'
+        message: 'Invalid email or password'
+      });
+    }
+
+    // Check if user is verified
+    if (!user.isVerified) {
+      return res.status(403).json({
+        success: false,
+        message: 'Please verify your email before logging in. Check your email for OTP.',
+        requiresVerification: true,
+        userId: user._id
       });
     }
 
@@ -254,9 +392,10 @@ router.post('/login', [
       token,
       user: {
         id: user._id,
-        username: user.username,
         email: user.email,
-        isEmailVerified: user.isEmailVerified,
+        role: user.role,
+        isVerified: user.isVerified,
+        displayName: user.getDisplayName(),
         profilePicture: user.profilePicture
       }
     });
@@ -266,109 +405,6 @@ router.post('/login', [
     res.status(500).json({
       success: false,
       message: 'Server error. Please try again.'
-    });
-  }
-});
-
-// @route   POST /api/auth/google
-// @desc    Google OAuth login/signup
-// @access  Public
-router.post('/google', async (req, res) => {
-  try {
-    console.log('Google OAuth request received:', {
-      body: req.body,
-      headers: req.headers,
-      method: req.method,
-      url: req.url
-    });
-
-    const { credential } = req.body;
-
-    if (!credential) {
-      console.log('No credential found in request body');
-      return res.status(400).json({
-        success: false,
-        message: 'Google credential is required',
-        receivedData: req.body
-      });
-    }
-
-    // Verify Google token
-    const ticket = await googleClient.verifyIdToken({
-      idToken: credential,
-      audience: process.env.GOOGLE_CLIENT_ID
-    });
-
-    const payload = ticket.getPayload();
-    const { sub: googleId, email, name, picture } = payload;
-
-    // Find or create user
-    let user = await User.findOne({ googleId });
-
-    if (!user) {
-      // Check if email already exists
-      const existingUser = await User.findOne({ email });
-      if (existingUser) {
-        return res.status(400).json({
-          success: false,
-          message: 'Email already registered with password. Please login with password.'
-        });
-      }
-
-      // Create new user
-      user = new User({
-        username: name,
-        email,
-        googleId,
-        profilePicture: picture,
-        isEmailVerified: true // Google users are pre-verified
-      });
-      await user.save();
-    }
-
-    // Update last login
-    user.lastLogin = new Date();
-    await user.save();
-
-    // Generate token and set cookie
-    const token = generateToken(user._id);
-    setTokenCookie(res, token);
-
-    res.json({
-      success: true,
-      message: 'Google authentication successful!',
-      token,
-      user: {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        isEmailVerified: user.isEmailVerified,
-        profilePicture: user.profilePicture
-      }
-    });
-
-  } catch (error) {
-    console.error('Google auth error:', error);
-    
-    // More specific error messages
-    if (error.message.includes('Invalid Credential')) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid Google credential. Please try again.'
-      });
-    }
-    
-    if (error.message.includes('Token used too late')) {
-      return res.status(400).json({
-        success: false,
-        message: 'Google token expired. Please try again.'
-      });
-    }
-    
-    res.status(500).json({
-      success: false,
-      message: 'Google authentication failed. Please try again.',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
@@ -394,7 +430,7 @@ router.post('/forgot-password', [
     // Find user
     const user = await User.findOne({ email });
     if (!user) {
-      // Don't reveal if user exists or not
+      // Don't reveal if email exists or not
       return res.json({
         success: true,
         message: 'If an account with that email exists, a password reset link has been sent.'
@@ -406,13 +442,16 @@ router.post('/forgot-password', [
     await user.save();
 
     // Send password reset email
-    const emailSent = await sendPasswordResetEmail(email, user.username, resetToken);
+    const emailSent = await sendPasswordResetEmail(email, user.getDisplayName(), resetToken);
     
     if (!emailSent) {
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to send password reset email. Please try again.'
-      });
+      // In development mode, we continue even if email fails
+      if (process.env.NODE_ENV === 'production') {
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to send password reset email. Please try again.'
+        });
+      }
     }
 
     res.json({
@@ -430,7 +469,7 @@ router.post('/forgot-password', [
 });
 
 // @route   POST /api/auth/reset-password
-// @desc    Reset password using token
+// @desc    Reset password with token
 // @access  Public
 router.post('/reset-password', [
   body('token').notEmpty().withMessage('Reset token is required'),
@@ -448,23 +487,16 @@ router.post('/reset-password', [
 
     const { token, password } = req.body;
 
-    // Find user by reset token
+    // Find user with valid reset token
     const user = await User.findOne({
-      'passwordResetToken.token': token
+      'passwordResetToken.token': token,
+      'passwordResetToken.expiresAt': { $gt: new Date() }
     });
 
     if (!user) {
       return res.status(400).json({
         success: false,
         message: 'Invalid or expired reset token'
-      });
-    }
-
-    // Check if token is expired
-    if (user.isPasswordResetTokenExpired()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Reset token has expired. Please request a new one.'
       });
     }
 
@@ -494,7 +526,7 @@ router.post('/logout', authenticateToken, (req, res) => {
   res.clearCookie('token');
   res.json({
     success: true,
-    message: 'Logout successful!'
+    message: 'Logged out successfully'
   });
 });
 
@@ -504,7 +536,15 @@ router.post('/logout', authenticateToken, (req, res) => {
 router.get('/me', authenticateToken, (req, res) => {
   res.json({
     success: true,
-    user: req.user
+    user: {
+      id: req.user._id,
+      email: req.user.email,
+      role: req.user.role,
+      isVerified: req.user.isVerified,
+      displayName: req.user.getDisplayName(),
+      profilePicture: req.user.profilePicture,
+      roleData: req.user.getRoleData()
+    }
   });
 });
 

@@ -19,6 +19,16 @@ const Navbar = () => {
 
   const isActive = (path) => location.pathname === path;
 
+  const getDisplayName = () => {
+    if (!user) return 'User';
+    switch (user.role) {
+      case 'student': return user.student?.name || 'Student';
+      case 'company': return user.company?.companyName || 'Company';
+      case 'tpo': return user.tpo?.name || 'TPO';
+      default: return 'User';
+    }
+  };
+
   return (
     <nav className="bg-white shadow-lg border-b border-gray-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -26,10 +36,10 @@ const Navbar = () => {
           {/* Logo and Brand */}
           <div className="flex items-center">
             <Link to="/" className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">🔐</span>
+              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-lg">🚀</span>
               </div>
-              <span className="text-xl font-bold text-gray-900">MERN Auth</span>
+              <span className="text-xl font-bold text-gray-900">Elevate</span>
             </Link>
           </div>
 
@@ -62,16 +72,16 @@ const Navbar = () => {
                   {user?.profilePicture ? (
                     <img
                       src={user.profilePicture}
-                      alt={user.username}
+                      alt={getDisplayName()}
                       className="w-8 h-8 rounded-full"
                     />
                   ) : (
-                    <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
-                      <HiUser className="w-4 h-4 text-primary-600" />
+                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                      <HiUser className="w-4 h-4 text-blue-600" />
                     </div>
                   )}
                   <span className="text-sm font-medium text-gray-700">
-                    {user?.username}
+                    {getDisplayName()}
                   </span>
                 </div>
                 <button
@@ -87,8 +97,8 @@ const Navbar = () => {
                 <Link to="/login" className="btn-secondary">
                   Login
                 </Link>
-                <Link to="/register" className="btn-primary">
-                  Register
+                <Link to="/signup" className="btn-primary">
+                  Sign Up
                 </Link>
               </div>
             )}
@@ -98,7 +108,7 @@ const Navbar = () => {
           <div className="md:hidden flex items-center">
             <button
               onClick={toggleMenu}
-              className="text-gray-600 hover:text-primary-600 focus:outline-none focus:text-primary-600"
+              className="text-gray-600 hover:text-blue-600 focus:outline-none focus:text-blue-600"
             >
               {isMenuOpen ? (
                 <HiX className="w-6 h-6" />
@@ -144,16 +154,16 @@ const Navbar = () => {
                   {user?.profilePicture ? (
                     <img
                       src={user.profilePicture}
-                      alt={user.username}
+                      alt={getDisplayName()}
                       className="w-8 h-8 rounded-full mr-3"
                     />
                   ) : (
-                    <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center mr-3">
-                      <HiUser className="w-4 h-4 text-primary-600" />
+                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                      <HiUser className="w-4 h-4 text-blue-600" />
                     </div>
                   )}
                   <span className="text-sm font-medium text-gray-700">
-                    {user?.username}
+                    {getDisplayName()}
                   </span>
                 </div>
                 <button
@@ -168,17 +178,17 @@ const Navbar = () => {
               <div className="pt-4 border-t border-gray-200 space-y-2">
                 <Link
                   to="/login"
-                  className="block w-full text-center px-3 py-2 text-base font-medium text-gray-600 hover:text-primary-600 hover:bg-primary-50 rounded-md transition-colors duration-200"
+                  className="block w-full text-center px-3 py-2 text-base font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors duration-200"
                   onClick={closeMenu}
                 >
                   Login
                 </Link>
                 <Link
-                  to="/register"
-                  className="block w-full text-center px-3 py-2 text-base font-medium bg-primary-600 text-white hover:bg-primary-700 rounded-md transition-colors duration-200"
+                  to="/signup"
+                  className="block w-full text-center px-3 py-2 text-base font-medium bg-blue-600 text-white hover:bg-blue-700 rounded-md transition-colors duration-200"
                   onClick={closeMenu}
                 >
-                  Register
+                  Sign Up
                 </Link>
               </div>
             )}

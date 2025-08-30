@@ -2,17 +2,7 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
-  username: {
-    type: String,
-    required: function() {
-      return !this.googleId; // Username is only required if not using Google OAuth
-    },
-    unique: true,
-    sparse: true, // Allow multiple null values for Google users
-    trim: true,
-    minlength: [3, 'Username must be at least 3 characters long'],
-    maxlength: [30, 'Username cannot exceed 30 characters']
-  },
+  // Common fields for all roles
   email: {
     type: String,
     required: [true, 'Email is required'],
@@ -23,12 +13,15 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: function() {
-      return !this.googleId; // Password is only required if not using Google OAuth
-    },
+    required: [true, 'Password is required'],
     minlength: [6, 'Password must be at least 6 characters long']
   },
-  isEmailVerified: {
+  role: {
+    type: String,
+    required: [true, 'Role is required'],
+    enum: ['student', 'company', 'tpo']
+  },
+  isVerified: {
     type: Boolean,
     default: false
   },
@@ -40,30 +33,136 @@ const userSchema = new mongoose.Schema({
     token: String,
     expiresAt: Date
   },
-  googleId: {
-    type: String,
-    sparse: true
-  },
   profilePicture: {
     type: String,
     default: ''
   },
-  role: {
-    type: String,
-    enum: ['user', 'admin'],
-    default: 'user'
-  },
   lastLogin: {
     type: Date,
     default: Date.now
+  },
+
+  // Student specific fields
+  student: {
+    name: String,
+    rollNumber: String,
+    branch: String,
+    graduationYear: Number,
+    collegeName: String,
+    isPlaced: {
+      type: Boolean,
+      default: false
+    },
+    placementDetails: {
+      company: String,
+      package: String,
+      role: String,
+      placementDate: Date
+    },
+    resume: String,
+    skills: [String],
+    cgpa: {
+      type: Number,
+      min: 0,
+      max: 10
+    }
+  },
+
+  // Company specific fields
+  company: {
+    companyName: String,
+    contactNumber: String,
+    industry: String,
+    companySize: {
+      type: String,
+      enum: ['startup', 'small', 'medium', 'large', 'enterprise']
+    },
+    website: String,
+    address: {
+      street: String,
+      city: String,
+      state: String,
+      country: String,
+      zipCode: String
+    },
+    description: String,
+    jobPostings: [{
+      title: String,
+      description: String,
+      requirements: [String],
+      package: {
+        min: Number,
+        max: Number,
+        currency: {
+          type: String,
+          default: 'INR'
+        }
+      },
+      location: String,
+      type: {
+        type: String,
+        enum: ['full-time', 'internship', 'contract']
+      },
+      isActive: {
+        type: Boolean,
+        default: true
+      },
+      postedAt: {
+        type: Date,
+        default: Date.now
+      }
+    }]
+  },
+
+  // TPO specific fields
+  tpo: {
+    name: String,
+    instituteName: String,
+    contactNumber: String,
+    designation: String,
+    department: String,
+    instituteType: {
+      type: String,
+      enum: ['university', 'college', 'institute', 'school']
+    },
+    address: {
+      street: String,
+      city: String,
+      state: String,
+      country: String,
+      zipCode: String
+    },
+    totalStudents: {
+      type: Number,
+      default: 0
+    },
+    placedStudents: {
+      type: Number,
+      default: 0
+    },
+    averagePackage: {
+      type: Number,
+      default: 0
+    },
+    highestPackage: {
+      type: Number,
+      default: 0
+    },
+    placementStats: [{
+      year: Number,
+      totalStudents: Number,
+      placedStudents: Number,
+      averagePackage: Number,
+      highestPackage: Number
+    }]
   }
 }, {
   timestamps: true
 });
 
-// Hash password before saving (only for non-Google users)
+// Hash password before saving
 userSchema.pre('save', async function(next) {
-  if (!this.isModified('password') || this.googleId) return next();
+  if (!this.isModified('password')) return next();
   
   try {
     const salt = await bcrypt.genSalt(12);
@@ -76,9 +175,6 @@ userSchema.pre('save', async function(next) {
 
 // Method to compare password
 userSchema.methods.comparePassword = async function(candidatePassword) {
-  if (this.googleId) {
-    return false; // Google users don't have passwords
-  }
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
@@ -110,6 +206,34 @@ userSchema.methods.isOTPExpired = function() {
 // Method to check if password reset token is expired
 userSchema.methods.isPasswordResetTokenExpired = function() {
   return this.passwordResetToken && this.passwordResetToken.expiresAt < new Date();
+};
+
+// Method to get display name based on role
+userSchema.methods.getDisplayName = function() {
+  switch (this.role) {
+    case 'student':
+      return this.student?.name || 'Student';
+    case 'company':
+      return this.company?.companyName || 'Company';
+    case 'tpo':
+      return this.tpo?.name || 'TPO';
+    default:
+      return 'User';
+  }
+};
+
+// Method to get role-specific data
+userSchema.methods.getRoleData = function() {
+  switch (this.role) {
+    case 'student':
+      return this.student;
+    case 'company':
+      return this.company;
+    case 'tpo':
+      return this.tpo;
+    default:
+      return {};
+  }
 };
 
 // Remove sensitive fields when converting to JSON

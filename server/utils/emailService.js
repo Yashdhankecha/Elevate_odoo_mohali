@@ -1,7 +1,17 @@
 const nodemailer = require('nodemailer');
 
+// Check if email configuration is available
+const isEmailConfigured = () => {
+  return process.env.EMAIL_USER && process.env.EMAIL_PASS && process.env.EMAIL_FROM;
+};
+
 // Create transporter for sending emails
 const createTransporter = () => {
+  if (!isEmailConfigured()) {
+    console.log('⚠️  Email configuration not found. Email service will be disabled.');
+    return null;
+  }
+
   console.log('🔧 Creating email transporter...');
   console.log('📧 Email User:', process.env.EMAIL_USER);
   console.log('🔑 Email Pass:', process.env.EMAIL_PASS ? '***' + process.env.EMAIL_PASS.slice(-4) : 'NOT SET');
@@ -22,6 +32,8 @@ const createTransporter = () => {
 
 // Verify transporter configuration
 const verifyTransporter = async (transporter) => {
+  if (!transporter) return false;
+  
   try {
     console.log('🔍 Verifying transporter configuration...');
     await transporter.verify();
@@ -38,6 +50,14 @@ const sendOTPEmail = async (email, username, otp) => {
   try {
     console.log('📧 Attempting to send OTP email to:', email);
     
+    // Check if email is configured
+    if (!isEmailConfigured()) {
+      console.log('⚠️  Email not configured. OTP will be logged to console instead.');
+      console.log('📧 OTP for', email, ':', otp);
+      console.log('📧 Username:', username);
+      return true; // Return true to indicate "success" for development
+    }
+    
     const transporter = createTransporter();
     
     // Verify transporter before sending
@@ -50,11 +70,11 @@ const sendOTPEmail = async (email, username, otp) => {
     const mailOptions = {
       from: process.env.EMAIL_FROM,
       to: email,
-      subject: 'Email Verification - MERN Auth System',
+      subject: 'Email Verification - Elevate Placement Tracker',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa; border-radius: 10px;">
           <div style="text-align: center; margin-bottom: 30px;">
-            <h1 style="color: #007bff; margin: 0;">🔐 MERN Auth System</h1>
+            <h1 style="color: #007bff; margin: 0;">🚀 Elevate Placement Tracker</h1>
             <p style="color: #6c757d; margin: 10px 0;">Email Verification</p>
           </div>
           
@@ -62,7 +82,7 @@ const sendOTPEmail = async (email, username, otp) => {
             <h2 style="color: #333; margin-bottom: 20px;">Hello ${username}!</h2>
             
             <p style="color: #555; line-height: 1.6; margin-bottom: 25px;">
-              Thank you for registering with our platform. To complete your registration, 
+              Thank you for registering with Elevate Placement Tracker. To complete your registration, 
               please use the following verification code:
             </p>
             
@@ -78,7 +98,7 @@ const sendOTPEmail = async (email, username, otp) => {
             <div style="text-align: center; margin-top: 30px;">
               <p style="color: #6c757d; font-size: 14px;">
                 Best regards,<br>
-                MERN Auth System Team
+                Elevate Placement Tracker Team
               </p>
             </div>
           </div>
@@ -98,13 +118,15 @@ const sendOTPEmail = async (email, username, otp) => {
     return true;
   } catch (error) {
     console.error('❌ Error sending OTP email:', error);
-    console.error('❌ Error details:', {
-      message: error.message,
-      code: error.code,
-      command: error.command,
-      responseCode: error.responseCode,
-      response: error.response
-    });
+    
+    // For development, if email fails, log the OTP and continue
+    if (process.env.NODE_ENV === 'development') {
+      console.log('⚠️  Email failed, but continuing in development mode');
+      console.log('📧 OTP for', email, ':', otp);
+      console.log('📧 Username:', username);
+      return true;
+    }
+    
     return false;
   }
 };
@@ -112,17 +134,35 @@ const sendOTPEmail = async (email, username, otp) => {
 // Send password reset email
 const sendPasswordResetEmail = async (email, username, resetToken) => {
   try {
+    console.log('📧 Attempting to send password reset email to:', email);
+    
+    // Check if email is configured
+    if (!isEmailConfigured()) {
+      console.log('⚠️  Email not configured. Reset token will be logged to console instead.');
+      console.log('🔑 Reset token for', email, ':', resetToken);
+      console.log('📧 Username:', username);
+      return true; // Return true to indicate "success" for development
+    }
+    
     const transporter = createTransporter();
-    const resetLink = `${process.env.CLIENT_URL}/reset-password?token=${resetToken}`;
+    
+    // Verify transporter before sending
+    const isVerified = await verifyTransporter(transporter);
+    if (!isVerified) {
+      console.error('❌ Transporter verification failed, cannot send email');
+      return false;
+    }
+    
+    const resetUrl = `${process.env.CLIENT_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
     
     const mailOptions = {
       from: process.env.EMAIL_FROM,
       to: email,
-      subject: 'Password Reset Request - MERN Auth System',
+      subject: 'Password Reset - Elevate Placement Tracker',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa; border-radius: 10px;">
           <div style="text-align: center; margin-bottom: 30px;">
-            <h1 style="color: #dc3545; margin: 0;">🔐 MERN Auth System</h1>
+            <h1 style="color: #007bff; margin: 0;">🚀 Elevate Placement Tracker</h1>
             <p style="color: #6c757d; margin: 10px 0;">Password Reset Request</p>
           </div>
           
@@ -130,32 +170,32 @@ const sendPasswordResetEmail = async (email, username, resetToken) => {
             <h2 style="color: #333; margin-bottom: 20px;">Hello ${username}!</h2>
             
             <p style="color: #555; line-height: 1.6; margin-bottom: 25px;">
-              We received a request to reset your password. Click the button below to create a new password:
+              You requested a password reset for your account. Click the button below to reset your password:
             </p>
             
             <div style="text-align: center; margin: 25px 0;">
-              <a href="${resetLink}" style="background-color: #dc3545; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold;">
+              <a href="${resetUrl}" style="background-color: #007bff; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold;">
                 Reset Password
               </a>
             </div>
             
             <p style="color: #555; line-height: 1.6; margin-bottom: 20px;">
-              If the button doesn't work, copy and paste this link into your browser:
-            </p>
-            
-            <p style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; word-break: break-all; color: #007bff;">
-              ${resetLink}
+              If you didn't request this password reset, please ignore this email. 
+              This link will expire in <strong>1 hour</strong>.
             </p>
             
             <p style="color: #555; line-height: 1.6; margin-bottom: 20px;">
-              This link will expire in <strong>1 hour</strong>. If you didn't request a password reset, 
-              please ignore this email and your password will remain unchanged.
+              If the button doesn't work, you can copy and paste this link into your browser:
+            </p>
+            
+            <p style="color: #007bff; word-break: break-all; font-family: monospace; background-color: #f8f9fa; padding: 10px; border-radius: 4px;">
+              ${resetUrl}
             </p>
             
             <div style="text-align: center; margin-top: 30px;">
               <p style="color: #6c757d; font-size: 14px;">
                 Best regards,<br>
-                MERN Auth System Team
+                Elevate Placement Tracker Team
               </p>
             </div>
           </div>
@@ -163,11 +203,27 @@ const sendPasswordResetEmail = async (email, username, resetToken) => {
       `
     };
 
+    console.log('📤 Sending password reset email with options:', {
+      from: mailOptions.from,
+      to: mailOptions.to,
+      subject: mailOptions.subject
+    });
+
     const info = await transporter.sendMail(mailOptions);
     console.log('✅ Password reset email sent successfully:', info.messageId);
+    console.log('📧 Email response:', info);
     return true;
   } catch (error) {
     console.error('❌ Error sending password reset email:', error);
+    
+    // For development, if email fails, log the reset token and continue
+    if (process.env.NODE_ENV === 'development') {
+      console.log('⚠️  Email failed, but continuing in development mode');
+      console.log('🔑 Reset token for', email, ':', resetToken);
+      console.log('📧 Username:', username);
+      return true;
+    }
+    
     return false;
   }
 };

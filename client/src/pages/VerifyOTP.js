@@ -15,14 +15,14 @@ const VerifyOTP = () => {
   const location = useLocation();
 
   // Get user data from location state
-  const { userId, email, username } = location.state || {};
+  const { userId, email, role } = location.state || {};
 
   // Redirect if no user data
   useEffect(() => {
-    if (!userId || !email || !username) {
-      navigate('/register');
+    if (!userId || !email) {
+      navigate('/signup');
     }
-  }, [userId, email, username, navigate]);
+  }, [userId, email, navigate]);
 
   // Countdown timer
   useEffect(() => {
@@ -92,7 +92,9 @@ const VerifyOTP = () => {
       const result = await verifyOTP(userId, otpString);
       if (result.success) {
         // OTP verification successful, user will be redirected by auth context
+        navigate('/');
       }
+      // If verification fails, error will be shown by auth context
     } catch (error) {
       console.error('OTP verification error:', error);
     } finally {
@@ -111,107 +113,121 @@ const VerifyOTP = () => {
     if (firstInput) firstInput.focus();
   };
 
-  if (!userId || !email || !username) {
+  if (!userId || !email) {
     return null; // Will redirect in useEffect
   }
+
+  const getRoleDisplayName = (role) => {
+    switch (role) {
+      case 'student': return 'Student';
+      case 'company': return 'Company';
+      case 'tpo': return 'TPO';
+      default: return 'User';
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         {/* Header */}
         <div className="text-center">
-          <div className="mx-auto h-12 w-12 bg-primary-600 rounded-lg flex items-center justify-center">
-            <HiMail className="h-8 w-8 text-white" />
-          </div>
-          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">Elevate</h1>
+          <h2 className="text-2xl font-semibold text-gray-700 mb-2">
             Verify your email
           </h2>
-          <p className="mt-2 text-sm text-gray-600">
+          <p className="text-gray-600">
             We've sent a verification code to
           </p>
-          <p className="text-sm font-medium text-primary-600">{email}</p>
+          <p className="text-lg font-medium text-blue-600">{email}</p>
+          {role && (
+            <p className="text-sm text-gray-500 mt-1">
+              Account Type: {getRoleDisplayName(role)}
+            </p>
+          )}
         </div>
 
         {/* OTP Form */}
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="space-y-4">
-            {/* OTP Input Fields */}
-            <div>
-              <label className="form-label text-center block">
-                Enter the 6-digit code
-              </label>
-              <div className="flex justify-center space-x-2 mt-4">
-                {otp.map((digit, index) => (
-                  <input
-                    key={index}
-                    id={`otp-${index}`}
-                    type="text"
-                    maxLength="1"
-                    className="w-12 h-12 text-center text-lg font-semibold border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    value={digit}
-                    onChange={(e) => handleOtpChange(index, e.target.value)}
-                    onKeyDown={(e) => handleKeyDown(index, e)}
-                    autoFocus={index === 0}
-                  />
-                ))}
-              </div>
-              {errors.otp && (
-                <p className="mt-2 text-sm text-red-600 text-center">{errors.otp}</p>
-              )}
-            </div>
-
-            {/* Timer */}
-            <div className="text-center">
-              <div className="flex items-center justify-center space-x-2 text-sm text-gray-600">
-                <HiClock className="w-4 h-4" />
-                <span>Code expires in: {formatTime(timeLeft)}</span>
-              </div>
-            </div>
-
-            {/* Submit Button */}
-            <div>
-              <button
-                type="submit"
-                disabled={loading || timeLeft === 0}
-                className="btn-primary w-full flex justify-center items-center py-3 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? (
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                ) : (
-                  <>
-                    <HiCheckCircle className="w-5 h-5 mr-2" />
-                    Verify Email
-                  </>
+        <div className="bg-white rounded-lg p-6 shadow-lg">
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            <div className="space-y-4">
+              {/* OTP Input Fields */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 text-center mb-4">
+                  Enter the 6-digit verification code
+                </label>
+                <div className="flex justify-center space-x-2">
+                  {otp.map((digit, index) => (
+                    <input
+                      key={index}
+                      id={`otp-${index}`}
+                      type="text"
+                      maxLength="1"
+                      className="w-12 h-12 text-center text-lg font-semibold border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      value={digit}
+                      onChange={(e) => handleOtpChange(index, e.target.value)}
+                      onKeyDown={(e) => handleKeyDown(index, e)}
+                      autoFocus={index === 0}
+                    />
+                  ))}
+                </div>
+                {errors.otp && (
+                  <p className="mt-2 text-sm text-red-600 text-center">{errors.otp}</p>
                 )}
-              </button>
-            </div>
+              </div>
 
-            {/* Resend OTP */}
-            <div className="text-center">
-              {canResend ? (
+              {/* Timer */}
+              <div className="text-center">
+                <div className="flex items-center justify-center space-x-2 text-sm text-gray-600">
+                  <HiClock className="w-4 h-4" />
+                  <span>Code expires in: {formatTime(timeLeft)}</span>
+                </div>
+              </div>
+
+              {/* Submit Button */}
+              <div>
                 <button
-                  type="button"
-                  onClick={handleResendOTP}
-                  className="text-primary-600 hover:text-primary-500 font-medium text-sm"
+                  type="submit"
+                  disabled={loading || timeLeft === 0}
+                  className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 flex justify-center items-center"
                 >
-                  Resend verification code
+                  {loading ? (
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  ) : (
+                    <>
+                      <HiCheckCircle className="w-5 h-5 mr-2" />
+                      Verify Account
+                    </>
+                  )}
                 </button>
-              ) : (
-                <p className="text-sm text-gray-500">
-                  Didn't receive the code? You can resend in {formatTime(timeLeft)}
-                </p>
-              )}
+              </div>
+
+              {/* Resend OTP */}
+              <div className="text-center">
+                {canResend ? (
+                  <button
+                    type="button"
+                    onClick={handleResendOTP}
+                    className="text-blue-600 hover:text-blue-500 font-medium text-sm"
+                  >
+                    Resend verification code
+                  </button>
+                ) : (
+                  <p className="text-sm text-gray-500">
+                    Didn't receive the code? You can resend in {formatTime(timeLeft)}
+                  </p>
+                )}
+              </div>
             </div>
-          </div>
-        </form>
+          </form>
+        </div>
 
         {/* Footer */}
         <div className="text-center">
           <p className="text-sm text-gray-600">
             Having trouble?{' '}
             <button
-              onClick={() => navigate('/register')}
-              className="font-medium text-primary-600 hover:text-primary-500"
+              onClick={() => navigate('/signup')}
+              className="font-medium text-blue-600 hover:text-blue-500"
             >
               Try registering again
             </button>

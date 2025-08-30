@@ -16,8 +16,8 @@ app.use(cors({
 }));
 
 // Database connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/mern-auth')
-  .then(() => console.log('✅ Connected to MongoDB'))
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/elevate-placement-tracker')
+  .then(() => console.log('✅ Connected to MongoDB - Elevate Placement Tracker'))
   .catch(err => console.error('❌ MongoDB connection error:', err));
 
 // Routes
@@ -48,5 +48,5 @@ app.use('*', (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🚀 Elevate Placement Tracker Server running on port ${PORT}`);
 });

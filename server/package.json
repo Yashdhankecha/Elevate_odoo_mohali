@@ -1,7 +1,7 @@
 {
-  "name": "mern-auth-server",
+  "name": "elevate-server",
   "version": "1.0.0",
-  "description": "Express server for MERN authentication system",
+  "description": "Express server for Elevate placement tracker system",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -16,7 +16,6 @@
     "dotenv": "^16.3.1",
     "nodemailer": "^6.9.7",
     "express-validator": "^7.0.1",
-    "google-auth-library": "^9.4.1",
     "cookie-parser": "^1.4.6"
   },
   "devDependencies": {
