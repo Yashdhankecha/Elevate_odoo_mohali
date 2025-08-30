@@ -56,7 +56,18 @@ export const AuthProvider = ({ children }) => {
       setUser(userData);
       
       toast.success('Login successful!');
-      navigate('/');
+      // Role-based redirection
+      if (userData.role === 'student') {
+        navigate('/student-dashboard');
+      } else if (userData.role === 'tpo') {
+        navigate('/tpo-dashboard');
+      } else if (userData.role === 'company') {
+        navigate('/company-dashboard');
+      } else if (userData.role === 'superadmin') {
+        navigate('/superadmin-dashboard');
+      } else {
+        navigate('/');
+      }
       
       return { success: true };
     } catch (error) {
@@ -88,7 +99,19 @@ export const AuthProvider = ({ children }) => {
       setUser(userData);
       
       toast.success('Account verified successfully!');
-      navigate('/');
+      
+      // Role-based redirection after OTP verification
+      if (userData.role === 'student') {
+        navigate('/student-dashboard');
+      } else if (userData.role === 'tpo') {
+        navigate('/tpo-dashboard');
+      } else if (userData.role === 'company') {
+        navigate('/company-dashboard');
+      } else if (userData.role === 'superadmin') {
+        navigate('/superadmin-dashboard');
+      } else {
+        navigate('/');
+      }
       
       return { success: true };
     } catch (error) {

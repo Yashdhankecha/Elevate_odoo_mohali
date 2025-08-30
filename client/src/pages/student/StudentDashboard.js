@@ -1,7 +1,8 @@
+
 import React from 'react';
 
 import { Link } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { HiShieldCheck, HiLockClosed, HiAcademicCap, HiOfficeBuilding, HiChartBar } from 'react-icons/hi';
 import {
   Plus, Wand2, FileText, Palette, Briefcase, BookOpen, BarChart2, Users, Filter, AlertCircle, CheckCircle, Calendar, Flame, ArrowRight, Download, PieChart, TrendingUp, ChevronDown, UserCircle

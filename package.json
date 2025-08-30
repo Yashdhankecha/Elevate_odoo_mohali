@@ -12,10 +12,19 @@
     "install:all": "npm install && cd server && npm install && cd ../client && npm install",
     "build": "cd client && npm run build"
   },
-  "keywords": ["mern", "authentication", "react", "express", "mongodb"],
+  "keywords": [
+    "mern",
+    "authentication",
+    "react",
+    "express",
+    "mongodb"
+  ],
   "author": "",
   "license": "MIT",
   "devDependencies": {
     "concurrently": "^8.2.2"
+  },
+  "dependencies": {
+    "lucide-react": "^0.542.0"
   }
 }

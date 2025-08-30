@@ -1,201 +1,96 @@
-import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import React, { useState, useRef } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { HiMenu, HiX, HiUser, HiLogout, HiHome } from 'react-icons/hi';
+import { Bell, Mail, ChevronDown } from 'lucide-react';
 
 const Navbar = () => {
-  const { user, isAuthenticated, logout } = useAuth();
-  const location = useLocation();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user, logout } = useAuth();
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+  const navigate = useNavigate();
 
-  const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
+  // Close dropdown on outside click
+  React.useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
-  const closeMenu = () => setIsMenuOpen(false);
-
-  const handleLogout = () => {
-    logout();
-    closeMenu();
+  const handleProfile = () => {
+    setDropdownOpen(false);
+    navigate('/profile');
   };
 
-  const isActive = (path) => location.pathname === path;
-
-  const getDisplayName = () => {
-    if (!user) return 'User';
-    switch (user.role) {
-      case 'student': return user.student?.name || 'Student';
-      case 'company': return user.company?.companyName || 'Company';
-      case 'tpo': return user.tpo?.name || 'TPO';
-      default: return 'User';
-    }
+  const handleLogout = async () => {
+    setDropdownOpen(false);
+    await logout();
   };
 
   return (
-    <nav className="bg-white shadow-lg border-b border-gray-100">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
-          {/* Logo and Brand */}
-          <div className="flex items-center">
-            <Link to="/" className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">🚀</span>
-              </div>
-              <span className="text-xl font-bold text-gray-900">Elevate</span>
-            </Link>
-          </div>
-
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
-            <Link
-              to="/"
-              className={`nav-link ${isActive('/') ? 'nav-link-active' : ''}`}
-            >
-              <HiHome className="inline w-4 h-4 mr-1" />
-              Home
-            </Link>
-            
-            {isAuthenticated && (
-              <Link
-                to="/profile"
-                className={`nav-link ${isActive('/profile') ? 'nav-link-active' : ''}`}
-              >
-                <HiUser className="inline w-4 h-4 mr-1" />
-                Profile
-              </Link>
-            )}
-          </div>
-
-          {/* Desktop Auth Buttons */}
-          <div className="hidden md:flex items-center space-x-4">
-            {isAuthenticated ? (
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-2">
-                  {user?.profilePicture ? (
-                    <img
-                      src={user.profilePicture}
-                      alt={getDisplayName()}
-                      className="w-8 h-8 rounded-full"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                      <HiUser className="w-4 h-4 text-blue-600" />
-                    </div>
-                  )}
-                  <span className="text-sm font-medium text-gray-700">
-                    {getDisplayName()}
-                  </span>
-                </div>
-                <button
-                  onClick={handleLogout}
-                  className="btn-secondary flex items-center space-x-1"
-                >
-                  <HiLogout className="w-4 h-4" />
-                  <span>Logout</span>
-                </button>
-              </div>
+    <header className="w-full bg-white shadow-sm px-6 py-3 flex items-center justify-between sticky top-0 z-40">
+      <div className="flex flex-col">
+        <span className="text-lg font-semibold text-gray-900">Placement Command Center</span>
+        <span className="text-xs text-gray-500">Welcome back! Here's your placement overview</span>
+      </div>
+      <div className="flex items-center gap-6">
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Search students, companies, jobs..."
+            className="rounded-full border border-gray-200 px-4 py-2 w-64 focus:outline-none focus:ring-2 focus:ring-blue-200 text-sm bg-gray-50"
+          />
+        </div>
+        <button className="relative p-2 rounded-full hover:bg-gray-100 transition">
+          <Bell className="w-5 h-5 text-gray-600" />
+          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-1.5">7</span>
+        </button>
+        <button className="p-2 rounded-full hover:bg-gray-100 transition">
+          <Mail className="w-5 h-5 text-gray-600" />
+        </button>
+        <div className="relative" ref={dropdownRef}>
+          <button
+            className="flex items-center gap-2 px-2 py-1 rounded-full hover:bg-gray-100 transition"
+            onClick={() => setDropdownOpen((open) => !open)}
+          >
+            {user?.profilePicture ? (
+              <img
+                src={user.profilePicture}
+                alt={user.username || 'User'}
+                className="w-8 h-8 rounded-full object-cover border border-gray-200"
+              />
             ) : (
-              <div className="flex items-center space-x-4">
-                <Link to="/login" className="btn-secondary">
-                  Login
-                </Link>
-                <Link to="/signup" className="btn-primary">
-                  Sign Up
-                </Link>
+              <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold">
+                {user?.username ? user.username[0].toUpperCase() : 'U'}
               </div>
             )}
-          </div>
-
-          {/* Mobile menu button */}
-          <div className="md:hidden flex items-center">
-            <button
-              onClick={toggleMenu}
-              className="text-gray-600 hover:text-blue-600 focus:outline-none focus:text-blue-600"
-            >
-              {isMenuOpen ? (
-                <HiX className="w-6 h-6" />
-              ) : (
-                <HiMenu className="w-6 h-6" />
-              )}
-            </button>
-          </div>
+            <span className="font-medium text-gray-800 text-sm max-w-[120px] truncate">
+              {user?.username || 'User'}
+            </span>
+            <ChevronDown className="w-4 h-4 text-gray-500" />
+          </button>
+          {dropdownOpen && (
+            <div className="absolute right-0 mt-2 w-44 bg-white border border-gray-100 rounded-lg shadow-lg py-1 z-50 animate-fade-in">
+              <button
+                className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-50 text-sm"
+                onClick={handleProfile}
+              >
+                Profile View
+              </button>
+              <button
+                className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-50 text-sm"
+                onClick={handleLogout}
+              >
+                Logout
+              </button>
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Mobile Navigation Menu */}
-      {isMenuOpen && (
-        <div className="md:hidden">
-          <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white border-t border-gray-100">
-            <Link
-              to="/"
-              className={`block px-3 py-2 rounded-md text-base font-medium ${
-                isActive('/') ? 'nav-link-active' : 'nav-link'
-              }`}
-              onClick={closeMenu}
-            >
-              <HiHome className="inline w-4 h-4 mr-2" />
-              Home
-            </Link>
-            
-            {isAuthenticated && (
-              <Link
-                to="/profile"
-                className={`block px-3 py-2 rounded-md text-base font-medium ${
-                  isActive('/profile') ? 'nav-link-active' : 'nav-link'
-                }`}
-                onClick={closeMenu}
-              >
-                <HiUser className="inline w-4 h-4 mr-2" />
-                Profile
-              </Link>
-            )}
-
-            {isAuthenticated ? (
-              <div className="pt-4 border-t border-gray-200">
-                <div className="flex items-center px-3 py-2 mb-3">
-                  {user?.profilePicture ? (
-                    <img
-                      src={user.profilePicture}
-                      alt={getDisplayName()}
-                      className="w-8 h-8 rounded-full mr-3"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
-                      <HiUser className="w-4 h-4 text-blue-600" />
-                    </div>
-                  )}
-                  <span className="text-sm font-medium text-gray-700">
-                    {getDisplayName()}
-                  </span>
-                </div>
-                <button
-                  onClick={handleLogout}
-                  className="w-full text-left px-3 py-2 text-base font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors duration-200"
-                >
-                  <HiLogout className="inline w-4 h-4 mr-2" />
-                  Logout
-                </button>
-              </div>
-            ) : (
-              <div className="pt-4 border-t border-gray-200 space-y-2">
-                <Link
-                  to="/login"
-                  className="block w-full text-center px-3 py-2 text-base font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors duration-200"
-                  onClick={closeMenu}
-                >
-                  Login
-                </Link>
-                <Link
-                  to="/signup"
-                  className="block w-full text-center px-3 py-2 text-base font-medium bg-blue-600 text-white hover:bg-blue-700 rounded-md transition-colors duration-200"
-                  onClick={closeMenu}
-                >
-                  Sign Up
-                </Link>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-    </nav>
+    </header>
   );
 };
 
