@@ -4,11 +4,8 @@ import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import Navbar from './components/Navbar';
-import Sidebar from './components/Sidebar';
-import { AuthProvider } from './contexts/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
 import RoleBasedRoute from './components/RoleBasedRoute';
-import Navbar from './components/Navbar';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import VerifyOTP from './pages/VerifyOTP';
@@ -66,95 +63,97 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-          <ConditionalNavbar />
-          <ConditionalMain>
-            <Routes>
-              <Route path="/" element={<Navigate to="/login" replace />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
-              <Route path="/verify-otp" element={<VerifyOTP />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/approval-pending" element={<ApprovalInProcess />} />
-              
-              {/* Role-based dashboard routes */}
-              <Route 
-                path="/dashboard" 
-                element={
-                  <PrivateRoute>
-                    <RoleBasedRoute />
-                  </PrivateRoute>
-                } 
-              />
-              
-              {/* Individual dashboard routes */}
-              <Route 
-                path="/student-dashboard" 
-                element={
-                  <RoleBasedRoute allowedRoles={['student']} />
-                } 
-              />
-              
-              <Route 
-                path="/company-dashboard" 
-                element={
-                  <RoleBasedRoute allowedRoles={['company']} />
-                } 
-              />
-              
-              <Route 
-                path="/tpo-dashboard" 
-                element={
-                  <RoleBasedRoute allowedRoles={['tpo']} />
-                } 
-              />
-              
-              <Route 
-                path="/superadmin-dashboard" 
-                element={
-                  <RoleBasedRoute allowedRoles={['superadmin']} />
-                } 
-              />
-              
-              <Route 
-                path="/profile" 
-                element={
-                  <PrivateRoute>
-                    <Profile />
-                  </PrivateRoute>
-                } 
-              />
-              
-              <Route path="*" element={<Navigate to="/login" replace />} />
-            </Routes>
-          </ConditionalMain>
-          <Toaster 
-            position="top-right"
-            toastOptions={{
-              duration: 4000,
-              style: {
-                background: '#363636',
-                color: '#fff',
-              },
-              success: {
-                duration: 3000,
-                iconTheme: {
-                  primary: '#10b981',
-                  secondary: '#fff',
+        <NotificationProvider>
+          <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+            <ConditionalNavbar />
+            <ConditionalMain>
+              <Routes>
+                <Route path="/" element={<Navigate to="/login" replace />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<Signup />} />
+                <Route path="/verify-otp" element={<VerifyOTP />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/approval-pending" element={<ApprovalInProcess />} />
+                
+                {/* Role-based dashboard routes */}
+                <Route 
+                  path="/dashboard" 
+                  element={
+                    <PrivateRoute>
+                      <RoleBasedRoute />
+                    </PrivateRoute>
+                  } 
+                />
+                
+                {/* Individual dashboard routes */}
+                <Route 
+                  path="/student-dashboard" 
+                  element={
+                    <RoleBasedRoute allowedRoles={['student']} />
+                  } 
+                />
+                
+                <Route 
+                  path="/company-dashboard" 
+                  element={
+                    <RoleBasedRoute allowedRoles={['company']} />
+                  } 
+                />
+                
+                <Route 
+                  path="/tpo-dashboard" 
+                  element={
+                    <RoleBasedRoute allowedRoles={['tpo']} />
+                  } 
+                />
+                
+                <Route 
+                  path="/superadmin-dashboard" 
+                  element={
+                    <RoleBasedRoute allowedRoles={['superadmin']} />
+                  } 
+                />
+                
+                <Route 
+                  path="/profile" 
+                  element={
+                    <PrivateRoute>
+                      <Profile />
+                    </PrivateRoute>
+                  } 
+                />
+                
+                <Route path="*" element={<Navigate to="/login" replace />} />
+              </Routes>
+            </ConditionalMain>
+            <Toaster 
+              position="top-right"
+              toastOptions={{
+                duration: 4000,
+                style: {
+                  background: '#363636',
+                  color: '#fff',
                 },
-              },
-              error: {
-                duration: 5000,
-                iconTheme: {
-                  primary: '#ef4444',
-                  secondary: '#fff',
+                success: {
+                  duration: 3000,
+                  iconTheme: {
+                    primary: '#10b981',
+                    secondary: '#fff',
+                  },
                 },
-              },
-            }}
-          />
+                error: {
+                  duration: 5000,
+                  iconTheme: {
+                    primary: '#ef4444',
+                    secondary: '#fff',
+                  },
+                },
+              }}
+            />
 
-        </div>
+          </div>
+        </NotificationProvider>
       </AuthProvider>
     </Router>
   );

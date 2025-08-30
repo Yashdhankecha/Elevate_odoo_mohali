@@ -112,10 +112,7 @@ const generateStudentData = (index) => {
       technologies: [randomElement(['React', 'Node.js', 'Python', 'Java', 'Flutter']), randomElement(['MongoDB', 'MySQL', 'PostgreSQL'])],
       githubUrl: `https://github.com/student${index}/project${i + 1}`,
       liveUrl: `https://project${i + 1}-${index}.vercel.app`,
-      duration: {
-        startDate: randomDate(new Date(2023, 0, 1), new Date(2024, 0, 1)),
-        endDate: randomDate(new Date(2024, 0, 1), new Date(2024, 11, 31))
-      }
+      duration: `${randomNumber(1, 6)} months`
     });
   }
   
@@ -282,7 +279,11 @@ const generateStudentData = (index) => {
         country: 'India',
         zipCode: randomNumber(100000, 999999).toString()
       },
-      skills: studentSkills,
+      skills: {
+        technicalSkills: studentSkills.map(skill => skill.name),
+        softSkills: ['Communication', 'Teamwork', 'Problem Solving', 'Leadership'],
+        certifications: []
+      },
       certifications: certifications,
       languages: languages,
       resume: `https://drive.google.com/resume-${index + 1}.pdf`,
@@ -355,9 +356,9 @@ const seedStudents = async () => {
     await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/elevate-placement-tracker');
     console.log('✅ Connected to MongoDB');
     
-    // Clear existing students
-    await User.deleteMany({ role: 'student' });
-    console.log('🗑️  Cleared existing students');
+    // Clear all existing users
+    await User.deleteMany({});
+    console.log('🗑️  Cleared all existing users');
     
     // Generate and insert 20 students
     const students = [];

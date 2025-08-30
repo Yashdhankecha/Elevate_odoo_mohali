@@ -1,5 +1,19 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { 
+  HiUser, 
+  HiAcademicCap, 
+  HiBriefcase, 
+  HiPuzzle, 
+  HiStar,
+  HiDocumentText,
+  HiLightningBolt,
+  HiTrendingUp,
+  HiExclamation,
+  HiOfficeBuilding,
+  HiChartBar,
+  HiClock
+} from 'react-icons/hi';
 import Sidebar from './components/Sidebar';
 import TopNavbar from './components/TopNavbar';
 import DashboardOverview from './components/DashboardOverview';
@@ -22,13 +36,28 @@ const StudentDashboard = () => {
   const [experience, setExperience] = useState({ projects: [], internships: [] });
   const [alerts, setAlerts] = useState([]);
   const [analytics, setAnalytics] = useState(null);
+  const [activeSection, setActiveSection] = useState('dashboard');
+  const [student, setStudent] = useState({});
+  const [stats, setStats] = useState({});
+  const [alertsData, setAlertsData] = useState([]);
+  const [analyticsData, setAnalyticsData] = useState({});
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
         setError(null);
+        // Add your API calls here
+      } catch (error) {
+        setError('Failed to fetch dashboard data');
+        console.error('Dashboard data fetch error:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
+    fetchDashboardData();
+  }, []);
 
   const renderContent = () => {
     switch (activeSection) {

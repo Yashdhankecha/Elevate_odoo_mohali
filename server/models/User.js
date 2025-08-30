@@ -142,7 +142,6 @@ const userSchema = new mongoose.Schema({
       placementDate: Date
     },
     resume: String,
-    skills: [String],
     cgpa: {
       type: Number,
       min: 0,

@@ -16,7 +16,7 @@ app.use(cors({
 }));
 
 // Database connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/elevate-placement-tracker')
+mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://tripod:karanharshyash@clustercgc.lb9dcwd.mongodb.net/?retryWrites=true&w=majority&appName=ClusterCGC')
   .then(() => console.log('✅ Connected to MongoDB - Elevate Placement Tracker'))
   .catch(err => console.error('❌ MongoDB connection error:', err));
 

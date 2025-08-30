@@ -9,6 +9,8 @@ const router = express.Router();
 // Test endpoint
 router.get('/test', (req, res) => {
   res.json({ message: 'User routes are working!' });
+});
+
 // @route   GET /api/user/students
 // @desc    Get all students for dashboard
 // @access  Private (TPO and Company roles)
@@ -794,99 +796,7 @@ router.put('/profile', authenticateToken, async (req, res) => {
   }
 });
 
-// @route   PUT /api/user/change-password
-// @desc    Change user password
-// @access  Private
-router.put('/change-password', [
-  authenticateToken,
-  body('currentPassword').notEmpty().withMessage('Current password is required'),
-  body('newPassword').isLength({ min: 6 }).withMessage('New password must be at least 6 characters long')
-], async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array()
-      });
-    }
 
-    const { currentPassword, newPassword } = req.body;
-
-    // Verify current password
-    const isPasswordValid = await req.user.comparePassword(currentPassword);
-    if (!isPasswordValid) {
-      return res.status(400).json({
-        success: false,
-        message: 'Current password is incorrect'
-      });
-    }
-
-    // Update password
-    req.user.password = newPassword;
-    await req.user.save();
-
-    res.json({
-      success: true,
-      message: 'Password changed successfully!'
-    });
-
-  } catch (error) {
-    console.error('Change password error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error. Please try again.'
-    });
-  }
-});
-
-// @route   DELETE /api/user/account
-// @desc    Delete user account
-// @access  Private
-router.delete('/account', [
-  authenticateToken,
-  body('password').notEmpty().withMessage('Password is required for account deletion')
-], async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array()
-      });
-    }
-
-    const { password } = req.body;
-
-    // Verify password
-    const isPasswordValid = await req.user.comparePassword(password);
-    if (!isPasswordValid) {
-      return res.status(400).json({
-        success: false,
-        message: 'Password is incorrect'
-      });
-    }
-
-    // Delete user account
-    await User.findByIdAndDelete(req.user._id);
-
-    res.json({
-      success: true,
-      message: 'Account deleted successfully!'
-    });
-
-  } catch (error) {
-    console.error('Delete account error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error. Please try again.'
-    });
-  }
-});
-
-// @route   PUT /api/user/change-password
 // @desc    Change user password
 // @access  Private
 router.put('/change-password', authenticateToken, async (req, res) => {

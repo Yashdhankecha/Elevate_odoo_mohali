@@ -146,7 +146,9 @@ export const updateUserProfile = async (profileData) => {
     console.error('Response status:', error.response?.status);
     console.error('Response data:', error.response?.data);
     console.error('Full error object:', error);
-    
+    throw error;
+  }
+};
 
 // Student Dashboard API functions
 export const getStudentProfile = async () => {
@@ -205,6 +207,9 @@ export const deleteNotification = async (notificationId) => {
     return response.data;
   } catch (error) {
     console.error('Error deleting notification:', error);
+    throw error;
+  }
+};
 
 export const getPracticeHistory = async () => {
   try {
@@ -227,6 +232,25 @@ export const getUnreadCount = async () => {
     return response.data;
   } catch (error) {
     console.error('Error getting unread count:', error);
+    throw error;
+  }
+};
+
+export const getNotifications = async (params = {}) => {
+  try {
+    const queryParams = new URLSearchParams();
+    if (params.limit) queryParams.append('limit', params.limit);
+    if (params.page) queryParams.append('page', params.page);
+    if (params.type) queryParams.append('type', params.type);
+    if (params.isRead !== undefined) queryParams.append('isRead', params.isRead);
+    
+    const response = await api.get(`/notifications?${queryParams.toString()}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching notifications:', error);
+    throw error;
+  }
+};
 
 export const getStudentAchievements = async () => {
   try {
@@ -252,6 +276,9 @@ export const changePasswordApi = async (currentPassword, newPassword) => {
     return response.data;
   } catch (error) {
     console.error('Error changing password:', error);
+    throw error;
+  }
+};
 
 export const getStudentExperience = async () => {
   try {
@@ -276,6 +303,9 @@ export const deleteAccountApi = async (password) => {
     return response.data;
   } catch (error) {
     console.error('Error deleting account:', error);
+    throw error;
+  }
+};
 
 export const getStudentAlerts = async () => {
   try {
