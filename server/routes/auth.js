@@ -60,8 +60,8 @@ const getValidationRules = (role) => {
           .notEmpty()
           .withMessage('Branch is required'),
         body('graduationYear')
-          .isInt({ min: new Date().getFullYear(), max: new Date().getFullYear() + 10 })
-          .withMessage('Graduation Year must be between current year and 10 years ahead'),
+          .isInt({ min: new Date().getFullYear() - 1, max: new Date().getFullYear() + 10 })
+          .withMessage('Graduation Year must be between last year and 10 years ahead'),
         body('collegeName')
           .notEmpty()
           .withMessage('College Name is required')
@@ -92,6 +92,31 @@ const getValidationRules = (role) => {
           .withMessage('Please enter a valid contact number')
       ];
     
+    case 'admin':
+      return [
+        ...baseRules,
+        body('name')
+          .isLength({ min: 2, max: 50 })
+          .withMessage('Name must be between 2 and 50 characters'),
+        body('contactNumber')
+          .matches(/^[+]?[\d\s\-\(\)]+$/)
+          .withMessage('Please enter a valid contact number'),
+        body('department')
+          .notEmpty()
+          .withMessage('Department is required')
+      ];
+    
+    case 'superadmin':
+      return [
+        ...baseRules,
+        body('name')
+          .isLength({ min: 2, max: 50 })
+          .withMessage('Name must be between 2 and 50 characters'),
+        body('contactNumber')
+          .matches(/^[+]?[\d\s\-\(\)]+$/)
+          .withMessage('Please enter a valid contact number')
+      ];
+    
     default:
       return baseRules;
   }
@@ -107,10 +132,10 @@ router.post('/register', async (req, res) => {
     console.log('📝 Registration attempt:', { role, email: userData.email });
 
     // Validate role
-    if (!role || !['student', 'company', 'tpo'].includes(role)) {
+    if (!role || !['student', 'company', 'tpo', 'admin', 'superadmin'].includes(role)) {
       return res.status(400).json({
         success: false,
-        message: 'Valid role is required (student, company, or tpo)'
+        message: 'Valid role is required (student, company, tpo, admin, or superadmin)'
       });
     }
 
@@ -183,6 +208,24 @@ router.post('/register', async (req, res) => {
           name: userData.name,
           instituteName: userData.instituteName,
           contactNumber: userData.contactNumber
+        };
+        break;
+      
+      case 'admin':
+        userFields.admin = {
+          name: userData.name,
+          contactNumber: userData.contactNumber,
+          department: userData.department,
+          permissions: userData.permissions || ['user_management', 'reports']
+        };
+        break;
+      
+      case 'superadmin':
+        userFields.superadmin = {
+          name: userData.name,
+          contactNumber: userData.contactNumber,
+          systemAccess: true,
+          permissions: ['admin_approval', 'company_approval', 'institution_management', 'system_settings']
         };
         break;
     }

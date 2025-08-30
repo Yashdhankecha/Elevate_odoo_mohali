@@ -12,13 +12,7 @@ import VerifyOTP from './pages/VerifyOTP';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import Profile from './pages/Profile';
-import JobApplications from './pages/student/JobApplications';
-import ResumeBuilder from './pages/student/ResumeBuilder';
-import PracticeHub from './pages/student/PracticeHub';
-import SkillTracker from './pages/student/SkillTracker';
-import CareerTimeline from './pages/student/CareerTimeline';
-import PlacementHistory from './pages/student/PlacementHistory';
-import AICareerCoach from './pages/student/AICareerCoach';
+
 import StudentDashboard from './pages/student/StudentDashboard';
 import TPODashboard from './pages/tpo/TPODashboard';
 import CompanyDashboard from './pages/company/CompanyDashboard';
@@ -103,118 +97,13 @@ function AppRoutes() {
           </PrivateRoute>
         }
       />
-      <Route
-        path="/job-applications"
-        element={
-          <PrivateRoute>
-            <div className="min-h-screen bg-gray-50 flex flex-col">
-              <Navbar />
-              <div className="flex flex-1">
-                <Sidebar />
-                <main className="flex-1 px-4 py-8 ml-0 md:ml-64 mt-20">
-                  <JobApplications />
-                </main>
-              </div>
-            </div>
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/resume-builder"
-        element={
-          <PrivateRoute>
-            <div className="min-h-screen bg-gray-50 flex flex-col">
-              <Navbar />
-              <div className="flex flex-1">
-                <Sidebar />
-                <main className="flex-1 px-4 py-8 ml-0 md:ml-64 mt-20">
-                  <ResumeBuilder />
-                </main>
-              </div>
-            </div>
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/practice-hub"
-        element={
-          <PrivateRoute>
-            <div className="min-h-screen bg-gray-50 flex flex-col">
-              <Navbar />
-              <div className="flex flex-1">
-                <Sidebar />
-                <main className="flex-1 px-4 py-8 ml-0 md:ml-64 mt-20">
-                  <PracticeHub />
-                </main>
-              </div>
-            </div>
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/skill-tracker"
-        element={
-          <PrivateRoute>
-            <div className="min-h-screen bg-gray-50 flex flex-col">
-              <Navbar />
-              <div className="flex flex-1">
-                <Sidebar />
-                <main className="flex-1 px-4 py-8 ml-0 md:ml-64 mt-20">
-                  <SkillTracker />
-                </main>
-              </div>
-            </div>
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/career-timeline"
-        element={
-          <PrivateRoute>
-            <div className="min-h-screen bg-gray-50 flex flex-col">
-              <Navbar />
-              <div className="flex flex-1">
-                <Sidebar />
-                <main className="flex-1 px-4 py-8 ml-0 md:ml-64 mt-20">
-                  <CareerTimeline />
-                </main>
-              </div>
-            </div>
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/placement-history"
-        element={
-          <PrivateRoute>
-            <div className="min-h-screen bg-gray-50 flex flex-col">
-              <Navbar />
-              <div className="flex flex-1">
-                <Sidebar />
-                <main className="flex-1 px-4 py-8 ml-0 md:ml-64 mt-20">
-                  <PlacementHistory />
-                </main>
-              </div>
-            </div>
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/ai-career-coach"
-        element={
-          <PrivateRoute>
-            <div className="min-h-screen bg-gray-50 flex flex-col">
-              <Navbar />
-              <div className="flex flex-1">
-                <Sidebar />
-                <main className="flex-1 px-4 py-8 ml-0 md:ml-64 mt-20">
-                  <AICareerCoach />
-                </main>
-              </div>
-            </div>
-          </PrivateRoute>
-        }
-      />
+
+
+
+
+
+
+
       <Route
         path="/profile"
         element={

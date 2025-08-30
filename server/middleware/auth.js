@@ -27,8 +27,8 @@ const authenticateToken = async (req, res, next) => {
       });
     }
 
-    // Check if user is email verified (only for non-Google users)
-    if (!user.googleId && !user.isEmailVerified) {
+    // Check if user is email verified (only for non-Google users and non-admin roles)
+    if (!user.googleId && !user.isVerified && !['admin', 'superadmin'].includes(user.role)) {
       return res.status(403).json({
         success: false,
         message: 'Please verify your email before accessing this resource.'
@@ -61,7 +61,7 @@ const authenticateToken = async (req, res, next) => {
 
 // Middleware to check if user is admin
 const isAdmin = (req, res, next) => {
-  if (req.user && req.user.role === 'admin') {
+  if (req.user && ['admin', 'superadmin'].includes(req.user.role)) {
     next();
   } else {
     res.status(403).json({
@@ -71,9 +71,21 @@ const isAdmin = (req, res, next) => {
   }
 };
 
+// Middleware to check if user is superadmin
+const isSuperAdmin = (req, res, next) => {
+  if (req.user && req.user.role === 'superadmin') {
+    next();
+  } else {
+    res.status(403).json({
+      success: false,
+      message: 'Access denied. Super Admin role required.'
+    });
+  }
+};
+
 // Middleware to check if user is email verified
 const isEmailVerified = (req, res, next) => {
-  if (req.user && (req.user.isEmailVerified || req.user.googleId)) {
+  if (req.user && (req.user.isVerified || req.user.googleId || ['admin', 'superadmin'].includes(req.user.role))) {
     next();
   } else {
     res.status(403).json({
@@ -86,5 +98,6 @@ const isEmailVerified = (req, res, next) => {
 module.exports = {
   authenticateToken,
   isAdmin,
+  isSuperAdmin,
   isEmailVerified
 };

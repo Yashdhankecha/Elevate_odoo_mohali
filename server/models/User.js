@@ -19,7 +19,7 @@ const userSchema = new mongoose.Schema({
   role: {
     type: String,
     required: [true, 'Role is required'],
-    enum: ['student', 'company', 'tpo']
+    enum: ['student', 'company', 'tpo', 'admin', 'superadmin']
   },
   isVerified: {
     type: Boolean,
@@ -155,6 +155,35 @@ const userSchema = new mongoose.Schema({
       averagePackage: Number,
       highestPackage: Number
     }]
+  },
+
+  // Admin specific fields
+  admin: {
+    name: String,
+    contactNumber: String,
+    department: String,
+    permissions: [{
+      type: String,
+      enum: ['user_management', 'company_approval', 'reports', 'settings']
+    }],
+    assignedInstitutions: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Institution'
+    }]
+  },
+
+  // Superadmin specific fields
+  superadmin: {
+    name: String,
+    contactNumber: String,
+    systemAccess: {
+      type: Boolean,
+      default: true
+    },
+    permissions: [{
+      type: String,
+      enum: ['admin_approval', 'company_approval', 'institution_management', 'system_settings']
+    }]
   }
 }, {
   timestamps: true
@@ -217,6 +246,10 @@ userSchema.methods.getDisplayName = function() {
       return this.company?.companyName || 'Company';
     case 'tpo':
       return this.tpo?.name || 'TPO';
+    case 'admin':
+      return this.admin?.name || 'Admin';
+    case 'superadmin':
+      return this.superadmin?.name || 'Super Admin';
     default:
       return 'User';
   }
@@ -231,6 +264,10 @@ userSchema.methods.getRoleData = function() {
       return this.company;
     case 'tpo':
       return this.tpo;
+    case 'admin':
+      return this.admin;
+    case 'superadmin':
+      return this.superadmin;
     default:
       return {};
   }
