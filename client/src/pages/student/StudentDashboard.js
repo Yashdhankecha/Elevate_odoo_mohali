@@ -415,7 +415,7 @@ const PerformanceAnalyticsCard = () => (
 
 export default function Home() {
   return (
-    <div className="bg-gradient-to-br from-gray-50 to-blue-50 min-h-screen py-8 px-2 md:px-8 animate-fade-in">
+    <div className="bg-gradient-to-br from-gray-50 to-blue-50 min-h-full py-8 px-2 md:px-8 animate-fade-in">
       <div className="max-w-6xl mx-auto">
         <ResumeBuilderCard />
         <PracticeHubCard />

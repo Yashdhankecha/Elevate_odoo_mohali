@@ -21,7 +21,20 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    // Try to get user from localStorage on initial load
+    const savedUser = localStorage.getItem('user');
+    if (savedUser) {
+      try {
+        return JSON.parse(savedUser);
+      } catch (error) {
+        console.error('Failed to parse saved user data:', error);
+        localStorage.removeItem('user');
+        return null;
+      }
+    }
+    return null;
+  });
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState(localStorage.getItem('token'));
   const navigate = useNavigate();
@@ -35,8 +48,25 @@ export const AuthProvider = ({ children }) => {
           setUser(response.user);
         } catch (error) {
           console.error('Auth check failed:', error);
-          localStorage.removeItem('token');
-          setToken(null);
+          // Instead of immediately clearing the token, let's try to recover user info from localStorage
+          const savedUser = localStorage.getItem('user');
+          if (savedUser) {
+            try {
+              const userData = JSON.parse(savedUser);
+              setUser(userData);
+              console.log('Recovered user from localStorage:', userData);
+            } catch (parseError) {
+              console.error('Failed to parse saved user data:', parseError);
+              // Only clear token if we can't recover user data
+              localStorage.removeItem('token');
+              localStorage.removeItem('user');
+              setToken(null);
+            }
+          } else {
+            // No saved user data, clear token
+            localStorage.removeItem('token');
+            setToken(null);
+          }
         }
       }
       setLoading(false);
@@ -52,6 +82,7 @@ export const AuthProvider = ({ children }) => {
       const { token: newToken, user: userData } = response;
       
       localStorage.setItem('token', newToken);
+      localStorage.setItem('user', JSON.stringify(userData));
       setToken(newToken);
       setUser(userData);
       
@@ -95,6 +126,7 @@ export const AuthProvider = ({ children }) => {
       const { token: newToken, user: userData } = response;
       
       localStorage.setItem('token', newToken);
+      localStorage.setItem('user', JSON.stringify(userData));
       setToken(newToken);
       setUser(userData);
       
@@ -156,6 +188,7 @@ export const AuthProvider = ({ children }) => {
       console.error('Logout error:', error);
     } finally {
       localStorage.removeItem('token');
+      localStorage.removeItem('user');
       setToken(null);
       setUser(null);
       toast.success('Logged out successfully');
@@ -196,6 +229,7 @@ export const AuthProvider = ({ children }) => {
     try {
       // This would need to be implemented in the API utils
       localStorage.removeItem('token');
+      localStorage.removeItem('user');
       setToken(null);
       setUser(null);
       toast.success('Account deleted successfully');

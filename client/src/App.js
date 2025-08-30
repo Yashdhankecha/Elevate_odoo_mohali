@@ -57,9 +57,33 @@ function AppRoutes() {
       <Route path="/" element={<Navigate to={getDashboardRoute()} replace />} />
       
       {/* Role-based dashboards */}
-      <Route path="/student-dashboard" element={<PrivateRoute><StudentDashboard /></PrivateRoute>} />
+      <Route 
+        path="/student-dashboard" 
+        element={
+          <PrivateRoute>
+            <div className="min-h-screen bg-gray-50 flex flex-col">
+              <Navbar />
+              <div className="flex-1">
+                <StudentDashboard />
+              </div>
+            </div>
+          </PrivateRoute>
+        } 
+      />
       <Route path="/tpo-dashboard" element={<PrivateRoute><TPODashboard /></PrivateRoute>} />
-      <Route path="/company-dashboard" element={<PrivateRoute><CompanyDashboard /></PrivateRoute>} />
+      <Route 
+        path="/company-dashboard" 
+        element={
+          <PrivateRoute>
+            <div className="min-h-screen bg-gray-50 flex flex-col">
+              <Navbar />
+              <div className="flex-1">
+                <CompanyDashboard />
+              </div>
+            </div>
+          </PrivateRoute>
+        } 
+      />
       <Route path="/superadmin-dashboard" element={<PrivateRoute><SuperadminDashboard /></PrivateRoute>} />
       
       {/* Generic protected routes with layout */}
