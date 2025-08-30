@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
-import TopNavbar from './components/TopNavbar';
 import DashboardOverview from './components/DashboardOverview';
 import ResumeBuilder from './components/ResumeBuilder';
 import PracticeHub from './components/PracticeHub';
@@ -12,19 +12,23 @@ import PlacementHistory from './components/PlacementHistory';
 import AICareerCoach from './components/AICareerCoach';
 
 const StudentDashboard = () => {
+  const location = useLocation();
   const [activeSection, setActiveSection] = useState('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const toggleSidebar = () => {
-    setSidebarCollapsed(!sidebarCollapsed);
-  };
-
   useEffect(() => {
     // Initialize dashboard
     setLoading(false);
-  }, []);
+    
+    // Check for section parameter in URL
+    const urlParams = new URLSearchParams(location.search);
+    const section = urlParams.get('section');
+    if (section) {
+      setActiveSection(section);
+    }
+  }, [location.search]);
 
   const renderContent = () => {
     switch (activeSection) {
@@ -83,15 +87,13 @@ const StudentDashboard = () => {
         activeSection={activeSection} 
         setActiveSection={setActiveSection}
         isCollapsed={sidebarCollapsed}
+        setSidebarCollapsed={setSidebarCollapsed}
       />
       
       {/* Main Content Area */}
       <div className={`transition-all duration-300 ${sidebarCollapsed ? 'ml-16' : 'ml-64'}`}>
-        {/* Top Navbar */}
-        <TopNavbar toggleSidebar={toggleSidebar} sidebarCollapsed={sidebarCollapsed} />
-        
         {/* Main Content */}
-        <main className="pt-16 px-6 pb-6">
+        <main className="pt-6 px-6 pb-6">
           <div className="max-w-7xl mx-auto">
             {renderContent()}
           </div>

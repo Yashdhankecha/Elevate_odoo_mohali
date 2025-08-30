@@ -57,7 +57,7 @@ const DashboardOverview = () => {
     );
   }
 
-  const { stats, recentActivities, upcomingTasks } = dashboardData;
+  const { stats, recentActivities } = dashboardData;
 
   const statsConfig = [
     {
@@ -76,9 +76,9 @@ const DashboardOverview = () => {
       change: '+8',
       changeType: 'positive',
       icon: FaBookOpen,
-      color: 'bg-green-500',
-      bgColor: 'bg-green-50',
-      textColor: 'text-green-600'
+      color: 'bg-blue-500',
+      bgColor: 'bg-blue-50',
+      textColor: 'text-blue-600'
     },
     {
       title: 'Skills Mastered',
@@ -86,9 +86,9 @@ const DashboardOverview = () => {
       change: '+2',
       changeType: 'positive',
       icon: FaChartBar,
-      color: 'bg-purple-500',
-      bgColor: 'bg-purple-50',
-      textColor: 'text-purple-600'
+      color: 'bg-blue-500',
+      bgColor: 'bg-blue-50',
+      textColor: 'text-blue-600'
     },
     {
       title: 'Avg Test Score',
@@ -96,9 +96,9 @@ const DashboardOverview = () => {
       change: '+5%',
       changeType: 'positive',
       icon: FaTrophy,
-      color: 'bg-orange-500',
-      bgColor: 'bg-orange-50',
-      textColor: 'text-orange-600'
+      color: 'bg-blue-500',
+      bgColor: 'bg-blue-50',
+      textColor: 'text-blue-600'
     },
     {
       title: 'Interviews Scheduled',
@@ -106,9 +106,9 @@ const DashboardOverview = () => {
       change: 'Next week',
       changeType: 'neutral',
       icon: FaCalendarAlt,
-      color: 'bg-indigo-500',
-      bgColor: 'bg-indigo-50',
-      textColor: 'text-indigo-600'
+      color: 'bg-blue-500',
+      bgColor: 'bg-blue-50',
+      textColor: 'text-blue-600'
     },
     {
       title: 'Profile Completion',
@@ -116,9 +116,9 @@ const DashboardOverview = () => {
       change: '+10%',
       changeType: 'positive',
       icon: FaCheckCircle,
-      color: 'bg-pink-500',
-      bgColor: 'bg-pink-50',
-      textColor: 'text-pink-600'
+      color: 'bg-blue-500',
+      bgColor: 'bg-blue-50',
+      textColor: 'text-blue-600'
     }
   ];
 
@@ -135,7 +135,7 @@ const DashboardOverview = () => {
                   <Icon className="w-6 h-6 text-white" />
                 </div>
                 <span className={`text-sm font-medium ${
-                  stat.changeType === 'positive' ? 'text-green-600' : 
+                  stat.changeType === 'positive' ? 'text-blue-600' : 
                   stat.changeType === 'negative' ? 'text-red-600' : 'text-gray-600'
                 }`}>
                   {stat.change}
@@ -150,52 +150,22 @@ const DashboardOverview = () => {
 
 
 
-      {/* Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Activities */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Recent Activities</h3>
-          <div className="space-y-3">
-            {recentActivities.map((activity) => (
-              <div key={activity.id} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                <div className={`w-2 h-2 rounded-full mt-2 ${
-                  activity.type === 'success' ? 'bg-green-500' : 
-                  activity.type === 'warning' ? 'bg-yellow-500' : 'bg-blue-500'
-                }`}></div>
-                <div className="flex-1">
-                  <p className="text-sm text-gray-800">{activity.message}</p>
-                  <p className="text-xs text-gray-500">{activity.time}</p>
-                </div>
+      {/* Recent Activities */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4">Recent Activities</h3>
+        <div className="space-y-3">
+          {recentActivities.map((activity) => (
+            <div key={activity.id} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
+              <div className={`w-2 h-2 rounded-full mt-2 ${
+                activity.type === 'success' ? 'bg-green-500' : 
+                activity.type === 'warning' ? 'bg-yellow-500' : 'bg-blue-500'
+              }`}></div>
+              <div className="flex-1">
+                <p className="text-sm text-gray-800">{activity.message}</p>
+                <p className="text-xs text-gray-500">{activity.time}</p>
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Upcoming Tasks */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Upcoming Tasks</h3>
-          <div className="space-y-3">
-            {upcomingTasks.map((task) => (
-              <div key={task.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                <div className="flex items-center space-x-3">
-                  <FaClock className={`w-4 h-4 ${
-                    task.priority === 'high' ? 'text-red-500' : 
-                    task.priority === 'medium' ? 'text-yellow-500' : 'text-green-500'
-                  }`} />
-                  <div>
-                    <p className="text-sm font-medium text-gray-800">{task.task}</p>
-                    <p className="text-xs text-gray-500">{task.time}</p>
-                  </div>
-                </div>
-                <span className={`px-2 py-1 rounded text-xs font-medium ${
-                  task.priority === 'high' ? 'bg-red-100 text-red-700' : 
-                  task.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'
-                }`}>
-                  {task.priority}
-                </span>
-              </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>

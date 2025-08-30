@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getUserDisplayName, getUserInitials } from '../utils/helpers';
 import { HiUser, HiMail, HiCalendar, HiShieldCheck, HiKey, HiTrash } from 'react-icons/hi';
@@ -15,12 +16,39 @@ import SuperadminTopNavbar from './superadmin/components/TopNavbar';
 
 const Profile = () => {
   const { user, changePassword, deleteAccount } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('security');
   const [loading, setLoading] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const toggleSidebar = () => {
     setSidebarCollapsed(!sidebarCollapsed);
+  };
+
+  // Handle sidebar navigation
+  const handleSidebarNavigation = (section) => {
+    if (section === 'profile') {
+      // Already on profile page, do nothing
+      return;
+    }
+    
+    // Navigate to appropriate dashboard based on user role
+    switch (user?.role) {
+      case 'student':
+        navigate(`/student-dashboard?section=${section}`);
+        break;
+      case 'tpo':
+        navigate(`/tpo-dashboard?section=${section}`);
+        break;
+      case 'company':
+        navigate(`/company-dashboard?section=${section}`);
+        break;
+      case 'superadmin':
+        navigate(`/superadmin-dashboard?section=${section}`);
+        break;
+      default:
+        navigate(`/student-dashboard?section=${section}`);
+    }
   };
 
   // Helper function to get role-specific components
@@ -127,6 +155,8 @@ const Profile = () => {
     }
   };
 
+
+
   const tabs = [
     { id: 'security', name: 'Change Password', icon: HiShieldCheck },
     { id: 'danger', name: 'Delete Account', icon: HiTrash }
@@ -137,7 +167,7 @@ const Profile = () => {
       {/* Sidebar */}
       <Sidebar 
         activeSection="profile" 
-        setActiveSection={() => {}}
+        setActiveSection={handleSidebarNavigation}
         isCollapsed={sidebarCollapsed}
       />
       
@@ -211,8 +241,8 @@ const Profile = () => {
                 </nav>
               </div>
 
-              <div className="p-8">
-                {/* Change Password Tab */}
+                            <div className="p-8">
+                {/* Security Settings Tab */}
                 {activeTab === 'security' && (
                   <form onSubmit={handlePasswordSubmit} className="space-y-6">
                     <h3 className="text-lg font-medium text-gray-900 mb-4">Change Password</h3>
@@ -295,6 +325,8 @@ const Profile = () => {
                     )}
                   </form>
                 )}
+
+
 
                 {/* Delete Account Tab */}
                 {activeTab === 'danger' && (

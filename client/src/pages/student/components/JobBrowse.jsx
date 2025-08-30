@@ -193,13 +193,6 @@ const JobBrowse = ({ setActiveSection }) => {
           <h1 className="text-2xl font-bold text-gray-800">Browse Jobs</h1>
           <p className="text-gray-600">Find your dream job from {jobs.length} opportunities</p>
         </div>
-        <button
-          onClick={() => setActiveSection('applications')}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-        >
-          <FaEye className="w-4 h-4" />
-          View Applications
-        </button>
       </div>
 
       {/* Search and Filters */}

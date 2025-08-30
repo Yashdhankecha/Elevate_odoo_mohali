@@ -970,23 +970,6 @@ const ResumeBuilder = () => {
           <h2 className="text-2xl font-bold text-gray-800">Resume Builder</h2>
           <p className="text-gray-600">Create your professional resume step by step</p>
         </div>
-        <button
-          onClick={saveProfileData}
-          disabled={saving}
-          className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition disabled:opacity-50"
-        >
-          {saving ? (
-            <>
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-              Saving...
-            </>
-          ) : (
-            <>
-              <FaCheck className="w-4 h-4" />
-              Save Profile
-            </>
-          )}
-        </button>
       </div>
 
       {showPreview ? (

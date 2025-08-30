@@ -19,7 +19,10 @@ const ProgressBar = ({ value, color }) => (
   <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
     <div
       className="h-3 rounded-full transition-all duration-700 ease-out"
-      style={{ width: `${value}%`, background: color }}
+      style={{ 
+        width: `${value}%`, 
+        background: `linear-gradient(90deg, #${color})` 
+      }}
     />
   </div>
 );
@@ -146,7 +149,7 @@ const SkillTracker = () => {
         {/* Soft Skills */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-            <FaUsers className="w-5 h-5 text-green-500" />
+            <FaUsers className="w-5 h-5 text-blue-500" />
             Soft Skills
           </h3>
           <div className="space-y-4">
@@ -163,32 +166,7 @@ const SkillTracker = () => {
         </div>
       </div>
 
-      {/* Growth Insights */}
-      <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-100 rounded-xl p-6">
-        <div className="flex items-start gap-4">
-          <FaChartLine className="w-6 h-6 text-blue-500 mt-1" />
-          <div>
-            <h4 className="font-semibold text-gray-800 mb-2">Growth Insights</h4>
-            <p className="text-sm text-gray-600 mb-3">
-              Your consistent practice is paying off! Focus on System Design to reach the next level.
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-white rounded-lg p-3">
-                <div className="text-lg font-bold text-blue-600">+12</div>
-                <div className="text-xs text-gray-500">Points this week</div>
-              </div>
-              <div className="bg-white rounded-lg p-3">
-                <div className="text-lg font-bold text-green-600">3</div>
-                <div className="text-xs text-gray-500">Skills improved</div>
-              </div>
-              <div className="bg-white rounded-lg p-3">
-                <div className="text-lg font-bold text-purple-600">85%</div>
-                <div className="text-xs text-gray-500">Overall progress</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+
     </div>
   );
 };
