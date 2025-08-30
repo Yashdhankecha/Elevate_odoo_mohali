@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   FaUserShield, 
   FaSearch, 
@@ -13,81 +13,45 @@ import {
   FaBuilding,
   FaCalendarAlt,
   FaDownload,
-  FaSort
+  FaSort,
+  FaSpinner,
+  FaExclamationTriangle,
+  FaSync
 } from 'react-icons/fa';
+import { getAdminRequests, approveAdminRequest, rejectAdminRequest } from '../../../services/superadminApi';
 
 const AdminApproval = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
   const [selectedAdmin, setSelectedAdmin] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [adminRequests, setAdminRequests] = useState([]);
+  const [processingAction, setProcessingAction] = useState(null);
 
-  const adminRequests = [
-    {
-      id: 1,
-      name: 'Dr. John Smith',
-      email: 'john.smith@iitdelhi.ac.in',
-      phone: '+91-98765-43210',
-      institution: 'IIT Delhi',
-      department: 'Computer Science',
-      designation: 'Associate Professor',
-      experience: '8 years',
-      education: 'PhD in Computer Science',
-      status: 'pending',
-      submittedDate: '2024-12-15',
-      documents: ['ID Proof', 'Experience Certificate', 'Educational Certificates'],
-      reason: 'Need admin access for managing student placements and company interactions',
-      priority: 'high'
-    },
-    {
-      id: 2,
-      name: 'Prof. Sarah Johnson',
-      email: 'sarah.johnson@nitb.ac.in',
-      phone: '+91-87654-32109',
-      institution: 'NIT Bangalore',
-      department: 'Training & Placement',
-      designation: 'Training & Placement Officer',
-      experience: '12 years',
-      education: 'M.Tech in Management',
-      status: 'pending',
-      submittedDate: '2024-12-14',
-      documents: ['ID Proof', 'Experience Certificate', 'Appointment Letter'],
-      reason: 'Require admin privileges to manage placement activities and student data',
-      priority: 'medium'
-    },
-    {
-      id: 3,
-      name: 'Dr. Michael Chen',
-      email: 'michael.chen@bitspilani.ac.in',
-      phone: '+91-76543-21098',
-      institution: 'BITS Pilani',
-      department: 'Career Services',
-      designation: 'Director',
-      experience: '15 years',
-      education: 'PhD in Business Administration',
-      status: 'approved',
-      submittedDate: '2024-12-10',
-      documents: ['ID Proof', 'Experience Certificate', 'Educational Certificates'],
-      reason: 'Administrative access needed for comprehensive career services management',
-      priority: 'high'
-    },
-    {
-      id: 4,
-      name: 'Prof. Emily Davis',
-      email: 'emily.davis@iitb.ac.in',
-      phone: '+91-65432-10987',
-      institution: 'IIT Bombay',
-      department: 'Student Affairs',
-      designation: 'Assistant Professor',
-      experience: '6 years',
-      education: 'PhD in Psychology',
-      status: 'rejected',
-      submittedDate: '2024-12-08',
-      documents: ['ID Proof', 'Experience Certificate'],
-      reason: 'Need access for student counseling and placement support',
-      priority: 'low'
+  useEffect(() => {
+    fetchAdminRequests();
+  }, []);
+
+  const fetchAdminRequests = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await getAdminRequests();
+      
+      if (response.success) {
+        setAdminRequests(response.adminRequests);
+      } else {
+        setError('Failed to load admin requests');
+      }
+    } catch (err) {
+      console.error('Error fetching admin requests:', err);
+      setError('Failed to load admin requests');
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
   const statuses = ['All', 'Pending', 'Approved', 'Rejected'];
 
@@ -123,15 +87,101 @@ const AdminApproval = () => {
     setShowModal(true);
   };
 
-  const handleApprove = (adminId) => {
-    // Handle approval logic
-    console.log('Approving admin:', adminId);
+  const handleApprove = async (adminId) => {
+    try {
+      setProcessingAction(adminId);
+      const response = await approveAdminRequest(adminId);
+      
+      if (response.success) {
+        // Update the local state
+        setAdminRequests(prev => 
+          prev.map(admin => 
+            admin.id === adminId 
+              ? { ...admin, status: 'approved' }
+              : admin
+          )
+        );
+        
+        // Close modal if open
+        if (selectedAdmin?.id === adminId) {
+          setShowModal(false);
+          setSelectedAdmin(null);
+        }
+        
+        // Show success message (you can add a toast notification here)
+        console.log('Admin approved successfully');
+      } else {
+        setError('Failed to approve admin request');
+      }
+    } catch (err) {
+      console.error('Error approving admin:', err);
+      setError('Failed to approve admin request');
+    } finally {
+      setProcessingAction(null);
+    }
   };
 
-  const handleReject = (adminId) => {
-    // Handle rejection logic
-    console.log('Rejecting admin:', adminId);
+  const handleReject = async (adminId) => {
+    try {
+      setProcessingAction(adminId);
+      const response = await rejectAdminRequest(adminId);
+      
+      if (response.success) {
+        // Update the local state
+        setAdminRequests(prev => 
+          prev.map(admin => 
+            admin.id === adminId 
+              ? { ...admin, status: 'rejected' }
+              : admin
+          )
+        );
+        
+        // Close modal if open
+        if (selectedAdmin?.id === adminId) {
+          setShowModal(false);
+          setSelectedAdmin(null);
+        }
+        
+        // Show success message (you can add a toast notification here)
+        console.log('Admin rejected successfully');
+      } else {
+        setError('Failed to reject admin request');
+      }
+    } catch (err) {
+      console.error('Error rejecting admin:', err);
+      setError('Failed to reject admin request');
+    } finally {
+      setProcessingAction(null);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="flex items-center gap-3">
+          <FaSpinner className="w-6 h-6 text-blue-600 animate-spin" />
+          <span className="text-gray-600">Loading admin requests...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <FaExclamationTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button 
+            onClick={fetchAdminRequests}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -145,6 +195,13 @@ const AdminApproval = () => {
           <p className="text-gray-600">Review and approve admin registration requests from institutions</p>
         </div>
         <div className="flex gap-2">
+          <button 
+            onClick={fetchAdminRequests}
+            className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+          >
+                            <FaSync className="w-4 h-4" />
+            Refresh
+          </button>
           <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors">
             <FaDownload className="w-4 h-4" />
             Export Data
@@ -262,6 +319,7 @@ const AdminApproval = () => {
                       <button
                         onClick={() => handleViewDetails(admin)}
                         className="text-blue-600 hover:text-blue-900 p-1"
+                        disabled={processingAction === admin.id}
                       >
                         <FaEye className="w-4 h-4" />
                       </button>
@@ -269,15 +327,25 @@ const AdminApproval = () => {
                         <>
                           <button
                             onClick={() => handleApprove(admin.id)}
-                            className="text-green-600 hover:text-green-900 p-1"
+                            className="text-green-600 hover:text-green-900 p-1 disabled:opacity-50"
+                            disabled={processingAction === admin.id}
                           >
-                            <FaCheck className="w-4 h-4" />
+                            {processingAction === admin.id ? (
+                              <FaSpinner className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <FaCheck className="w-4 h-4" />
+                            )}
                           </button>
                           <button
                             onClick={() => handleReject(admin.id)}
-                            className="text-red-600 hover:text-red-900 p-1"
+                            className="text-red-600 hover:text-red-900 p-1 disabled:opacity-50"
+                            disabled={processingAction === admin.id}
                           >
-                            <FaTimes className="w-4 h-4" />
+                            {processingAction === admin.id ? (
+                              <FaSpinner className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <FaTimes className="w-4 h-4" />
+                            )}
                           </button>
                         </>
                       )}
@@ -376,23 +444,27 @@ const AdminApproval = () => {
                 {selectedAdmin.status === 'pending' && (
                   <div className="flex gap-3 pt-4 border-t border-gray-200">
                     <button
-                      onClick={() => {
-                        handleApprove(selectedAdmin.id);
-                        setShowModal(false);
-                      }}
-                      className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                      onClick={() => handleApprove(selectedAdmin.id)}
+                      disabled={processingAction === selectedAdmin.id}
+                      className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
                     >
-                      <FaCheck className="w-4 h-4" />
+                      {processingAction === selectedAdmin.id ? (
+                        <FaSpinner className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <FaCheck className="w-4 h-4" />
+                      )}
                       Approve
                     </button>
                     <button
-                      onClick={() => {
-                        handleReject(selectedAdmin.id);
-                        setShowModal(false);
-                      }}
-                      className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                      onClick={() => handleReject(selectedAdmin.id)}
+                      disabled={processingAction === selectedAdmin.id}
+                      className="flex-1 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
                     >
-                      <FaTimes className="w-4 h-4" />
+                      {processingAction === selectedAdmin.id ? (
+                        <FaSpinner className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <FaTimes className="w-4 h-4" />
+                      )}
                       Reject
                     </button>
                   </div>

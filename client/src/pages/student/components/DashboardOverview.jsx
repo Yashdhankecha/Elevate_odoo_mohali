@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   FaFileAlt, 
   FaBookOpen, 
@@ -11,12 +11,58 @@ import {
   FaClock,
   FaBullseye
 } from 'react-icons/fa';
+import { studentApi } from '../../../services/studentApi';
+import { toast } from 'react-hot-toast';
 
 const DashboardOverview = () => {
-  const stats = [
+  const [dashboardData, setDashboardData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      const response = await studentApi.getDashboard();
+      setDashboardData(response.data);
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      toast.error('Failed to load dashboard data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (!dashboardData) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-gray-500">Failed to load dashboard data</p>
+        <button 
+          onClick={fetchDashboardData}
+          className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  const { stats, recentActivities, upcomingTasks } = dashboardData;
+
+  const statsConfig = [
     {
       title: 'Applications Submitted',
-      value: '12',
+      value: stats.applicationsSubmitted.toString(),
       change: '+3',
       changeType: 'positive',
       icon: FaBriefcase,
@@ -26,7 +72,7 @@ const DashboardOverview = () => {
     },
     {
       title: 'Practice Sessions',
-      value: '47',
+      value: stats.practiceSessions.toString(),
       change: '+8',
       changeType: 'positive',
       icon: FaBookOpen,
@@ -36,7 +82,7 @@ const DashboardOverview = () => {
     },
     {
       title: 'Skills Mastered',
-      value: '15',
+      value: stats.skillsMastered.toString(),
       change: '+2',
       changeType: 'positive',
       icon: FaChartBar,
@@ -46,7 +92,7 @@ const DashboardOverview = () => {
     },
     {
       title: 'Avg Test Score',
-      value: '92%',
+      value: `${stats.averageTestScore}%`,
       change: '+5%',
       changeType: 'positive',
       icon: FaTrophy,
@@ -56,7 +102,7 @@ const DashboardOverview = () => {
     },
     {
       title: 'Interviews Scheduled',
-      value: '3',
+      value: stats.interviewsScheduled.toString(),
       change: 'Next week',
       changeType: 'neutral',
       icon: FaCalendarAlt,
@@ -66,7 +112,7 @@ const DashboardOverview = () => {
     },
     {
       title: 'Profile Completion',
-      value: '85%',
+      value: `${stats.profileCompletion}%`,
       change: '+10%',
       changeType: 'positive',
       icon: FaCheckCircle,
@@ -76,24 +122,11 @@ const DashboardOverview = () => {
     }
   ];
 
-  const recentActivities = [
-    { id: 1, message: 'Applied for Software Engineer position at Google', time: '2 hours ago', type: 'success' },
-    { id: 2, message: 'Completed Data Structures practice test with 95% accuracy', time: '4 hours ago', type: 'success' },
-    { id: 3, message: 'Interview scheduled with Amazon for Dec 20th', time: '1 day ago', type: 'info' },
-    { id: 4, message: 'Updated resume with new project experience', time: '2 days ago', type: 'info' }
-  ];
-
-  const upcomingTasks = [
-    { id: 1, task: 'Amazon Coding Test', time: 'Tomorrow, 2:00 PM', priority: 'high' },
-    { id: 2, task: 'Complete System Design Practice', time: 'Dec 18, 2024', priority: 'medium' },
-    { id: 3, task: 'Update LinkedIn Profile', time: 'Dec 20, 2024', priority: 'low' }
-  ];
-
   return (
     <div className="space-y-6">
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {stats.map((stat, index) => {
+        {statsConfig.map((stat, index) => {
           const Icon = stat.icon;
           return (
             <div key={index} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
@@ -115,48 +148,7 @@ const DashboardOverview = () => {
         })}
       </div>
 
-      {/* Quick Stats Row */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-4 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm opacity-90">Application Success</p>
-              <p className="text-2xl font-bold">75%</p>
-            </div>
-            <FaCheckCircle className="w-8 h-8 opacity-80" />
-          </div>
-        </div>
-        
-        <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-4 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm opacity-90">Practice Accuracy</p>
-              <p className="text-2xl font-bold">92%</p>
-            </div>
-            <FaBullseye className="w-8 h-8 opacity-80" />
-          </div>
-        </div>
-        
-        <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl p-4 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm opacity-90">Interview Success</p>
-              <p className="text-2xl font-bold">67%</p>
-            </div>
-            <FaTrophy className="w-8 h-8 opacity-80" />
-          </div>
-        </div>
-        
-        <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl p-4 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm opacity-90">Profile Rating</p>
-              <p className="text-2xl font-bold">4.8</p>
-            </div>
-            <FaChartBar className="w-8 h-8 opacity-80" />
-          </div>
-        </div>
-      </div>
+
 
       {/* Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

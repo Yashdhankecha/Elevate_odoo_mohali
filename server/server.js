@@ -23,6 +23,8 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/elevate-p
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/user', require('./routes/user'));
+app.use('/api/student', require('./routes/student'));
+app.use('/api/notifications', require('./routes/notifications'));
 
 // Health check route
 app.get('/api/health', (req, res) => {

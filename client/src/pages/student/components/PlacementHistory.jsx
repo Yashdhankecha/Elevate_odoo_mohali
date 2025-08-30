@@ -1,7 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   FaHistory, 
-  FaDownload, 
   FaChartBar, 
   FaUser, 
   FaBuilding,
@@ -10,48 +9,68 @@ import {
   FaClock,
   FaCalendarAlt
 } from 'react-icons/fa';
+import { studentApi } from '../../../services/studentApi';
+import { toast } from 'react-hot-toast';
 
 const PlacementHistory = () => {
-  const placementStats = [
-    { label: 'Offers Received', value: '2', color: 'text-green-600' },
-    { label: 'Companies Applied', value: '8', color: 'text-blue-600' },
-    { label: 'Success Rate', value: '25%', color: 'text-purple-600' }
-  ];
+  const [placementData, setPlacementData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const companyTimeline = [
-    {
-      id: 1,
-      logo: <FaBuilding className="w-8 h-8 text-blue-400" />,
-      company: 'Google',
-      role: 'Software Engineer Intern',
-      timeline: [
-        { step: 'Applied', date: 'Nov 20', status: 'completed' },
-        { step: 'Test Passed', date: 'Nov 28', status: 'completed' },
-        { step: 'Interview', date: 'Dec 22', status: 'scheduled' }
-      ],
-      status: { label: 'Interview Scheduled', color: 'bg-yellow-100 text-yellow-700' }
-    },
-    {
-      id: 2,
-      logo: <FaBuilding className="w-8 h-8 text-purple-400" />,
-      company: 'Apple',
-      role: 'iOS Developer Intern',
-      timeline: [
-        { step: 'Applied', date: 'Oct 15', status: 'completed' },
-        { step: 'Test Passed', date: 'Oct 22', status: 'completed' },
-        { step: 'Interview Cleared', date: 'Nov 5', status: 'completed' },
-        { step: 'Offer', date: 'Nov 12', status: 'completed' }
-      ],
-      status: { label: 'Offer Received', color: 'bg-green-100 text-green-700' },
-      offerDetails: '₹28 LPA, Cupertino CA, Joining: July 2025'
+  useEffect(() => {
+    fetchPlacementHistory();
+  }, []);
+
+  const fetchPlacementHistory = async () => {
+    try {
+      setLoading(true);
+      const response = await studentApi.getPlacementHistory();
+      setPlacementData(response.data);
+    } catch (error) {
+      console.error('Error fetching placement history:', error);
+      toast.error('Failed to load placement history');
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
-  const achievements = [
-    { title: 'First Offer', description: 'Received first job offer from Apple', date: 'Nov 12, 2024', icon: FaTrophy },
-    { title: 'Interview Success', description: 'Cleared 3 technical interviews', date: 'Dec 1, 2024', icon: FaCheckCircle },
-    { title: 'Test Excellence', description: 'Scored 95% in Google coding test', date: 'Nov 28, 2024', icon: FaChartBar }
-  ];
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (!placementData) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-gray-500">Failed to load placement history</p>
+        <button 
+          onClick={fetchPlacementHistory}
+          className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  const { placementStats, companyTimeline, achievements, performanceSummary, upcomingEvents } = placementData;
+
+  // Helper function to get icon component from icon name
+  const getIconComponent = (iconName) => {
+    const iconMap = {
+      'FaTrophy': FaTrophy,
+      'FaCheckCircle': FaCheckCircle,
+      'FaChartBar': FaChartBar,
+      'FaUser': FaUser,
+      'FaBuilding': FaBuilding,
+      'FaHistory': FaHistory,
+      'FaClock': FaClock,
+      'FaCalendarAlt': FaCalendarAlt
+    };
+    return iconMap[iconName] || FaTrophy;
+  };
 
   return (
     <div className="space-y-6">
@@ -60,14 +79,6 @@ const PlacementHistory = () => {
         <div>
           <h2 className="text-2xl font-bold text-gray-800">Placement History</h2>
           <p className="text-gray-600">Track your placement journey and achievements</p>
-        </div>
-        <div className="flex gap-2">
-          <button className="flex items-center gap-1 border px-3 py-2 rounded-lg text-sm hover:bg-gray-100 transition">
-            <FaDownload className="w-4 h-4" /> Export Report
-          </button>
-          <button className="bg-gradient-to-r from-blue-600 to-blue-400 text-white px-4 py-2 rounded-lg shadow hover:from-blue-700 hover:to-blue-500 transition text-sm font-medium">
-            View Analytics
-          </button>
         </div>
       </div>
 
@@ -88,18 +99,18 @@ const PlacementHistory = () => {
           {companyTimeline.map((company) => (
             <div key={company.id} className="bg-gray-50 rounded-lg p-4">
               <div className="flex items-start gap-3 mb-3">
-                {company.logo}
+                {company.logo || <FaBuilding className="w-8 h-8 text-blue-400" />}
                 <div className="flex-1">
-                  <div className="font-medium text-lg">{company.company}</div>
-                  <div className="text-sm text-gray-500">{company.role}</div>
+                  <div className="font-medium text-lg">{company.company || 'Company'}</div>
+                  <div className="text-sm text-gray-500">{company.role || 'Position'}</div>
                 </div>
-                <span className={`px-2 py-1 rounded text-xs font-medium ${company.status.color}`}>
-                  {company.status.label}
+                <span className={`px-2 py-1 rounded text-xs font-medium ${company.status?.color || 'bg-gray-100 text-gray-700'}`}>
+                  {company.status?.label || 'Unknown'}
                 </span>
               </div>
               
               <div className="flex flex-wrap gap-2 mb-2">
-                {company.timeline.map((step, index) => (
+                {company.timeline && company.timeline.map((step, index) => (
                   <div key={index} className="flex items-center gap-1 text-xs">
                     <span className={`px-2 py-1 rounded ${
                       step.status === 'completed' ? 'bg-green-100 text-green-700' : 
@@ -126,18 +137,18 @@ const PlacementHistory = () => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <h3 className="text-lg font-semibold text-gray-800 mb-4">Key Achievements</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {achievements.map((achievement, index) => {
-            const Icon = achievement.icon;
+          {achievements && achievements.map((achievement, index) => {
+            const Icon = typeof achievement.icon === 'string' ? getIconComponent(achievement.icon) : (achievement.icon || FaTrophy);
             return (
               <div key={index} className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-4 border border-blue-100">
                 <div className="flex items-center gap-3 mb-3">
                   <Icon className="w-6 h-6 text-blue-500" />
                   <div>
-                    <h4 className="font-medium text-gray-800">{achievement.title}</h4>
-                    <p className="text-xs text-gray-500">{achievement.date}</p>
+                    <h4 className="font-medium text-gray-800">{achievement.title || 'Achievement'}</h4>
+                    <p className="text-xs text-gray-500">{achievement.date || 'Recent'}</p>
                   </div>
                 </div>
-                <p className="text-sm text-gray-600">{achievement.description}</p>
+                <p className="text-sm text-gray-600">{achievement.description || 'Achievement description'}</p>
               </div>
             );
           })}
@@ -151,19 +162,19 @@ const PlacementHistory = () => {
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600">Application Success Rate</span>
-              <span className="font-semibold text-green-600">25%</span>
+              <span className="font-semibold text-green-600">{performanceSummary?.applicationSuccessRate || '0%'}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600">Interview Success Rate</span>
-              <span className="font-semibold text-blue-600">67%</span>
+              <span className="font-semibold text-blue-600">{performanceSummary?.interviewSuccessRate || '0%'}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600">Average Response Time</span>
-              <span className="font-semibold text-purple-600">8 days</span>
+              <span className="font-semibold text-purple-600">{performanceSummary?.averageResponseTime || 'N/A'}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600">Highest Package</span>
-              <span className="font-semibold text-orange-600">₹28 LPA</span>
+              <span className="font-semibold text-orange-600">{performanceSummary?.highestPackage || 'N/A'}</span>
             </div>
           </div>
         </div>
@@ -171,20 +182,21 @@ const PlacementHistory = () => {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <h3 className="text-lg font-semibold text-gray-800 mb-4">Upcoming Events</h3>
           <div className="space-y-3">
-            <div className="flex items-center gap-3 p-2 bg-yellow-50 rounded-lg">
-              <FaCalendarAlt className="w-4 h-4 text-yellow-500" />
-              <div>
-                <p className="text-sm font-medium">Google Interview</p>
-                <p className="text-xs text-gray-500">Dec 22, 2024 at 2:00 PM</p>
+            {upcomingEvents && upcomingEvents.length > 0 ? (
+              upcomingEvents.map((event, index) => (
+                <div key={index} className="flex items-center gap-3 p-2 bg-yellow-50 rounded-lg">
+                  <FaCalendarAlt className="w-4 h-4 text-yellow-500" />
+                  <div>
+                    <p className="text-sm font-medium">{event.company || 'Company'} {event.role || 'Interview'}</p>
+                    <p className="text-xs text-gray-500">{event.date || 'Date TBD'} {event.time ? `at ${event.time}` : ''}</p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-4 text-gray-500">
+                <p>No upcoming events</p>
               </div>
-            </div>
-            <div className="flex items-center gap-3 p-2 bg-blue-50 rounded-lg">
-              <FaClock className="w-4 h-4 text-blue-500" />
-              <div>
-                <p className="text-sm font-medium">Microsoft Test</p>
-                <p className="text-xs text-gray-500">Dec 25, 2024 at 10:00 AM</p>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </div>

@@ -8,7 +8,8 @@
     "dev": "nodemon server.js",
     "seed:superadmin": "node seeds/seedSuperAdmin.js",
     "fix:superadmin": "node seeds/fixSuperAdmin.js",
-    "update:superadmin-permissions": "node seeds/updateSuperAdminPermissions.js"
+    "update:superadmin-permissions": "node seeds/updateSuperAdminPermissions.js",
+    "seed:student-data": "node seeds/seedStudentData.js"
   },
   "dependencies": {
     "express": "^4.18.2",

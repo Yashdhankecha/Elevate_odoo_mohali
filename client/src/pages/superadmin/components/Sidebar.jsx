@@ -65,21 +65,6 @@ const Sidebar = ({ activeSection, setActiveSection, isCollapsed }) => {
           );
         })}
       </nav>
-
-      {/* User Profile Section */}
-      {!isCollapsed && (
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-red-500 to-orange-500 rounded-full flex items-center justify-center">
-              <FaUser className="text-white text-sm" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-800">System Admin</p>
-              <p className="text-xs text-gray-500">Super Administrator</p>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

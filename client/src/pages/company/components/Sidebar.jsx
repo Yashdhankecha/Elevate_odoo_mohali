@@ -71,23 +71,6 @@ const Sidebar = ({ activeSection, setActiveSection, isCollapsed }) => {
           })}
         </ul>
       </nav>
-
-      {/* Company Info */}
-      {!isCollapsed && (
-        <div className="absolute bottom-4 left-4 right-4">
-          <div className="bg-gray-50 rounded-lg p-3">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                <FaBuilding className="w-4 h-4 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-800">TechCorp Solutions</p>
-                <p className="text-xs text-gray-500">HR Manager</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

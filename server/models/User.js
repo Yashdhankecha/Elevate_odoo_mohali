@@ -37,6 +37,39 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  // Common profile fields for all roles
+  name: {
+    type: String,
+    trim: true
+  },
+  phone: {
+    type: String,
+    trim: true
+  },
+  bio: {
+    type: String,
+    trim: true
+  },
+  location: {
+    type: String,
+    trim: true
+  },
+  linkedin: {
+    type: String,
+    trim: true
+  },
+  github: {
+    type: String,
+    trim: true
+  },
+  designation: {
+    type: String,
+    trim: true
+  },
+  department: {
+    type: String,
+    trim: true
+  },
   lastLogin: {
     type: Date,
     default: Date.now
@@ -65,6 +98,89 @@ const userSchema = new mongoose.Schema({
       type: Number,
       min: 0,
       max: 10
+    },
+    // Extended fields for dynamic features
+    profileCompletion: {
+      type: Number,
+      min: 0,
+      max: 100,
+      default: 0
+    },
+    totalApplications: {
+      type: Number,
+      default: 0
+    },
+    totalPracticeSessions: {
+      type: Number,
+      default: 0
+    },
+    averageTestScore: {
+      type: Number,
+      min: 0,
+      max: 100,
+      default: 0
+    },
+    interviewsScheduled: {
+      type: Number,
+      default: 0
+    },
+    offersReceived: {
+      type: Number,
+      default: 0
+    },
+    personalInfo: {
+      phone: String,
+      address: {
+        street: String,
+        city: String,
+        state: String,
+        country: String,
+        zipCode: String
+      },
+      linkedin: String,
+      github: String,
+      portfolio: String
+    },
+    education: {
+      degree: String,
+      specialization: String,
+      currentSemester: Number,
+      totalSemesters: Number
+    },
+    projects: [{
+      title: String,
+      description: String,
+      technologies: [String],
+      githubLink: String,
+      liveLink: String,
+      duration: String,
+      role: String
+    }],
+    certifications: [{
+      name: String,
+      issuer: String,
+      date: Date,
+      credentialId: String,
+      link: String
+    }],
+    achievements: [{
+      title: String,
+      description: String,
+      date: Date,
+      category: String
+    }],
+    preferences: {
+      preferredLocations: [String],
+      preferredRoles: [String],
+      expectedSalary: {
+        min: Number,
+        max: Number
+      },
+      workType: {
+        type: String,
+        enum: ['full-time', 'internship', 'part-time', 'contract'],
+        default: 'full-time'
+      }
     }
   },
 

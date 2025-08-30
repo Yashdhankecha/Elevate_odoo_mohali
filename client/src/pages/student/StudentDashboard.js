@@ -7,6 +7,7 @@ import ResumeBuilder from './components/ResumeBuilder';
 import PracticeHub from './components/PracticeHub';
 import SkillTracker from './components/SkillTracker';
 import Applications from './components/Applications';
+import JobBrowse from './components/JobBrowse';
 import PlacementHistory from './components/PlacementHistory';
 import AICareerCoach from './components/AICareerCoach';
 
@@ -30,6 +31,8 @@ const StudentDashboard = () => {
         return <SkillTracker />;
       case 'applications':
         return <Applications />;
+      case 'jobs':
+        return <JobBrowse setActiveSection={setActiveSection} />;
       case 'history':
         return <PlacementHistory />;
       case 'ai-coach':

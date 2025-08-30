@@ -13,12 +13,23 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
+    console.log('=== API REQUEST INTERCEPTOR ===');
+    console.log('Request URL:', config.url);
+    console.log('Request method:', config.method);
+    console.log('Token present:', token ? 'YES' : 'NO');
+    console.log('Token value:', token ? token.substring(0, 20) + '...' : 'None');
+    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      console.log('Authorization header set');
+    } else {
+      console.log('No token found in localStorage');
     }
+    
     return config;
   },
   (error) => {
+    console.error('Request interceptor error:', error);
     return Promise.reject(error);
   }
 );
@@ -73,52 +84,7 @@ export const loginUser = async (credentials) => {
     const response = await api.post('/auth/login', credentials);
     return response.data;
   } catch (error) {
-    // If API is not available, provide mock data for testing
-    if (error.code === 'ERR_NETWORK' || error.message.includes('Network Error')) {
-      console.warn('API not available, using mock data for testing');
-      
-      // Mock user data based on email
-      const mockUsers = {
-        'student@test.com': {
-          id: 1,
-          name: 'Test Student',
-          email: 'student@test.com',
-          role: 'student',
-          avatar: null
-        },
-        'company@test.com': {
-          id: 2,
-          name: 'Test Company',
-          email: 'company@test.com',
-          role: 'company',
-          avatar: null
-        },
-        'tpo@test.com': {
-          id: 3,
-          name: 'Test TPO',
-          email: 'tpo@test.com',
-          role: 'tpo',
-          avatar: null
-        },
-        'admin@test.com': {
-          id: 4,
-          name: 'Test Admin',
-          email: 'admin@test.com',
-          role: 'superadmin',
-          avatar: null
-        }
-      };
-      
-      const mockUser = mockUsers[credentials.email.toLowerCase()];
-      if (mockUser && credentials.password === 'password') {
-        return {
-          token: 'mock-jwt-token-' + Date.now(),
-          user: mockUser
-        };
-      } else {
-        throw new Error('Invalid credentials');
-      }
-    }
+    console.error('Login error:', error);
     throw error;
   }
 };
@@ -155,16 +121,110 @@ export const getCurrentUser = async () => {
     const response = await api.get('/auth/me');
     return response.data;
   } catch (error) {
-    // If API is not available, try to get user from localStorage as fallback
-    const savedUser = localStorage.getItem('user');
-    if (savedUser) {
-      try {
-        const userData = JSON.parse(savedUser);
-        return { user: userData };
-      } catch (parseError) {
-        console.error('Failed to parse saved user data:', parseError);
-      }
-    }
+    console.error('Get current user error:', error);
+    throw error;
+  }
+};
+
+export const updateUserProfile = async (profileData) => {
+  try {
+    console.log('=== CLIENT PROFILE UPDATE REQUEST ===');
+    console.log('Profile data to send:', JSON.stringify(profileData, null, 2));
+    console.log('API URL:', '/user/profile');
+    console.log('Request method: PUT');
+    
+    const response = await api.put('/user/profile', profileData);
+    
+    console.log('=== CLIENT PROFILE UPDATE RESPONSE ===');
+    console.log('Response status:', response.status);
+    console.log('Response data:', JSON.stringify(response.data, null, 2));
+    
+    return response.data;
+  } catch (error) {
+    console.error('=== CLIENT PROFILE UPDATE ERROR ===');
+    console.error('Error message:', error.message);
+    console.error('Error code:', error.code);
+    console.error('Response status:', error.response?.status);
+    console.error('Response data:', error.response?.data);
+    console.error('Full error object:', error);
+    
+    throw error;
+  }
+};
+
+// Notification API functions
+export const getNotifications = async (params = {}) => {
+  try {
+    const response = await api.get('/notifications', { params });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching notifications:', error);
+    throw error;
+  }
+};
+
+export const markNotificationsAsRead = async (notificationIds) => {
+  try {
+    const response = await api.put('/notifications/mark-read', { notificationIds });
+    return response.data;
+  } catch (error) {
+    console.error('Error marking notifications as read:', error);
+    throw error;
+  }
+};
+
+export const markAllNotificationsAsRead = async () => {
+  try {
+    const response = await api.put('/notifications/mark-all-read');
+    return response.data;
+  } catch (error) {
+    console.error('Error marking all notifications as read:', error);
+    throw error;
+  }
+};
+
+export const deleteNotification = async (notificationId) => {
+  try {
+    const response = await api.delete(`/notifications/${notificationId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting notification:', error);
+    throw error;
+  }
+};
+
+export const getUnreadCount = async () => {
+  try {
+    const response = await api.get('/notifications/unread-count');
+    return response.data;
+  } catch (error) {
+    console.error('Error getting unread count:', error);
+    throw error;
+  }
+};
+
+// Password and account management API functions
+export const changePasswordApi = async (currentPassword, newPassword) => {
+  try {
+    const response = await api.put('/user/change-password', {
+      currentPassword,
+      newPassword
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error changing password:', error);
+    throw error;
+  }
+};
+
+export const deleteAccountApi = async (password) => {
+  try {
+    const response = await api.delete('/user/delete-account', {
+      data: { password }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting account:', error);
     throw error;
   }
 };

@@ -1,60 +1,829 @@
-import React from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { 
   FaFileAlt, 
-  FaPlus, 
   FaDownload, 
-  FaEdit,
   FaEye,
-  FaStar
+  FaUser,
+  FaEnvelope,
+  FaPhone,
+  FaMapMarkerAlt,
+  FaGraduationCap,
+  FaBriefcase,
+  FaStar,
+  FaPlus,
+  FaChevronLeft,
+  FaChevronRight,
+  FaCheck
 } from 'react-icons/fa';
+import { usePDF } from 'react-to-pdf';
+
+// Memoized Input Component
+const MemoizedInput = React.memo(({ 
+  type = "text", 
+  value, 
+  onChange, 
+  placeholder, 
+  className, 
+  rows 
+}) => {
+  if (type === "textarea") {
+    return (
+      <textarea
+        value={value}
+        onChange={onChange}
+        rows={rows}
+        className={className}
+        placeholder={placeholder}
+      />
+    );
+  }
+  
+  return (
+    <input
+      type={type}
+      value={value}
+      onChange={onChange}
+      className={className}
+      placeholder={placeholder}
+    />
+  );
+});
 
 const ResumeBuilder = () => {
-  const templates = [
-    {
-      id: 1,
-      name: 'Modern Professional',
-      category: 'Most Popular',
-      categoryColor: 'text-blue-500',
-      icon: FaFileAlt,
-      iconColor: 'text-blue-400',
-      bgColor: 'from-blue-50 to-white'
+  const [formData, setFormData] = useState({
+    personalInfo: {
+      fullName: '',
+      email: '',
+      phone: '',
+      address: '',
+      linkedin: '',
+      summary: ''
     },
-    {
-      id: 2,
-      name: 'Creative Designer',
-      category: 'New',
-      categoryColor: 'text-green-500',
-      icon: FaFileAlt,
-      iconColor: 'text-green-400',
-      bgColor: 'from-green-50 to-white'
-    },
-    {
-      id: 3,
-      name: 'Executive Minimal',
-      category: 'Premium',
-      categoryColor: 'text-purple-500',
-      icon: FaFileAlt,
-      iconColor: 'text-purple-400',
-      bgColor: 'from-purple-50 to-white'
-    }
-  ];
+    education: [
+      {
+        degree: '',
+        institution: '',
+        year: '',
+        gpa: '',
+        achievements: ''
+      }
+    ],
+    experience: [
+      {
+        title: '',
+        company: '',
+        duration: '',
+        description: ''
+      }
+    ],
+    skills: '',
+    projects: [
+      {
+        name: '',
+        description: '',
+        technologies: '',
+        link: ''
+      }
+    ],
+    certifications: [
+      {
+        name: '',
+        issuer: '',
+        year: ''
+      }
+    ]
+  });
 
-  const recentResumes = [
-    {
-      id: 1,
-      name: 'Software Engineer Resume',
-      lastModified: '2 hours ago',
-      status: 'Complete',
-      statusColor: 'bg-green-100 text-green-700'
-    },
-    {
-      id: 2,
-      name: 'Data Science Resume',
-      lastModified: '1 day ago',
-      status: 'Draft',
-      statusColor: 'bg-yellow-100 text-yellow-700'
+  const [currentStep, setCurrentStep] = useState(0);
+  const [showPreview, setShowPreview] = useState(false);
+  const { toPDF, targetRef } = usePDF({ filename: `${formData.personalInfo.fullName || 'resume'}.pdf` });
+
+  const steps = useMemo(() => [
+    { id: 0, title: 'Personal Info', icon: FaUser, completed: false },
+    { id: 1, title: 'Education', icon: FaGraduationCap, completed: false },
+    { id: 2, title: 'Experience', icon: FaBriefcase, completed: false },
+    { id: 3, title: 'Skills', icon: FaStar, completed: false },
+    { id: 4, title: 'Projects', icon: FaFileAlt, completed: false },
+    { id: 5, title: 'Certifications', icon: FaStar, completed: false }
+  ], []);
+
+  // Optimized input change handler
+  const handleInputChange = useCallback((section, field, value, index = null) => {
+    setFormData(prev => {
+      if (index !== null) {
+        // For array items
+        const newSection = [...prev[section]];
+        newSection[index] = { ...newSection[index], [field]: value };
+        return { ...prev, [section]: newSection };
+      } else {
+        // For direct properties
+        if (section === 'skills') {
+          return { ...prev, skills: value };
+        } else {
+          return { ...prev, [section]: { ...prev[section], [field]: value } };
+        }
+      }
+    });
+  }, []);
+
+  const addItem = useCallback((section) => {
+    setFormData(prev => {
+      const emptyItem = getEmptyItem(section);
+      return {
+        ...prev,
+        [section]: [...prev[section], emptyItem]
+      };
+    });
+  }, []);
+
+  const removeItem = useCallback((section, index) => {
+    setFormData(prev => ({
+      ...prev,
+      [section]: prev[section].filter((_, i) => i !== index)
+    }));
+  }, []);
+
+  const getEmptyItem = useCallback((section) => {
+    switch (section) {
+      case 'education':
+        return { degree: '', institution: '', year: '', gpa: '', achievements: '' };
+      case 'experience':
+        return { title: '', company: '', duration: '', description: '' };
+      case 'projects':
+        return { name: '', description: '', technologies: '', link: '' };
+      case 'certifications':
+        return { name: '', issuer: '', year: '' };
+      default:
+        return {};
     }
-  ];
+  }, []);
+
+  const handleDownloadPDF = useCallback(() => {
+    toPDF();
+  }, [toPDF]);
+
+  const nextStep = useCallback(() => {
+    setCurrentStep(prev => Math.min(prev + 1, steps.length - 1));
+  }, [steps.length]);
+
+  const prevStep = useCallback(() => {
+    setCurrentStep(prev => Math.max(prev - 1, 0));
+  }, []);
+
+  const goToStep = useCallback((step) => {
+    setCurrentStep(step);
+  }, []);
+
+  const isStepCompleted = useCallback((stepIndex) => {
+    switch (stepIndex) {
+      case 0: // Personal Info
+        return formData.personalInfo.fullName && formData.personalInfo.email;
+      case 1: // Education
+        return formData.education.some(edu => edu.degree && edu.institution);
+      case 2: // Experience
+        return formData.experience.some(exp => exp.title && exp.company);
+      case 3: // Skills
+        return formData.skills.trim().length > 0;
+      case 4: // Projects
+        return formData.projects.some(project => project.name);
+      case 5: // Certifications
+        return formData.certifications.some(cert => cert.name);
+      default:
+        return false;
+    }
+  }, [formData]);
+
+  // Memoized Step Components
+  const StepIndicator = useMemo(() => (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+      <div className="flex items-center justify-between">
+        {steps.map((step, index) => {
+          const Icon = step.icon;
+          const isCompleted = isStepCompleted(index);
+          const isActive = currentStep === index;
+          
+          return (
+            <div key={step.id} className="flex items-center">
+              <button
+                onClick={() => goToStep(index)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+                  isActive 
+                    ? 'bg-blue-100 text-blue-700 border-2 border-blue-300' 
+                    : isCompleted 
+                    ? 'bg-green-100 text-green-700 border-2 border-green-300' 
+                    : 'bg-gray-100 text-gray-500 border-2 border-gray-200 hover:bg-gray-200'
+                }`}
+              >
+                {isCompleted ? (
+                  <FaCheck className="w-4 h-4" />
+                ) : (
+                  <Icon className="w-4 h-4" />
+                )}
+                <span className="hidden sm:inline text-sm font-medium">{step.title}</span>
+              </button>
+              {index < steps.length - 1 && (
+                <div className={`w-8 h-0.5 mx-2 ${
+                  isCompleted ? 'bg-green-300' : 'bg-gray-200'
+                }`} />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  ), [steps, currentStep, isStepCompleted, goToStep]);
+
+  const PersonalInfoStep = useMemo(() => (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <h3 className="text-lg font-semibold text-gray-800 mb-6 flex items-center gap-2">
+        <FaUser className="w-5 h-5" />
+        Personal Information
+      </h3>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Full Name *</label>
+          <MemoizedInput
+            value={formData.personalInfo.fullName}
+            onChange={(e) => handleInputChange('personalInfo', 'fullName', e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="Enter your full name"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Email *</label>
+          <MemoizedInput
+            type="email"
+            value={formData.personalInfo.email}
+            onChange={(e) => handleInputChange('personalInfo', 'email', e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="Enter your email"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
+          <MemoizedInput
+            type="tel"
+            value={formData.personalInfo.phone}
+            onChange={(e) => handleInputChange('personalInfo', 'phone', e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="Enter your phone number"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">LinkedIn</label>
+          <MemoizedInput
+            type="url"
+            value={formData.personalInfo.linkedin}
+            onChange={(e) => handleInputChange('personalInfo', 'linkedin', e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="Enter your LinkedIn URL"
+          />
+        </div>
+        <div className="md:col-span-2">
+          <label className="block text-sm font-medium text-gray-700 mb-2">Address</label>
+          <MemoizedInput
+            value={formData.personalInfo.address}
+            onChange={(e) => handleInputChange('personalInfo', 'address', e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="Enter your address"
+          />
+        </div>
+        <div className="md:col-span-2">
+          <label className="block text-sm font-medium text-gray-700 mb-2">Professional Summary</label>
+          <MemoizedInput
+            type="textarea"
+            value={formData.personalInfo.summary}
+            onChange={(e) => handleInputChange('personalInfo', 'summary', e.target.value)}
+            rows={3}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="Write a brief professional summary"
+          />
+        </div>
+      </div>
+    </div>
+  ), [formData.personalInfo, handleInputChange]);
+
+  const EducationStep = useMemo(() => (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+          <FaGraduationCap className="w-5 h-5" />
+          Education
+        </h3>
+        <button
+          onClick={() => addItem('education')}
+          className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center gap-1"
+        >
+          <FaPlus className="w-3 h-3" />
+          Add Education
+        </button>
+      </div>
+      
+      {formData.education.map((edu, index) => (
+        <div key={`education-${index}`} className="border border-gray-200 rounded-lg p-4 mb-4">
+          <div className="flex justify-between items-center mb-3">
+            <h5 className="font-medium text-gray-700">Education #{index + 1}</h5>
+            {formData.education.length > 1 && (
+              <button
+                onClick={() => removeItem('education', index)}
+                className="text-red-600 hover:text-red-700 text-sm"
+              >
+                Remove
+              </button>
+            )}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Degree *</label>
+              <MemoizedInput
+                value={edu.degree}
+                onChange={(e) => handleInputChange('education', 'degree', e.target.value, index)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="e.g., Bachelor of Science in Computer Science"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Institution *</label>
+              <MemoizedInput
+                value={edu.institution}
+                onChange={(e) => handleInputChange('education', 'institution', e.target.value, index)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="University/College name"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Year</label>
+              <MemoizedInput
+                value={edu.year}
+                onChange={(e) => handleInputChange('education', 'year', e.target.value, index)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="e.g., 2020-2024"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">GPA</label>
+              <MemoizedInput
+                value={edu.gpa}
+                onChange={(e) => handleInputChange('education', 'gpa', e.target.value, index)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="e.g., 3.8/4.0"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Achievements</label>
+              <MemoizedInput
+                type="textarea"
+                value={edu.achievements}
+                onChange={(e) => handleInputChange('education', 'achievements', e.target.value, index)}
+                rows={2}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Academic achievements, honors, etc."
+              />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  ), [formData.education, handleInputChange, addItem, removeItem]);
+
+  const ExperienceStep = useMemo(() => (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+          <FaBriefcase className="w-5 h-5" />
+          Work Experience
+        </h3>
+        <button
+          onClick={() => addItem('experience')}
+          className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center gap-1"
+        >
+          <FaPlus className="w-3 h-3" />
+          Add Experience
+        </button>
+      </div>
+      
+      {formData.experience.map((exp, index) => (
+        <div key={`experience-${index}`} className="border border-gray-200 rounded-lg p-4 mb-4">
+          <div className="flex justify-between items-center mb-3">
+            <h5 className="font-medium text-gray-700">Experience #{index + 1}</h5>
+            {formData.experience.length > 1 && (
+              <button
+                onClick={() => removeItem('experience', index)}
+                className="text-red-600 hover:text-red-700 text-sm"
+              >
+                Remove
+              </button>
+            )}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Job Title *</label>
+              <MemoizedInput
+                value={exp.title}
+                onChange={(e) => handleInputChange('experience', 'title', e.target.value, index)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="e.g., Software Engineer"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Company *</label>
+              <MemoizedInput
+                value={exp.company}
+                onChange={(e) => handleInputChange('experience', 'company', e.target.value, index)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Company name"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Duration</label>
+              <MemoizedInput
+                value={exp.duration}
+                onChange={(e) => handleInputChange('experience', 'duration', e.target.value, index)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="e.g., Jan 2023 - Present"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+              <MemoizedInput
+                type="textarea"
+                value={exp.description}
+                onChange={(e) => handleInputChange('experience', 'description', e.target.value, index)}
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Describe your responsibilities and achievements"
+              />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  ), [formData.experience, handleInputChange, addItem, removeItem]);
+
+  const SkillsStep = useMemo(() => (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <h3 className="text-lg font-semibold text-gray-800 mb-6 flex items-center gap-2">
+        <FaStar className="w-5 h-5" />
+        Skills
+      </h3>
+      
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Skills *</label>
+        <MemoizedInput
+          type="textarea"
+          value={formData.skills}
+          onChange={(e) => handleInputChange('skills', '', e.target.value)}
+          rows={6}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          placeholder="List your technical and soft skills (e.g., JavaScript, React, Python, Leadership, Communication)"
+        />
+        <p className="text-sm text-gray-500 mt-2">
+          Separate skills with commas or list them on separate lines
+        </p>
+      </div>
+    </div>
+  ), [formData.skills, handleInputChange]);
+
+  const ProjectsStep = useMemo(() => (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+          <FaFileAlt className="w-5 h-5" />
+          Projects
+        </h3>
+        <button
+          onClick={() => addItem('projects')}
+          className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center gap-1"
+        >
+          <FaPlus className="w-3 h-3" />
+          Add Project
+        </button>
+      </div>
+      
+      {formData.projects.map((project, index) => (
+        <div key={`project-${index}`} className="border border-gray-200 rounded-lg p-4 mb-4">
+          <div className="flex justify-between items-center mb-3">
+            <h5 className="font-medium text-gray-700">Project #{index + 1}</h5>
+            {formData.projects.length > 1 && (
+              <button
+                onClick={() => removeItem('projects', index)}
+                className="text-red-600 hover:text-red-700 text-sm"
+              >
+                Remove
+              </button>
+            )}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Project Name *</label>
+              <MemoizedInput
+                value={project.name}
+                onChange={(e) => handleInputChange('projects', 'name', e.target.value, index)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Project name"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Technologies</label>
+              <MemoizedInput
+                value={project.technologies}
+                onChange={(e) => handleInputChange('projects', 'technologies', e.target.value, index)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="e.g., React, Node.js, MongoDB"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+              <MemoizedInput
+                type="textarea"
+                value={project.description}
+                onChange={(e) => handleInputChange('projects', 'description', e.target.value, index)}
+                rows={2}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Describe the project and your role"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Project Link</label>
+              <MemoizedInput
+                type="url"
+                value={project.link}
+                onChange={(e) => handleInputChange('projects', 'link', e.target.value, index)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="GitHub, live demo, or portfolio link"
+              />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  ), [formData.projects, handleInputChange, addItem, removeItem]);
+
+  const CertificationsStep = useMemo(() => (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+          <FaStar className="w-5 h-5" />
+          Certifications
+        </h3>
+        <button
+          onClick={() => addItem('certifications')}
+          className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center gap-1"
+        >
+          <FaPlus className="w-3 h-3" />
+          Add Certification
+        </button>
+      </div>
+      
+      {formData.certifications.map((cert, index) => (
+        <div key={`certification-${index}`} className="border border-gray-200 rounded-lg p-4 mb-4">
+          <div className="flex justify-between items-center mb-3">
+            <h5 className="font-medium text-gray-700">Certification #{index + 1}</h5>
+            {formData.certifications.length > 1 && (
+              <button
+                onClick={() => removeItem('certifications', index)}
+                className="text-red-600 hover:text-red-700 text-sm"
+              >
+                Remove
+              </button>
+            )}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Certification Name *</label>
+              <MemoizedInput
+                value={cert.name}
+                onChange={(e) => handleInputChange('certifications', 'name', e.target.value, index)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="e.g., AWS Certified Developer"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Issuing Organization</label>
+              <MemoizedInput
+                value={cert.issuer}
+                onChange={(e) => handleInputChange('certifications', 'issuer', e.target.value, index)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="e.g., Amazon Web Services"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Year</label>
+              <MemoizedInput
+                value={cert.year}
+                onChange={(e) => handleInputChange('certifications', 'year', e.target.value, index)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="e.g., 2023"
+              />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  ), [formData.certifications, handleInputChange, addItem, removeItem]);
+
+  const renderCurrentStep = useCallback(() => {
+    switch (currentStep) {
+      case 0:
+        return PersonalInfoStep;
+      case 1:
+        return EducationStep;
+      case 2:
+        return ExperienceStep;
+      case 3:
+        return SkillsStep;
+      case 4:
+        return ProjectsStep;
+      case 5:
+        return CertificationsStep;
+      default:
+        return PersonalInfoStep;
+    }
+  }, [currentStep, PersonalInfoStep, EducationStep, ExperienceStep, SkillsStep, ProjectsStep, CertificationsStep]);
+
+  const ResumePreview = useMemo(() => (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h3 className="text-lg font-semibold text-gray-800">Resume Preview</h3>
+        <button
+          onClick={() => setShowPreview(false)}
+          className="text-gray-600 hover:text-gray-800"
+        >
+          ← Back to Form
+        </button>
+      </div>
+      
+      <div ref={targetRef} className="bg-white border border-gray-300 p-8 max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">
+            {formData.personalInfo.fullName || 'Your Name'}
+          </h1>
+          <div className="flex flex-wrap justify-center gap-4 text-gray-600 text-sm">
+            {formData.personalInfo.email && (
+              <div className="flex items-center gap-1">
+                <FaEnvelope className="w-3 h-3" />
+                {formData.personalInfo.email}
+              </div>
+            )}
+            {formData.personalInfo.phone && (
+              <div className="flex items-center gap-1">
+                <FaPhone className="w-3 h-3" />
+                {formData.personalInfo.phone}
+              </div>
+            )}
+            {formData.personalInfo.address && (
+              <div className="flex items-center gap-1">
+                <FaMapMarkerAlt className="w-3 h-3" />
+                {formData.personalInfo.address}
+              </div>
+            )}
+            {formData.personalInfo.linkedin && (
+              <div className="flex items-center gap-1">
+                <span>LinkedIn:</span>
+                <a href={formData.personalInfo.linkedin} className="text-blue-600 hover:underline">
+                  {formData.personalInfo.linkedin.replace(/^https?:\/\//, '')}
+                </a>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Summary */}
+        {formData.personalInfo.summary && (
+          <div className="mb-6">
+            <h2 className="text-xl font-semibold text-gray-800 mb-2 border-b-2 border-gray-300 pb-1">
+              Professional Summary
+            </h2>
+            <p className="text-gray-700 leading-relaxed">{formData.personalInfo.summary}</p>
+          </div>
+        )}
+
+        {/* Education */}
+        {formData.education.some(edu => edu.degree || edu.institution) && (
+          <div className="mb-6">
+            <h2 className="text-xl font-semibold text-gray-800 mb-3 border-b-2 border-gray-300 pb-1">
+              Education
+            </h2>
+            {formData.education.map((edu, index) => (
+              (edu.degree || edu.institution) && (
+                <div key={index} className="mb-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-semibold text-gray-800">{edu.degree}</h3>
+                      <p className="text-gray-600">{edu.institution}</p>
+                      {edu.achievements && (
+                        <p className="text-gray-700 text-sm mt-1">{edu.achievements}</p>
+                      )}
+                    </div>
+                    <div className="text-right text-gray-600">
+                      <p>{edu.year}</p>
+                      {edu.gpa && <p className="text-sm">GPA: {edu.gpa}</p>}
+                    </div>
+                  </div>
+                </div>
+              )
+            ))}
+          </div>
+        )}
+
+        {/* Experience */}
+        {formData.experience.some(exp => exp.title || exp.company) && (
+          <div className="mb-6">
+            <h2 className="text-xl font-semibold text-gray-800 mb-3 border-b-2 border-gray-300 pb-1">
+              Work Experience
+            </h2>
+            {formData.experience.map((exp, index) => (
+              (exp.title || exp.company) && (
+                <div key={index} className="mb-4">
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="font-semibold text-gray-800">{exp.title}</h3>
+                    <span className="text-gray-600 text-sm">{exp.duration}</span>
+                  </div>
+                  <p className="text-gray-600 mb-2">{exp.company}</p>
+                  {exp.description && (
+                    <p className="text-gray-700 text-sm leading-relaxed">{exp.description}</p>
+                  )}
+                </div>
+              )
+            ))}
+          </div>
+        )}
+
+        {/* Skills */}
+        {formData.skills && (
+          <div className="mb-6">
+            <h2 className="text-xl font-semibold text-gray-800 mb-3 border-b-2 border-gray-300 pb-1">
+              Skills
+            </h2>
+            <p className="text-gray-700 leading-relaxed">{formData.skills}</p>
+          </div>
+        )}
+
+        {/* Projects */}
+        {formData.projects.some(project => project.name) && (
+          <div className="mb-6">
+            <h2 className="text-xl font-semibold text-gray-800 mb-3 border-b-2 border-gray-300 pb-1">
+              Projects
+            </h2>
+            {formData.projects.map((project, index) => (
+              project.name && (
+                <div key={index} className="mb-4">
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="font-semibold text-gray-800">{project.name}</h3>
+                    {project.link && (
+                      <a href={project.link} className="text-blue-600 hover:underline text-sm">
+                        View Project
+                      </a>
+                    )}
+                  </div>
+                  {project.technologies && (
+                    <p className="text-gray-600 text-sm mb-2">Technologies: {project.technologies}</p>
+                  )}
+                  {project.description && (
+                    <p className="text-gray-700 text-sm leading-relaxed">{project.description}</p>
+                  )}
+                </div>
+              )
+            ))}
+          </div>
+        )}
+
+        {/* Certifications */}
+        {formData.certifications.some(cert => cert.name) && (
+          <div className="mb-6">
+            <h2 className="text-xl font-semibold text-gray-800 mb-3 border-b-2 border-gray-300 pb-1">
+              Certifications
+            </h2>
+            {formData.certifications.map((cert, index) => (
+              cert.name && (
+                <div key={index} className="mb-2">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-semibold text-gray-800">{cert.name}</h3>
+                      <p className="text-gray-600 text-sm">{cert.issuer}</p>
+                    </div>
+                    <span className="text-gray-600 text-sm">{cert.year}</span>
+                  </div>
+                </div>
+              )
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="flex justify-center mt-6">
+        <button
+          onClick={handleDownloadPDF}
+          className="flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition font-medium"
+        >
+          <FaDownload className="w-4 h-4" />
+          Download PDF
+        </button>
+      </div>
+    </div>
+  ), [formData, targetRef, handleDownloadPDF]);
 
   return (
     <div className="space-y-6">
@@ -62,77 +831,67 @@ const ResumeBuilder = () => {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-gray-800">Resume Builder</h2>
-          <p className="text-gray-600">Create professional resumes with AI-powered assistance</p>
-        </div>
-        <button className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-400 text-white px-4 py-2 rounded-lg shadow hover:from-blue-700 hover:to-blue-500 transition text-sm font-medium">
-          <FaPlus className="w-4 h-4" /> New Resume
-        </button>
-      </div>
-
-      {/* Templates Section */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">Choose Template</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {templates.map((template) => {
-            const Icon = template.icon;
-            return (
-              <div key={template.id} className={`border rounded-xl p-4 flex flex-col items-center bg-gradient-to-br ${template.bgColor} shadow hover:shadow-xl transition cursor-pointer`}>
-                <Icon className={`w-8 h-8 ${template.iconColor} mb-2`} />
-                <div className="font-medium text-center">{template.name}</div>
-                <span className={`text-xs ${template.categoryColor} mt-1 mb-2`}>{template.category}</span>
-                <button className="mt-auto bg-blue-100 text-blue-700 px-3 py-1 rounded hover:bg-blue-200 text-sm font-medium transition">
-                  Use Template
-                </button>
-              </div>
-            );
-          })}
+          <p className="text-gray-600">Create your professional resume step by step</p>
         </div>
       </div>
 
-      {/* AI Features */}
-      <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
-        <div className="flex items-center gap-3">
-          <FaStar className="w-5 h-5 text-blue-500" />
-          <div>
-            <h4 className="font-medium text-blue-700">AI Auto-Fill Feature</h4>
-            <p className="text-sm text-blue-600">
-              Let AI analyze your profile and automatically populate your resume with relevant content.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Recent Resumes */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">Recent Resumes</h3>
-        <div className="space-y-3">
-          {recentResumes.map((resume) => (
-            <div key={resume.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-              <div className="flex items-center gap-3">
-                <FaFileAlt className="w-5 h-5 text-blue-500" />
-                <div>
-                  <p className="font-medium text-gray-800">{resume.name}</p>
-                  <p className="text-xs text-gray-500">Last modified: {resume.lastModified}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className={`px-2 py-1 rounded text-xs font-medium ${resume.statusColor}`}>
-                  {resume.status}
-                </span>
-                <button className="p-2 text-gray-500 hover:text-blue-600 transition-colors">
+      {showPreview ? (
+        ResumePreview
+      ) : (
+        <>
+          {StepIndicator}
+          
+          {renderCurrentStep()}
+          
+          {/* Navigation Buttons */}
+          <div className="flex justify-between items-center bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <button
+              onClick={prevStep}
+              disabled={currentStep === 0}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition ${
+                currentStep === 0
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-gray-600 text-white hover:bg-gray-700'
+              }`}
+            >
+              <FaChevronLeft className="w-4 h-4" />
+              Previous
+            </button>
+            
+            {currentStep === steps.length - 1 ? (
+              // Show Preview and Download buttons only on the last step
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowPreview(true)}
+                  className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+                >
                   <FaEye className="w-4 h-4" />
+                  Preview
                 </button>
-                <button className="p-2 text-gray-500 hover:text-green-600 transition-colors">
-                  <FaEdit className="w-4 h-4" />
-                </button>
-                <button className="p-2 text-gray-500 hover:text-purple-600 transition-colors">
+                <button
+                  onClick={handleDownloadPDF}
+                  className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
+                >
                   <FaDownload className="w-4 h-4" />
+                  Download PDF
                 </button>
               </div>
-            </div>
-          ))}
-        </div>
-      </div>
+            ) : (
+              // Show Next button for all other steps
+              <button
+                onClick={nextStep}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg transition bg-blue-600 text-white hover:bg-blue-700"
+              >
+                Next
+                <FaChevronRight className="w-4 h-4" />
+              </button>
+            )}
+            
+            {/* Empty div to maintain flex layout when on last step */}
+            {currentStep === steps.length - 1 && <div></div>}
+          </div>
+        </>
+      )}
     </div>
   );
 };

@@ -7,18 +7,22 @@ import {
   FaBriefcase, 
   FaHistory,
   FaUser,
-  FaSearch,
   FaBell,
-  FaGraduationCap
+  FaGraduationCap,
+  FaSearch
 } from 'react-icons/fa';
+import { useAuth } from '../../../contexts/AuthContext';
 
 const Sidebar = ({ activeSection, setActiveSection, isCollapsed }) => {
+  const { user } = useAuth();
+  
   const navigationItems = [
     { id: 'dashboard', label: 'Dashboard', icon: FaHome, color: 'text-blue-600' },
     { id: 'resume', label: 'Resume Builder', icon: FaFileAlt, color: 'text-green-600' },
     { id: 'practice', label: 'Practice Hub', icon: FaBookOpen, color: 'text-purple-600' },
     { id: 'skills', label: 'Skill Tracker', icon: FaChartBar, color: 'text-orange-600' },
     { id: 'applications', label: 'Applications', icon: FaBriefcase, color: 'text-indigo-600' },
+    { id: 'jobs', label: 'Browse Jobs', icon: FaSearch, color: 'text-yellow-600' },
     { id: 'history', label: 'Placement History', icon: FaHistory, color: 'text-pink-600' },
     { id: 'ai-coach', label: 'AI Career Coach', icon: FaGraduationCap, color: 'text-teal-600' }
   ];
@@ -35,12 +39,7 @@ const Sidebar = ({ activeSection, setActiveSection, isCollapsed }) => {
             <span className="text-lg font-bold text-gray-800">Elevate Student</span>
           </div>
         )}
-        <button
-          onClick={() => setActiveSection('dashboard')}
-          className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-        >
-          <FaSearch className={`text-gray-600 transition-transform ${isCollapsed ? 'rotate-180' : ''}`} />
-        </button>
+
       </div>
 
       {/* Navigation Items */}
@@ -69,21 +68,6 @@ const Sidebar = ({ activeSection, setActiveSection, isCollapsed }) => {
           );
         })}
       </nav>
-
-      {/* User Profile Section */}
-      {!isCollapsed && (
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-              <FaUser className="text-white text-sm" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-800">Alex Johnson</p>
-              <p className="text-xs text-gray-500">Computer Science</p>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

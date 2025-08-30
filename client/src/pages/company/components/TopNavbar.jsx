@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useNotifications } from '../../../contexts/NotificationContext';
+import { getUserDisplayName, getUserInitials } from '../../../utils/helpers';
 import { 
   FaBars, 
   FaBell, 
@@ -15,13 +17,9 @@ const TopNavbar = ({ toggleSidebar }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const { user, logout } = useAuth();
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const navigate = useNavigate();
-
-  const notifications = [
-    { id: 1, message: 'New application received for Software Engineer', time: '2 min ago', unread: true },
-    { id: 2, message: 'Interview scheduled for tomorrow at 10 AM', time: '1 hour ago', unread: true },
-    { id: 3, message: 'Job posting deadline approaching', time: '3 hours ago', unread: false },
-  ];
+  const notificationRef = useRef();
 
   const handleProfile = () => {
     setShowUserMenu(false);
@@ -32,6 +30,53 @@ const TopNavbar = ({ toggleSidebar }) => {
     setShowUserMenu(false);
     await logout();
   };
+
+  const handleNotificationClick = (notification) => {
+    // Mark notification as read
+    if (!notification.isRead) {
+      markAsRead([notification._id]);
+    }
+    
+    // Navigate to the notification link if available
+    if (notification.actionLink) {
+      navigate(notification.actionLink);
+    }
+    
+    setShowNotifications(false);
+  };
+
+  const handleMarkAllRead = async () => {
+    await markAllAsRead();
+  };
+
+  const formatTime = (timeString) => {
+    const time = new Date(timeString);
+    const now = new Date();
+    const diffInMinutes = Math.floor((now - time) / (1000 * 60));
+    
+    if (diffInMinutes < 1) return 'Just now';
+    if (diffInMinutes < 60) return `${diffInMinutes} min ago`;
+    
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) return `${diffInHours} hour${diffInHours === 1 ? '' : 's'} ago`;
+    
+    const diffInDays = Math.floor(diffInHours / 24);
+    return `${diffInDays} day${diffInDays === 1 ? '' : 's'} ago`;
+  };
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+        setShowNotifications(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   return (
     <div className="fixed top-0 right-0 left-0 bg-white shadow-sm border-b border-gray-200 z-30 transition-all duration-300">
@@ -59,15 +104,15 @@ const TopNavbar = ({ toggleSidebar }) => {
         {/* Right Section */}
         <div className="flex items-center gap-4">
           {/* Notifications */}
-          <div className="relative">
+          <div className="relative" ref={notificationRef}>
             <button
               onClick={() => setShowNotifications(!showNotifications)}
               className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors"
             >
               <FaBell className="w-5 h-5 text-gray-600" />
-              {notifications.filter(n => n.unread).length > 0 && (
+              {unreadCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  {notifications.filter(n => n.unread).length}
+                  {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
               )}
             </button>
@@ -75,24 +120,46 @@ const TopNavbar = ({ toggleSidebar }) => {
             {/* Notifications Dropdown */}
             {showNotifications && (
               <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-                <div className="p-4 border-b border-gray-200">
+                <div className="p-4 border-b border-gray-200 flex items-center justify-between">
                   <h3 className="font-semibold text-gray-800">Notifications</h3>
+                  {unreadCount > 0 && (
+                    <button 
+                      onClick={handleMarkAllRead}
+                      className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                    >
+                      Mark all read
+                    </button>
+                  )}
                 </div>
                 <div className="max-h-64 overflow-y-auto">
-                  {notifications.map((notification) => (
-                    <div
-                      key={notification.id}
-                      className={`p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${
-                        notification.unread ? 'bg-blue-50' : ''
-                      }`}
-                    >
-                      <p className="text-sm text-gray-800 mb-1">{notification.message}</p>
-                      <p className="text-xs text-gray-500">{notification.time}</p>
+                  {notifications.length > 0 ? (
+                    notifications.map((notification) => (
+                      <div
+                        key={notification._id}
+                        onClick={() => handleNotificationClick(notification)}
+                        className={`p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${
+                          !notification.isRead ? 'bg-blue-50' : ''
+                        }`}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <p className="text-sm text-gray-800 mb-1">{notification.message}</p>
+                            <p className="text-xs text-gray-500">{formatTime(notification.createdAt)}</p>
+                          </div>
+                          {!notification.isRead && (
+                            <div className="w-2 h-2 bg-blue-500 rounded-full mt-1 ml-2"></div>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-4 text-center text-gray-500">
+                      <p className="text-sm">No notifications</p>
                     </div>
-                  ))}
+                  )}
                 </div>
                 <div className="p-3 border-t border-gray-200">
-                  <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+                  <button className="text-sm text-blue-600 hover:text-blue-700 font-medium w-full text-center">
                     View All Notifications
                   </button>
                 </div>
@@ -114,10 +181,22 @@ const TopNavbar = ({ toggleSidebar }) => {
               onClick={() => setShowUserMenu(!showUserMenu)}
               className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 transition-colors"
             >
-              <FaUserCircle className="w-8 h-8 text-gray-600" />
+              {user?.profilePicture ? (
+                <img 
+                  src={user.profilePicture} 
+                  alt={getUserDisplayName(user)}
+                  className="w-8 h-8 rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+                  <span className="text-white text-xs font-medium">
+                    {getUserInitials(user?.name)}
+                  </span>
+                </div>
+              )}
               <div className="hidden md:block text-left">
-                <p className="text-sm font-medium text-gray-800">Sarah Johnson</p>
-                <p className="text-xs text-gray-500">HR Manager</p>
+                <p className="text-sm font-medium text-gray-800">{getUserDisplayName(user)}</p>
+                <p className="text-xs text-gray-500">{user?.designation || 'Company User'}</p>
               </div>
             </button>
 
@@ -125,8 +204,8 @@ const TopNavbar = ({ toggleSidebar }) => {
             {showUserMenu && (
               <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
                 <div className="p-4 border-b border-gray-200">
-                  <p className="font-medium text-gray-800">{user?.name || 'Sarah Johnson'}</p>
-                  <p className="text-sm text-gray-500">{user?.email || 'sarah@techcorp.com'}</p>
+                  <p className="font-medium text-gray-800">{getUserDisplayName(user)}</p>
+                  <p className="text-sm text-gray-500">{user?.email || 'company@example.com'}</p>
                 </div>
                 <div className="py-2">
                   <button 
@@ -135,10 +214,6 @@ const TopNavbar = ({ toggleSidebar }) => {
                   >
                     <FaUserCircle className="w-4 h-4" />
                     Profile
-                  </button>
-                  <button className="w-full flex items-center gap-3 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100">
-                    <FaCog className="w-4 h-4" />
-                    Settings
                   </button>
                   <hr className="my-2" />
                   <button 

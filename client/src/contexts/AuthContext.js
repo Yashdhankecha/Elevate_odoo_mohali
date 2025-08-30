@@ -7,7 +7,10 @@ import {
   logoutUser, 
   verifyOTP as verifyOTPApi,
   forgotPassword as forgotPasswordApi,
-  resetPassword as resetPasswordApi
+  resetPassword as resetPasswordApi,
+  updateUserProfile as updateUserProfileApi,
+  changePasswordApi,
+  deleteAccountApi
 } from '../utils/api';
 
 const AuthContext = createContext();
@@ -199,11 +202,19 @@ export const AuthProvider = ({ children }) => {
   // Update user profile
   const updateProfile = async (profileData) => {
     try {
-      // This would need to be implemented in the API utils
-      // For now, we'll just update the local state
-      setUser(prevUser => ({ ...prevUser, ...profileData }));
-      toast.success('Profile updated successfully!');
-      return { success: true };
+      const response = await updateUserProfileApi(profileData);
+      
+      if (response.success) {
+        // Update local state with the response from server
+        const updatedUser = { ...user, ...response.user };
+        setUser(updatedUser);
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        toast.success(response.message || 'Profile updated successfully!');
+        return { success: true };
+      } else {
+        toast.error(response.message || 'Profile update failed');
+        return { success: false, message: response.message };
+      }
     } catch (error) {
       const message = error.response?.data?.message || 'Profile update failed';
       toast.error(message);
@@ -214,9 +225,15 @@ export const AuthProvider = ({ children }) => {
   // Change password
   const changePassword = async (currentPassword, newPassword) => {
     try {
-      // This would need to be implemented in the API utils
-      toast.success('Password changed successfully!');
-      return { success: true };
+      const response = await changePasswordApi(currentPassword, newPassword);
+      
+      if (response.success) {
+        toast.success(response.message || 'Password changed successfully!');
+        return { success: true };
+      } else {
+        toast.error(response.message || 'Password change failed');
+        return { success: false, message: response.message };
+      }
     } catch (error) {
       const message = error.response?.data?.message || 'Password change failed';
       toast.error(message);
@@ -227,14 +244,20 @@ export const AuthProvider = ({ children }) => {
   // Delete account
   const deleteAccount = async (password) => {
     try {
-      // This would need to be implemented in the API utils
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      setToken(null);
-      setUser(null);
-      toast.success('Account deleted successfully');
-      navigate('/');
-      return { success: true };
+      const response = await deleteAccountApi(password);
+      
+      if (response.success) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        setToken(null);
+        setUser(null);
+        toast.success(response.message || 'Account deleted successfully');
+        navigate('/');
+        return { success: true };
+      } else {
+        toast.error(response.message || 'Account deletion failed');
+        return { success: false, message: response.message };
+      }
     } catch (error) {
       const message = error.response?.data?.message || 'Account deletion failed';
       toast.error(message);

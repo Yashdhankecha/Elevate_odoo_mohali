@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { NotificationProvider } from './contexts/NotificationContext';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import PrivateRoute from './components/PrivateRoute';
@@ -108,15 +109,7 @@ function AppRoutes() {
         path="/profile"
         element={
           <PrivateRoute>
-            <div className="min-h-screen bg-gray-50 flex flex-col">
-              <Navbar />
-              <div className="flex flex-1">
-                <Sidebar />
-                <main className="flex-1 px-4 py-8 ml-0 md:ml-64 mt-20">
-                  <Profile />
-                </main>
-              </div>
-            </div>
+            <Profile />
           </PrivateRoute>
         }
       />
@@ -131,31 +124,33 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <AppRoutes />
-        <Toaster 
-          position="top-right"
-          toastOptions={{
-            duration: 4000,
-            style: {
-              background: '#363636',
-              color: '#fff',
-            },
-            success: {
-              duration: 3000,
-              iconTheme: {
-                primary: '#10b981',
-                secondary: '#fff',
+        <NotificationProvider>
+          <AppRoutes />
+          <Toaster 
+            position="top-right"
+            toastOptions={{
+              duration: 4000,
+              style: {
+                background: '#363636',
+                color: '#fff',
               },
-            },
-            error: {
-              duration: 5000,
-              iconTheme: {
-                primary: '#ef4444',
-                secondary: '#fff',
+              success: {
+                duration: 3000,
+                iconTheme: {
+                  primary: '#10b981',
+                  secondary: '#fff',
+                },
               },
-            },
-          }}
-        />
+              error: {
+                duration: 5000,
+                iconTheme: {
+                  primary: '#ef4444',
+                  secondary: '#fff',
+                },
+              },
+            }}
+          />
+        </NotificationProvider>
       </AuthProvider>
     </Router>
   );
