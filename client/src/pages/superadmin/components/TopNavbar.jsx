@@ -13,10 +13,15 @@ import {
 
 const TopNavbar = ({ toggleSidebar }) => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   const { user, logout } = useAuth();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const navigate = useNavigate();
+
+  // Refs for closing on outside click
+  const notificationRef = useRef(null);
+  const profileRef = useRef(null);
 
   const handleProfile = () => {
     setIsProfileOpen(false);

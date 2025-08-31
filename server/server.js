@@ -28,6 +28,8 @@ app.use('/api/tpo', require('./routes/tpo'));
 app.use('/api/superadmin', require('./routes/superadmin'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/notifications', require('./routes/notifications'));
+// Chatbot routes (career chat)
+app.use('/api', require('./routes/chat'));
 
 
 // Health check route
