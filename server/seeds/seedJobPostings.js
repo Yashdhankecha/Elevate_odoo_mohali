@@ -1,339 +1,261 @@
 const mongoose = require('mongoose');
 const JobPosting = require('../models/JobPosting');
 const User = require('../models/User');
+require('dotenv').config();
 
-// Sample job postings data
+// Connect to MongoDB
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/elevate_odoo', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
+
 const sampleJobPostings = [
   {
-    title: 'Frontend Developer',
-    description: 'We are looking for a skilled Frontend Developer to join our team. You will be responsible for building user-friendly web applications using React, JavaScript, and modern web technologies.',
+    title: 'Software Engineer - Full Stack',
+    description: 'We are looking for a talented Full Stack Developer to join our team. You will be responsible for developing and maintaining web applications using modern technologies.',
+    location: 'Mumbai, Maharashtra',
+    type: 'full-time',
+    category: 'software-engineering',
+    package: {
+      min: 800000, // 8 LPA
+      max: 1500000, // 15 LPA
+      currency: 'INR'
+    },
     requirements: [
-      'Strong knowledge of React.js and JavaScript',
-      'Experience with HTML5, CSS3, and responsive design',
-      'Familiarity with state management (Redux/Context API)',
-      'Knowledge of modern build tools (Webpack, Babel)',
-      'Understanding of RESTful APIs and GraphQL'
+      'Bachelor\'s degree in Computer Science or related field',
+      '3+ years of experience in full-stack development',
+      'Proficiency in JavaScript, React, Node.js',
+      'Experience with databases (MongoDB, PostgreSQL)',
+      'Knowledge of cloud platforms (AWS, Azure)'
     ],
     responsibilities: [
-      'Develop and maintain user-facing features',
-      'Build reusable code and libraries for future use',
-      'Optimize applications for maximum speed and scalability',
-      'Collaborate with other team members and stakeholders'
+      'Develop and maintain web applications',
+      'Collaborate with cross-functional teams',
+      'Write clean, maintainable code',
+      'Participate in code reviews',
+      'Troubleshoot and debug issues'
     ],
+    skills: ['JavaScript', 'React', 'Node.js', 'MongoDB', 'AWS'],
+    experience: {
+      min: 3,
+      max: 6
+    },
+    isActive: true,
+    postedAt: new Date('2024-03-01'),
+    deadline: new Date('2024-04-15')
+  },
+  {
+    title: 'Data Scientist',
+    description: 'Join our data science team to build machine learning models and drive data-driven decisions. You will work on cutting-edge AI/ML projects.',
+    location: 'Bangalore, Karnataka',
+    type: 'full-time',
+    category: 'data-science',
+    package: {
+      min: 1200000, // 12 LPA
+      max: 2000000, // 20 LPA
+      currency: 'INR'
+    },
+    requirements: [
+      'Master\'s degree in Data Science, Statistics, or related field',
+      '2+ years of experience in data science',
+      'Proficiency in Python, R, SQL',
+      'Experience with ML frameworks (TensorFlow, PyTorch)',
+      'Strong statistical and analytical skills'
+    ],
+    responsibilities: [
+      'Develop machine learning models',
+      'Analyze large datasets',
+      'Create data visualizations',
+      'Present findings to stakeholders',
+      'Collaborate with engineering teams'
+    ],
+    skills: ['Python', 'R', 'SQL', 'TensorFlow', 'PyTorch', 'Tableau'],
+    experience: {
+      min: 2,
+      max: 5
+    },
+    isActive: true,
+    postedAt: new Date('2024-03-05'),
+    deadline: new Date('2024-04-20')
+  },
+  {
+    title: 'Product Manager',
+    description: 'Lead product strategy and development for our flagship products. You will work closely with engineering, design, and business teams.',
+    location: 'Delhi, NCR',
+    type: 'full-time',
+    category: 'product-management',
+    package: {
+      min: 1500000, // 15 LPA
+      max: 2500000, // 25 LPA
+      currency: 'INR'
+    },
+    requirements: [
+      'Bachelor\'s degree in Business, Engineering, or related field',
+      '4+ years of product management experience',
+      'Strong analytical and problem-solving skills',
+      'Excellent communication and leadership abilities',
+      'Experience with agile methodologies'
+    ],
+    responsibilities: [
+      'Define product vision and strategy',
+      'Create product roadmaps',
+      'Work with cross-functional teams',
+      'Analyze market trends and competition',
+      'Drive product launches and go-to-market strategies'
+    ],
+    skills: ['Product Strategy', 'Agile', 'User Research', 'Data Analysis', 'Leadership'],
+    experience: {
+      min: 4,
+      max: 8
+    },
+    isActive: true,
+    postedAt: new Date('2024-03-10'),
+    deadline: new Date('2024-04-25')
+  },
+  {
+    title: 'UI/UX Designer',
+    description: 'Create beautiful and intuitive user experiences for our digital products. You will work on user research, wireframing, and visual design.',
+    location: 'Pune, Maharashtra',
+    type: 'full-time',
+    category: 'design',
     package: {
       min: 600000, // 6 LPA
       max: 1200000, // 12 LPA
       currency: 'INR'
     },
-    location: 'Mumbai, Maharashtra',
-    type: 'full-time',
-    category: 'software-engineering',
-    experience: {
-      min: 1,
-      max: 3
-    },
-    skills: ['React.js', 'JavaScript', 'HTML5', 'CSS3', 'Redux', 'Git'],
-    isActive: true,
-    deadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
-    applicationCount: 15,
-    views: 120
-  },
-  {
-    title: 'Data Scientist',
-    description: 'Join our data science team to work on cutting-edge machine learning projects. You will develop predictive models, analyze large datasets, and help drive data-driven decisions.',
     requirements: [
-      'Strong background in statistics and mathematics',
-      'Proficiency in Python and data science libraries',
-      'Experience with machine learning algorithms',
-      'Knowledge of SQL and database systems',
-      'Familiarity with big data technologies'
-    ],
-    responsibilities: [
-      'Develop and implement machine learning models',
-      'Analyze complex datasets to extract insights',
-      'Create data visualizations and reports',
-      'Collaborate with cross-functional teams'
-    ],
-    package: {
-      min: 800000, // 8 LPA
-      max: 1800000, // 18 LPA
-      currency: 'INR'
-    },
-    location: 'Bangalore, Karnataka',
-    type: 'full-time',
-    category: 'data-science',
-    experience: {
-      min: 2,
-      max: 5
-    },
-    skills: ['Python', 'Machine Learning', 'Statistics', 'SQL', 'TensorFlow', 'Pandas'],
-    isActive: true,
-    deadline: new Date(Date.now() + 25 * 24 * 60 * 60 * 1000), // 25 days from now
-    applicationCount: 28,
-    views: 200
-  },
-  {
-    title: 'Product Manager',
-    description: 'We are seeking an experienced Product Manager to lead product strategy and development. You will work closely with engineering, design, and business teams to deliver exceptional products.',
-    requirements: [
-      'Strong analytical and problem-solving skills',
-      'Experience in product management or related field',
-      'Excellent communication and leadership abilities',
-      'Understanding of user experience and design principles',
-      'Knowledge of agile development methodologies'
-    ],
-    responsibilities: [
-      'Define product vision, strategy, and roadmap',
-      'Gather and prioritize product requirements',
-      'Work with cross-functional teams to deliver products',
-      'Analyze market trends and competitive landscape'
-    ],
-    package: {
-      min: 1000000, // 10 LPA
-      max: 2500000, // 25 LPA
-      currency: 'INR'
-    },
-    location: 'Delhi, NCR',
-    type: 'full-time',
-    category: 'product-management',
-    experience: {
-      min: 3,
-      max: 7
-    },
-    skills: ['Product Strategy', 'User Research', 'Agile', 'Analytics', 'Leadership', 'Communication'],
-    isActive: true,
-    deadline: new Date(Date.now() + 20 * 24 * 60 * 60 * 1000), // 20 days from now
-    applicationCount: 12,
-    views: 85
-  },
-  {
-    title: 'UI/UX Designer',
-    description: 'Join our design team to create beautiful and intuitive user experiences. You will work on web and mobile applications, creating wireframes, prototypes, and final designs.',
-    requirements: [
-      'Strong portfolio demonstrating UI/UX design skills',
+      'Bachelor\'s degree in Design or related field',
+      '2+ years of UI/UX design experience',
       'Proficiency in design tools (Figma, Sketch, Adobe Creative Suite)',
       'Understanding of user-centered design principles',
-      'Experience with prototyping and user testing',
-      'Knowledge of design systems and component libraries'
+      'Portfolio showcasing previous work'
     ],
     responsibilities: [
-      'Create user-centered designs by understanding business requirements',
-      'Create user flows, wireframes, prototypes and mockups',
-      'Translate requirements into style guides, design systems, design patterns and attractive user interfaces',
-      'Create original graphic designs (e.g. images, sketches and tables)'
+      'Create user personas and journey maps',
+      'Design wireframes and prototypes',
+      'Conduct user research and usability testing',
+      'Collaborate with developers and product managers',
+      'Maintain design systems and style guides'
     ],
-    package: {
-      min: 500000, // 5 LPA
-      max: 1200000, // 12 LPA
-      currency: 'INR'
-    },
-    location: 'Remote',
-    type: 'full-time',
-    category: 'design',
-    experience: {
-      min: 1,
-      max: 4
-    },
-    skills: ['Figma', 'UI/UX Design', 'Prototyping', 'User Research', 'Design Systems', 'Adobe Creative Suite'],
-    isActive: true,
-    deadline: new Date(Date.now() + 35 * 24 * 60 * 60 * 1000), // 35 days from now
-    applicationCount: 22,
-    views: 150
-  },
-  {
-    title: 'Backend Developer',
-    description: 'We are looking for a Backend Developer to build scalable and robust server-side applications. You will work with Node.js, databases, and cloud technologies.',
-    requirements: [
-      'Strong knowledge of Node.js and JavaScript',
-      'Experience with databases (MongoDB, PostgreSQL)',
-      'Understanding of RESTful APIs and microservices',
-      'Knowledge of cloud platforms (AWS, Azure, GCP)',
-      'Familiarity with Docker and containerization'
-    ],
-    responsibilities: [
-      'Design and implement server-side logic',
-      'Build and maintain APIs and microservices',
-      'Optimize application performance and scalability',
-      'Ensure data security and integrity'
-    ],
-    package: {
-      min: 700000, // 7 LPA
-      max: 1500000, // 15 LPA
-      currency: 'INR'
-    },
-    location: 'Pune, Maharashtra',
-    type: 'full-time',
-    category: 'software-engineering',
+    skills: ['Figma', 'Sketch', 'Adobe Creative Suite', 'User Research', 'Prototyping'],
     experience: {
       min: 2,
       max: 5
     },
-    skills: ['Node.js', 'JavaScript', 'MongoDB', 'PostgreSQL', 'AWS', 'Docker'],
     isActive: true,
-    deadline: new Date(Date.now() + 28 * 24 * 60 * 60 * 1000), // 28 days from now
-    applicationCount: 18,
-    views: 95
+    postedAt: new Date('2024-03-12'),
+    deadline: new Date('2024-04-30')
   },
   {
     title: 'Marketing Specialist',
-    description: 'Join our marketing team to develop and execute digital marketing strategies. You will work on campaigns, content creation, and brand awareness initiatives.',
+    description: 'Drive digital marketing campaigns and brand awareness. You will be responsible for content creation, social media management, and lead generation.',
+    location: 'Hyderabad, Telangana',
+    type: 'full-time',
+    category: 'marketing',
+    package: {
+      min: 500000, // 5 LPA
+      max: 1000000, // 10 LPA
+      currency: 'INR'
+    },
     requirements: [
-      'Experience in digital marketing and campaign management',
-      'Knowledge of social media platforms and marketing tools',
-      'Strong analytical skills and data-driven approach',
-      'Excellent written and verbal communication skills',
-      'Understanding of SEO and content marketing'
+      'Bachelor\'s degree in Marketing, Communications, or related field',
+      '2+ years of digital marketing experience',
+      'Experience with social media platforms and tools',
+      'Knowledge of SEO and content marketing',
+      'Strong writing and communication skills'
     ],
     responsibilities: [
-      'Develop and execute digital marketing campaigns',
-      'Create engaging content for various platforms',
-      'Analyze campaign performance and optimize strategies',
-      'Manage social media presence and community engagement'
+      'Develop and execute marketing campaigns',
+      'Manage social media presence',
+      'Create engaging content for various channels',
+      'Analyze campaign performance and optimize',
+      'Collaborate with sales and product teams'
     ],
+    skills: ['Social Media Marketing', 'Content Creation', 'SEO', 'Google Analytics', 'Email Marketing'],
+    experience: {
+      min: 2,
+      max: 4
+    },
+    isActive: true,
+    postedAt: new Date('2024-03-15'),
+    deadline: new Date('2024-05-05')
+  },
+  {
+    title: 'Sales Executive',
+    description: 'Drive revenue growth through B2B sales. You will be responsible for prospecting, lead qualification, and closing deals.',
+    location: 'Chennai, Tamil Nadu',
+    type: 'full-time',
+    category: 'sales',
     package: {
       min: 400000, // 4 LPA
       max: 800000, // 8 LPA
       currency: 'INR'
     },
-    location: 'Chennai, Tamil Nadu',
-    type: 'full-time',
-    category: 'marketing',
-    experience: {
-      min: 1,
-      max: 3
-    },
-    skills: ['Digital Marketing', 'Social Media', 'Content Creation', 'SEO', 'Analytics', 'Campaign Management'],
-    isActive: true,
-    deadline: new Date(Date.now() + 22 * 24 * 60 * 60 * 1000), // 22 days from now
-    applicationCount: 35,
-    views: 180
-  },
-  {
-    title: 'DevOps Engineer',
-    description: 'We are seeking a DevOps Engineer to streamline our development and deployment processes. You will work on CI/CD pipelines, infrastructure automation, and cloud management.',
     requirements: [
-      'Experience with CI/CD tools and practices',
-      'Knowledge of cloud platforms (AWS, Azure, GCP)',
-      'Familiarity with containerization (Docker, Kubernetes)',
-      'Understanding of infrastructure as code',
-      'Experience with monitoring and logging tools'
+      'Bachelor\'s degree in Business, Marketing, or related field',
+      '1+ years of B2B sales experience',
+      'Strong negotiation and communication skills',
+      'Experience with CRM systems',
+      'Ability to work in a target-driven environment'
     ],
     responsibilities: [
-      'Design and implement CI/CD pipelines',
-      'Manage cloud infrastructure and resources',
-      'Automate deployment and configuration processes',
-      'Monitor system performance and ensure reliability'
-    ],
-    package: {
-      min: 800000, // 8 LPA
-      max: 1800000, // 18 LPA
-      currency: 'INR'
-    },
-    location: 'Hyderabad, Telangana',
-    type: 'full-time',
-    category: 'software-engineering',
-    experience: {
-      min: 2,
-      max: 6
-    },
-    skills: ['CI/CD', 'AWS', 'Docker', 'Kubernetes', 'Terraform', 'Jenkins'],
-    isActive: true,
-    deadline: new Date(Date.now() + 32 * 24 * 60 * 60 * 1000), // 32 days from now
-    applicationCount: 8,
-    views: 65
-  },
-  {
-    title: 'Sales Executive',
-    description: 'Join our sales team to drive revenue growth and build strong customer relationships. You will be responsible for prospecting, closing deals, and maintaining client relationships.',
-    requirements: [
-      'Strong sales and negotiation skills',
-      'Excellent communication and interpersonal abilities',
-      'Experience in B2B sales or related field',
-      'Ability to understand customer needs and provide solutions',
-      'Self-motivated and target-driven approach'
-    ],
-    responsibilities: [
-      'Identify and prospect potential customers',
-      'Conduct sales presentations and product demonstrations',
+      'Prospect and qualify leads',
+      'Conduct product demonstrations',
       'Negotiate contracts and close deals',
-      'Maintain relationships with existing clients'
+      'Maintain relationships with existing clients',
+      'Meet and exceed sales targets'
     ],
-    package: {
-      min: 300000, // 3 LPA
-      max: 600000, // 6 LPA
-      currency: 'INR'
-    },
-    location: 'Kolkata, West Bengal',
-    type: 'full-time',
-    category: 'sales',
+    skills: ['B2B Sales', 'CRM', 'Negotiation', 'Lead Generation', 'Client Relationship'],
     experience: {
       min: 1,
       max: 3
     },
-    skills: ['Sales', 'Negotiation', 'Customer Relationship', 'B2B Sales', 'Communication', 'CRM'],
     isActive: true,
-    deadline: new Date(Date.now() + 18 * 24 * 60 * 60 * 1000), // 18 days from now
-    applicationCount: 42,
-    views: 220
+    postedAt: new Date('2024-03-18'),
+    deadline: new Date('2024-05-10')
   }
 ];
 
-async function seedJobPostings() {
+const seedJobPostings = async () => {
   try {
-    // Connect to MongoDB
-    await mongoose.connect('mongodb://localhost:27017/elevate_odoo_mohali');
-    console.log('Connected to MongoDB');
+    console.log('🌱 Starting job postings data seeding...');
 
     // Clear existing job postings
     await JobPosting.deleteMany({});
-    console.log('Cleared existing job postings');
+    console.log('✅ Cleared existing job postings');
 
-    // Get a company user to associate with job postings
-    const companyUser = await User.findOne({ role: 'company' });
-    if (!companyUser) {
-      console.log('No company user found. Creating a sample company...');
-      // Create a sample company if none exists
-      const sampleCompany = new User({
-        email: 'sample@company.com',
-        password: 'password123',
-        role: 'company',
-        company: {
-          companyName: 'Sample Tech Company',
-          industry: 'Technology',
-          logo: 'https://via.placeholder.com/150',
-          description: 'A leading technology company'
-        }
-      });
-      await sampleCompany.save();
-      console.log('Created sample company user');
+    // Get a sample company for job postings
+    const companies = await User.find({ role: 'company' }).limit(1);
+    if (companies.length === 0) {
+      console.log('❌ No companies found. Please seed company data first.');
+      return;
     }
 
-    const company = companyUser || await User.findOne({ role: 'company' });
+    const companyId = companies[0]._id;
 
-    // Add company reference to job postings
+    // Create job postings with company reference
     const jobPostingsWithCompany = sampleJobPostings.map(job => ({
       ...job,
-      company: company._id
+      company: companyId
     }));
 
     // Insert job postings
-    const insertedJobs = await JobPosting.insertMany(jobPostingsWithCompany);
-    console.log(`Successfully seeded ${insertedJobs.length} job postings`);
+    const createdJobPostings = await JobPosting.insertMany(jobPostingsWithCompany);
+    console.log(`✅ Created ${createdJobPostings.length} job postings`);
 
-    // Display sample of inserted jobs
-    console.log('\nSample job postings:');
-    insertedJobs.slice(0, 3).forEach((job, index) => {
-      console.log(`${index + 1}. ${job.title} at ${job.location} - ₹${job.package.min/100000}-${job.package.max/100000} LPA`);
-    });
-
-    mongoose.connection.close();
-    console.log('Database connection closed');
+    console.log('🎉 Job postings data seeding completed successfully!');
+    console.log('\n📊 Job Postings Statistics:');
+    console.log(`- Total Job Postings: ${createdJobPostings.length}`);
+    console.log(`- Active: ${createdJobPostings.filter(j => j.isActive).length}`);
+    console.log(`- Full-time: ${createdJobPostings.filter(j => j.type === 'full-time').length}`);
+    console.log(`- Software Engineering: ${createdJobPostings.filter(j => j.category === 'software-engineering').length}`);
 
   } catch (error) {
-    console.error('Error seeding job postings:', error);
-    process.exit(1);
+    console.error('❌ Error seeding job postings data:', error);
+  } finally {
+    mongoose.connection.close();
   }
-}
+};
 
 // Run the seeding function
 seedJobPostings();

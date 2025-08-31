@@ -8,6 +8,7 @@ const Job = require('../models/Job');
 const JobPosting = require('../models/JobPosting');
 const JobApplication = require('../models/JobApplication');
 const Notification = require('../models/Notification');
+const Interview = require('../models/Interview'); // Added Interview model
 
 const router = express.Router();
 
@@ -27,20 +28,35 @@ const isTPO = (req, res, next) => {
 // @access  Private (TPO only)
 router.get('/dashboard-stats', authenticateToken, isTPO, tpoInstituteAccess, async (req, res) => {
   try {
+    // Get TPO's institute name
+    const tpoInstitute = req.tpoInstitute || 'Chandigarh University';
+    
     // Get students from TPO's institute
     const students = await User.find({ 
       role: 'student',
-      'student.collegeName': req.tpoInstitute 
+      'student.collegeName': tpoInstitute 
     });
 
     // Get companies that have posted jobs
-    const companies = await Company.find({ status: 'active' });
+    let companies = [];
+    try {
+      companies = await Company.find({ status: 'active' });
+    } catch (error) {
+      console.log('No companies found or error in query:', error.message);
+      companies = [];
+    }
 
     // Get job applications for students from this institute
     const studentIds = students.map(student => student._id);
-    const applications = await JobApplication.find({
-      student: { $in: studentIds }
-    }).populate('job company student');
+    let applications = [];
+    try {
+      applications = await JobApplication.find({
+        student: { $in: studentIds }
+      }).populate('job company student');
+    } catch (error) {
+      console.log('No job applications found or error in query:', error.message);
+      applications = [];
+    }
 
     // Calculate statistics
     const totalStudents = students.length;
@@ -73,13 +89,19 @@ router.get('/dashboard-stats', authenticateToken, isTPO, tpoInstituteAccess, asy
     .populate('sender', 'name email');
 
     // Get upcoming placement drives (job postings with future dates)
-    const upcomingDrives = await JobPosting.find({
-      deadline: { $gte: new Date() },
-      isActive: true
-    })
-    .populate('company', 'companyName')
-    .sort({ deadline: 1 })
-    .limit(5);
+    let upcomingDrives = [];
+    try {
+      upcomingDrives = await JobPosting.find({
+        deadline: { $gte: new Date() },
+        isActive: true
+      })
+      .populate('company', 'companyName')
+      .sort({ deadline: 1 })
+      .limit(5);
+    } catch (error) {
+      console.log('No upcoming drives found or error in query:', error.message);
+      upcomingDrives = [];
+    }
 
     res.json({
       success: true,
@@ -103,7 +125,7 @@ router.get('/dashboard-stats', authenticateToken, isTPO, tpoInstituteAccess, asy
         upcomingDrives: upcomingDrives.map(drive => ({
           id: drive._id,
           title: drive.title,
-          company: drive.company.companyName,
+          company: drive.company?.companyName || 'Unknown Company',
           deadline: drive.deadline,
           applications: drive.applicationCount || 0
         }))
@@ -111,9 +133,11 @@ router.get('/dashboard-stats', authenticateToken, isTPO, tpoInstituteAccess, asy
     });
   } catch (error) {
     console.error('Error fetching TPO dashboard stats:', error);
+    console.error('Error stack:', error.stack);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch dashboard statistics'
+      message: 'Failed to fetch dashboard statistics',
+      error: error.message
     });
   }
 });
@@ -416,7 +440,7 @@ router.get('/companies', authenticateToken, isTPO, async (req, res) => {
 
     res.json({
       success: true,
-      data: companies.map(company => ({
+      companies: companies.map(company => ({
         _id: company._id,
         companyName: company.company?.companyName,
         industry: company.company?.industry,
@@ -432,194 +456,7 @@ router.get('/companies', authenticateToken, isTPO, async (req, res) => {
   }
 });
 
-// @route   GET /api/tpo/placement-drives
-// @desc    Get placement drives for TPO
-// @access  Private (TPO only)
-router.get('/placement-drives', authenticateToken, isTPO, async (req, res) => {
-  try {
-    const { 
-      search, 
-      status, 
-      page = 1, 
-      limit = 10 
-    } = req.query;
 
-    // Build filter
-    const filter = {};
-
-    if (search) {
-      filter.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } }
-      ];
-    }
-
-    if (status && status !== 'All') {
-      if (status === 'active') {
-        filter.isActive = true;
-      } else if (status === 'inactive') {
-        filter.isActive = false;
-      } else if (status === 'completed') {
-        filter.deadline = { $lt: new Date() };
-      }
-    }
-
-    // Calculate pagination
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-
-    // Get jobs
-    const jobs = await JobPosting.find(filter)
-      .populate('company', 'company.companyName email')
-      .sort({ deadline: -1, postedAt: -1 })
-      .skip(skip)
-      .limit(parseInt(limit));
-
-    // Get total count
-    const totalJobs = await JobPosting.countDocuments(filter);
-
-    // Get application counts for each job
-    const jobsWithApplications = await Promise.all(
-      jobs.map(async (job) => {
-        const applications = await JobApplication.find({ jobPosting: job._id });
-        const acceptedApplications = applications.filter(app => app.status === 'offer_received');
-        
-        return {
-          _id: job._id,
-          title: job.title,
-          description: job.description,
-          company: {
-            _id: job.company._id,
-            companyName: job.company.company?.companyName || 'Unknown Company',
-            email: job.company.email
-          },
-          location: job.location,
-          type: job.type,
-          category: job.category,
-          package: job.package,
-          requirements: job.requirements,
-          responsibilities: job.responsibilities,
-          skills: job.skills,
-          isActive: job.isActive,
-          postedAt: job.postedAt,
-          deadline: job.deadline,
-          applicationCount: job.applicationCount,
-          views: job.views,
-          totalApplications: applications.length,
-          acceptedApplications: acceptedApplications.length,
-          createdAt: job.createdAt,
-          updatedAt: job.updatedAt
-        };
-      })
-    );
-
-    res.json({
-      success: true,
-      data: {
-        placementDrives: jobsWithApplications,
-        pagination: {
-          currentPage: parseInt(page),
-          totalPages: Math.ceil(totalJobs / parseInt(limit)),
-          totalJobs,
-          hasNext: skip + jobs.length < totalJobs,
-          hasPrev: parseInt(page) > 1
-        }
-      }
-    });
-  } catch (error) {
-    console.error('Error fetching placement drives:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch placement drives'
-    });
-  }
-});
-
-// @route   POST /api/tpo/placement-drives
-// @desc    Create a new placement drive
-// @access  Private (TPO only)
-router.post('/placement-drives', authenticateToken, isTPO, [
-  body('title').notEmpty().withMessage('Title is required'),
-  body('description').notEmpty().withMessage('Description is required'),
-  body('company').notEmpty().withMessage('Company is required'),
-  body('package.min').isNumeric().withMessage('Minimum package must be a number'),
-  body('package.max').isNumeric().withMessage('Maximum package must be a number'),
-  body('deadline').isISO8601().withMessage('Valid deadline date is required'),
-  body('location').notEmpty().withMessage('Location is required'),
-  body('type').isIn(['full-time', 'internship', 'contract', 'part-time']).withMessage('Invalid job type'),
-  body('category').isIn(['software-engineering', 'data-science', 'product-management', 'design', 'marketing', 'sales', 'other']).withMessage('Invalid category'),
-  body('requirements').isArray().withMessage('Requirements must be an array'),
-  body('responsibilities').isArray().withMessage('Responsibilities must be an array'),
-  body('skills').isArray().withMessage('Skills must be an array'),
-  body('experience.min').isNumeric().withMessage('Minimum experience must be a number'),
-  body('experience.max').isNumeric().withMessage('Maximum experience must be a number')
-], async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array()
-      });
-    }
-
-    const {
-      title,
-      description,
-      company,
-      package: packageData,
-      deadline,
-      location,
-      type,
-      category,
-      requirements,
-      responsibilities,
-      skills,
-      experience
-    } = req.body;
-
-    // Create new job posting
-    const newJobPosting = new JobPosting({
-      title,
-      description,
-      company: company, // This should be the company ID
-      package: {
-        min: parseFloat(packageData.min) * 100000, // Convert LPA to actual amount
-        max: parseFloat(packageData.max) * 100000, // Convert LPA to actual amount
-        currency: packageData.currency || 'INR'
-      },
-      deadline: new Date(deadline),
-      location,
-      type,
-      category,
-      requirements,
-      responsibilities,
-      skills,
-      experience: {
-        min: parseFloat(experience.min),
-        max: parseFloat(experience.max)
-      },
-      isActive: true,
-      postedAt: new Date()
-    });
-
-    await newJobPosting.save();
-
-    res.status(201).json({
-      success: true,
-      message: 'Placement drive created successfully',
-      data: {
-        jobPosting: newJobPosting
-      }
-    });
-  } catch (error) {
-    console.error('Error creating placement drive:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to create placement drive'
-    });
-  }
-});
 
 
 
@@ -973,39 +810,7 @@ router.put('/companies/:companyId/status', authenticateToken, isTPO, [
   }
 });
 
-// @route   GET /api/tpo/placement-drives/:driveId/applications
-// @desc    Get applications for a specific placement drive
-// @access  Private (TPO only)
-router.get('/placement-drives/:driveId/applications', authenticateToken, isTPO, async (req, res) => {
-  try {
-    const applications = await JobApplication.find({ job: req.params.driveId })
-      .populate('student', 'name student.rollNo student.department student.cgpa')
-      .populate('company', 'companyName')
-      .sort({ createdAt: -1 });
 
-    res.json({
-      success: true,
-      data: {
-        applications: applications.map(app => ({
-          id: app._id,
-          studentName: app.student.name,
-          rollNo: app.student.student.rollNo,
-          department: app.student.student.department,
-          cgpa: app.student.student.cgpa,
-          status: app.status,
-          appliedDate: app.createdAt,
-          companyName: app.company.companyName
-        }))
-      }
-    });
-  } catch (error) {
-    console.error('Error fetching drive applications:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch drive applications'
-    });
-  }
-});
 
 // @route   POST /api/tpo/notifications
 // @desc    Create notification for students
@@ -1777,6 +1582,578 @@ router.get('/internship-offers/:id/applications', authenticateToken, isTPO, tpoI
     res.status(500).json({
       success: false,
       message: 'Failed to fetch internship applications'
+    });
+  }
+});
+
+// @route   GET /api/tpo/interviews
+// @desc    Get all interviews for TPO's institute
+// @access  Private (TPO only)
+router.get('/interviews', authenticateToken, isTPO, tpoInstituteAccess, async (req, res) => {
+  try {
+    const { 
+      search, 
+      status, 
+      type, 
+      dateFrom, 
+      dateTo,
+      page = 1, 
+      limit = 10 
+    } = req.query;
+
+    // Build filter
+    const filter = {};
+
+    if (search) {
+      filter.$or = [
+        { candidate: { $regex: search, $options: 'i' } },
+        { role: { $regex: search, $options: 'i' } },
+        { interviewer: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    if (status && status !== 'All') {
+      filter.status = status;
+    }
+
+    if (type && type !== 'All') {
+      filter.type = type;
+    }
+
+    if (dateFrom || dateTo) {
+      filter.date = {};
+      if (dateFrom) filter.date.$gte = new Date(dateFrom);
+      if (dateTo) filter.date.$lte = new Date(dateTo);
+    }
+
+    // Calculate pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Get interviews
+    const interviews = await Interview.find(filter)
+      .populate('company', 'company.companyName email')
+      .sort({ date: -1, createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    // Get total count
+    const totalInterviews = await Interview.countDocuments(filter);
+
+    res.json({
+      success: true,
+      data: {
+        interviews: interviews.map(interview => ({
+          _id: interview._id,
+          candidate: interview.candidate,
+          role: interview.role,
+          date: interview.date,
+          time: interview.time,
+          type: interview.type,
+          status: interview.status,
+          interviewer: interview.interviewer,
+          location: interview.location,
+          duration: interview.duration,
+          notes: interview.notes,
+          feedback: interview.feedback,
+          rating: interview.rating,
+          result: interview.result,
+          company: interview.company ? {
+            _id: interview.company._id,
+            companyName: interview.company.company?.companyName || 'Unknown Company',
+            email: interview.company.email
+          } : null,
+          createdAt: interview.createdAt,
+          updatedAt: interview.updatedAt
+        })),
+        pagination: {
+          currentPage: parseInt(page),
+          totalPages: Math.ceil(totalInterviews / parseInt(limit)),
+          totalInterviews,
+          hasNext: skip + interviews.length < totalInterviews,
+          hasPrev: parseInt(page) > 1
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching interviews:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch interviews'
+    });
+  }
+});
+
+// @route   POST /api/tpo/interviews
+// @desc    Create a new interview
+// @access  Private (TPO only)
+router.post('/interviews', authenticateToken, isTPO, [
+  body('candidate').notEmpty().withMessage('Candidate name is required'),
+  body('role').notEmpty().withMessage('Role is required'),
+  body('date').isISO8601().withMessage('Valid date is required'),
+  body('time').notEmpty().withMessage('Time is required'),
+  body('type').isIn(['Technical', 'HR Round', 'Managerial', 'Final']).withMessage('Invalid interview type'),
+  body('interviewer').notEmpty().withMessage('Interviewer name is required'),
+  body('location').notEmpty().withMessage('Location is required'),
+  body('company').notEmpty().withMessage('Company is required')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const {
+      candidate,
+      role,
+      date,
+      time,
+      type,
+      interviewer,
+      location,
+      duration,
+      notes,
+      company
+    } = req.body;
+
+    // Create new interview
+    const newInterview = new Interview({
+      company: company,
+      candidate,
+      role,
+      date: new Date(date),
+      time,
+      type,
+      interviewer,
+      location,
+      duration: duration || '60',
+      notes: notes || '',
+      status: 'Scheduled'
+    });
+
+    await newInterview.save();
+
+    res.status(201).json({
+      success: true,
+      message: 'Interview scheduled successfully',
+      data: {
+        interview: newInterview
+      }
+    });
+  } catch (error) {
+    console.error('Error creating interview:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create interview'
+    });
+  }
+});
+
+// @route   PUT /api/tpo/interviews/:id
+// @desc    Update interview details
+// @access  Private (TPO only)
+router.put('/interviews/:id', authenticateToken, isTPO, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+
+    const interview = await Interview.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true }
+    ).populate('company', 'company.companyName email');
+
+    if (!interview) {
+      return res.status(404).json({
+        success: false,
+        message: 'Interview not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Interview updated successfully',
+      data: {
+        interview: {
+          _id: interview._id,
+          candidate: interview.candidate,
+          role: interview.role,
+          date: interview.date,
+          time: interview.time,
+          type: interview.type,
+          status: interview.status,
+          interviewer: interview.interviewer,
+          location: interview.location,
+          duration: interview.duration,
+          notes: interview.notes,
+          feedback: interview.feedback,
+          rating: interview.rating,
+          result: interview.result,
+          company: interview.company ? {
+            _id: interview.company._id,
+            companyName: interview.company.company?.companyName || 'Unknown Company',
+            email: interview.company.email
+          } : null,
+          createdAt: interview.createdAt,
+          updatedAt: interview.updatedAt
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error updating interview:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update interview'
+    });
+  }
+});
+
+// @route   DELETE /api/tpo/interviews/:id
+// @desc    Delete an interview
+// @access  Private (TPO only)
+router.delete('/interviews/:id', authenticateToken, isTPO, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const interview = await Interview.findByIdAndDelete(id);
+
+    if (!interview) {
+      return res.status(404).json({
+        success: false,
+        message: 'Interview not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Interview deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting interview:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete interview'
+    });
+  }
+});
+
+// @route   GET /api/tpo/interviews/stats
+// @desc    Get interview statistics for TPO
+// @access  Private (TPO only)
+router.get('/interviews/stats', authenticateToken, isTPO, tpoInstituteAccess, async (req, res) => {
+  try {
+    // Get all interviews
+    const interviews = await Interview.find({}).populate('company', 'company.companyName');
+
+    // Calculate statistics
+    const totalInterviews = interviews.length;
+    const scheduledInterviews = interviews.filter(i => i.status === 'Scheduled').length;
+    const completedInterviews = interviews.filter(i => i.status === 'Completed').length;
+    const cancelledInterviews = interviews.filter(i => i.status === 'Cancelled').length;
+
+    // Type-wise statistics
+    const typeStats = {};
+    interviews.forEach(interview => {
+      if (!typeStats[interview.type]) {
+        typeStats[interview.type] = 0;
+      }
+      typeStats[interview.type]++;
+    });
+
+    // Result-wise statistics (for completed interviews)
+    const resultStats = {};
+    interviews.filter(i => i.status === 'Completed').forEach(interview => {
+      if (!resultStats[interview.result]) {
+        resultStats[interview.result] = 0;
+      }
+      resultStats[interview.result]++;
+    });
+
+    // Company-wise statistics
+    const companyStats = {};
+    interviews.forEach(interview => {
+      const companyName = interview.company?.company?.companyName || 'Unknown';
+      if (!companyStats[companyName]) {
+        companyStats[companyName] = { total: 0, completed: 0, passed: 0 };
+      }
+      companyStats[companyName].total++;
+      if (interview.status === 'Completed') {
+        companyStats[companyName].completed++;
+        if (interview.result === 'Passed') {
+          companyStats[companyName].passed++;
+        }
+      }
+    });
+
+    // Monthly trends (last 6 months)
+    const monthlyTrends = [];
+    const currentDate = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+      const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+      
+      const monthlyInterviews = interviews.filter(interview => 
+        interview.date >= date && interview.date <= monthEnd
+      ).length;
+
+      monthlyTrends.push({
+        month: date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+        interviews: monthlyInterviews
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        overview: {
+          totalInterviews,
+          scheduledInterviews,
+          completedInterviews,
+          cancelledInterviews,
+          completionRate: totalInterviews > 0 ? Math.round((completedInterviews / totalInterviews) * 100) : 0
+        },
+        typeStats: Object.entries(typeStats).map(([type, count]) => ({
+          type,
+          count,
+          percentage: Math.round((count / totalInterviews) * 100)
+        })),
+        resultStats: Object.entries(resultStats).map(([result, count]) => ({
+          result,
+          count,
+          percentage: completedInterviews > 0 ? Math.round((count / completedInterviews) * 100) : 0
+        })),
+        companyStats: Object.entries(companyStats).map(([company, stats]) => ({
+          company,
+          total: stats.total,
+          completed: stats.completed,
+          passed: stats.passed,
+          successRate: stats.completed > 0 ? Math.round((stats.passed / stats.completed) * 100) : 0
+        })),
+        monthlyTrends
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching interview statistics:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch interview statistics'
+    });
+  }
+});
+
+// @route   GET /api/tpo/jobs
+// @desc    Get all jobs for TPO's institute
+// @access  Private (TPO only)
+router.get('/jobs', authenticateToken, isTPO, tpoInstituteAccess, async (req, res) => {
+  try {
+    const { 
+      search, 
+      status, 
+      type, 
+      category,
+      page = 1, 
+      limit = 10 
+    } = req.query;
+
+    // Build filter
+    const filter = {};
+
+    if (search) {
+      filter.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+        { location: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    if (status && status !== 'All') {
+      if (status === 'active') {
+        filter.isActive = true;
+      } else if (status === 'inactive') {
+        filter.isActive = false;
+      } else if (status === 'expired') {
+        filter.deadline = { $lt: new Date() };
+      }
+    }
+
+    if (type && type !== 'All') {
+      filter.type = type;
+    }
+
+    if (category && category !== 'All') {
+      filter.category = category;
+    }
+
+    // Calculate pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Get jobs
+    const jobs = await JobPosting.find(filter)
+      .populate('company', 'company.companyName email')
+      .sort({ postedAt: -1, createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    // Get total count
+    const totalJobs = await JobPosting.countDocuments(filter);
+
+    // Get application counts for each job
+    const jobsWithApplications = await Promise.all(
+      jobs.map(async (job) => {
+        const applications = await JobApplication.find({ jobPosting: job._id });
+        const acceptedApplications = applications.filter(app => app.status === 'offer_received');
+        
+        return {
+          _id: job._id,
+          title: job.title,
+          description: job.description,
+          company: job.company ? {
+            _id: job.company._id,
+            companyName: job.company.company?.companyName || 'Unknown Company',
+            email: job.company.email
+          } : {
+            _id: null,
+            companyName: 'Unknown Company',
+            email: null
+          },
+          location: job.location,
+          type: job.type,
+          category: job.category,
+          package: job.package,
+          requirements: job.requirements,
+          responsibilities: job.responsibilities,
+          skills: job.skills,
+          experience: job.experience,
+          isActive: job.isActive,
+          postedAt: job.postedAt,
+          deadline: job.deadline,
+          totalApplications: applications.length,
+          acceptedApplications: acceptedApplications.length,
+          createdAt: job.createdAt,
+          updatedAt: job.updatedAt
+        };
+      })
+    );
+
+    res.json({
+      success: true,
+      data: {
+        jobs: jobsWithApplications,
+        pagination: {
+          currentPage: parseInt(page),
+          totalPages: Math.ceil(totalJobs / parseInt(limit)),
+          totalJobs,
+          hasNext: skip + jobs.length < totalJobs,
+          hasPrev: parseInt(page) > 1
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching jobs:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch jobs'
+    });
+  }
+});
+
+// @route   GET /api/tpo/jobs/stats
+// @desc    Get job statistics for TPO
+// @access  Private (TPO only)
+router.get('/jobs/stats', authenticateToken, isTPO, tpoInstituteAccess, async (req, res) => {
+  try {
+    // Get all jobs
+    const jobs = await JobPosting.find({}).populate('company', 'company.companyName');
+
+    // Calculate statistics
+    const totalJobs = jobs.length;
+    const activeJobs = jobs.filter(job => job.isActive).length;
+    const expiredJobs = jobs.filter(job => job.deadline < new Date()).length;
+
+    // Type-wise statistics
+    const typeStats = {};
+    jobs.forEach(job => {
+      if (!typeStats[job.type]) {
+        typeStats[job.type] = 0;
+      }
+      typeStats[job.type]++;
+    });
+
+    // Category-wise statistics
+    const categoryStats = {};
+    jobs.forEach(job => {
+      if (!categoryStats[job.category]) {
+        categoryStats[job.category] = 0;
+      }
+      categoryStats[job.category]++;
+    });
+
+    // Company-wise statistics
+    const companyStats = {};
+    jobs.forEach(job => {
+      const companyName = job.company?.company?.companyName || 'Unknown';
+      if (!companyStats[companyName]) {
+        companyStats[companyName] = { total: 0, active: 0 };
+      }
+      companyStats[companyName].total++;
+      if (job.isActive) {
+        companyStats[companyName].active++;
+      }
+    });
+
+    // Monthly trends (last 6 months)
+    const monthlyTrends = [];
+    const currentDate = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+      const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+      
+      const monthlyJobs = jobs.filter(job => 
+        job.postedAt >= date && job.postedAt <= monthEnd
+      ).length;
+
+      monthlyTrends.push({
+        month: date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+        jobs: monthlyJobs
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        overview: {
+          totalJobs,
+          activeJobs,
+          expiredJobs,
+          activeRate: totalJobs > 0 ? Math.round((activeJobs / totalJobs) * 100) : 0
+        },
+        typeStats: Object.entries(typeStats).map(([type, count]) => ({
+          type,
+          count,
+          percentage: Math.round((count / totalJobs) * 100)
+        })),
+        categoryStats: Object.entries(categoryStats).map(([category, count]) => ({
+          category,
+          count,
+          percentage: Math.round((count / totalJobs) * 100)
+        })),
+        companyStats: Object.entries(companyStats).map(([company, stats]) => ({
+          company,
+          total: stats.total,
+          active: stats.active,
+          activeRate: Math.round((stats.active / stats.total) * 100)
+        })),
+        monthlyTrends
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching job statistics:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch job statistics'
     });
   }
 });

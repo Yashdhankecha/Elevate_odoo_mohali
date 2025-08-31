@@ -426,18 +426,33 @@ router.post('/login', [
 
     const { email, password } = req.body;
 
+    console.log('Login attempt for email:', email);
+
     // Find user
     const user = await User.findOne({ email });
     if (!user) {
+      console.log('User not found for email:', email);
       return res.status(401).json({
         success: false,
         message: 'Invalid email or password'
       });
     }
 
+    console.log('User found:', {
+      id: user._id,
+      email: user.email,
+      role: user.role,
+      status: user.status,
+      isVerified: user.isVerified
+    });
+
     // Check password
+    console.log('Comparing password...');
     const isPasswordValid = await user.comparePassword(password);
+    console.log('Password comparison result:', isPasswordValid);
+    
     if (!isPasswordValid) {
+      console.log('Invalid password for user:', email);
       return res.status(401).json({
         success: false,
         message: 'Invalid email or password'
@@ -476,6 +491,17 @@ router.post('/login', [
     const token = generateToken(user._id);
     setTokenCookie(res, token);
 
+    // Get display name safely
+    let displayName = 'User';
+    try {
+      displayName = user.getDisplayName();
+      console.log('Display name generated:', displayName);
+    } catch (error) {
+      console.error('Error getting display name:', error);
+    }
+
+    console.log('Login successful for user:', email);
+
     res.json({
       success: true,
       message: 'Login successful!',
@@ -486,13 +512,14 @@ router.post('/login', [
         role: user.role,
         status: user.status,
         isVerified: user.isVerified,
-        displayName: user.getDisplayName(),
+        displayName: displayName,
         profilePicture: user.profilePicture
       }
     });
 
   } catch (error) {
     console.error('Login error:', error);
+    console.error('Error stack:', error.stack);
     res.status(500).json({
       success: false,
       message: 'Server error. Please try again.'

@@ -331,17 +331,22 @@ userSchema.methods.isPasswordResetTokenExpired = function() {
 
 // Method to get display name
 userSchema.methods.getDisplayName = function() {
-  switch (this.role) {
-    case 'student':
-      return this.student?.name || 'Student';
-    case 'company':
-      return this.company?.companyName || 'Company';
-    case 'tpo':
-      return this.tpo?.name || 'TPO';
-    case 'superadmin':
-      return 'Super Admin';
-    default:
-      return 'User';
+  try {
+    switch (this.role) {
+      case 'student':
+        return this.student?.name || this.name || 'Student';
+      case 'company':
+        return this.company?.companyName || this.name || 'Company';
+      case 'tpo':
+        return this.tpo?.name || this.name || 'TPO';
+      case 'superadmin':
+        return 'Super Admin';
+      default:
+        return this.name || 'User';
+    }
+  } catch (error) {
+    console.error('Error in getDisplayName:', error);
+    return this.name || 'User';
   }
 };
 

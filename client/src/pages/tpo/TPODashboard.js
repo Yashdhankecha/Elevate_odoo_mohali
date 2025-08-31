@@ -6,8 +6,8 @@ import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import DashboardOverview from './components/DashboardOverview';
 import StudentManagement from './components/StudentManagement';
-import PlacementDrives from './components/PlacementDrives';
-
+import InterviewManagement from './components/InterviewManagement';
+import JobManagement from './components/JobManagement';
 import InternshipRecords from './components/InternshipRecords';
 import ReportsAnalytics from './components/ReportsAnalytics';
 import ApprovalPending from './components/ApprovalPending';
@@ -44,9 +44,10 @@ const TPODashboard = () => {
         return <DashboardOverview />;
       case 'students':
         return <StudentManagement />;
-      case 'drives':
-        return <PlacementDrives />;
-
+      case 'interviews':
+        return <InterviewManagement />;
+      case 'jobs':
+        return <JobManagement />;
       case 'internships':
         return <InternshipRecords />;
       case 'reports':

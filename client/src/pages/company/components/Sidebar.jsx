@@ -23,11 +23,11 @@ const Sidebar = ({ activeSection, setActiveSection, isCollapsed }) => {
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: FaChartBar },
-    { id: 'jobs', label: 'Job Management', icon: FaBriefcase },
+    //{ id: 'jobs', label: 'Job Management', icon: FaBriefcase },
     { id: 'applications', label: 'Applications', icon: FaUsers },
-    { id: 'interviews', label: 'Interviews', icon: FaCalendarAlt },
+   // { id: 'interviews', label: 'Interviews', icon: FaCalendarAlt },
     { id: 'reports', label: 'Reports', icon: FaFileAlt },
-    { id: 'settings', label: 'Settings', icon: FaCog },
+
   ];
 
   const handleProfile = () => {

@@ -62,33 +62,11 @@ export const tpoApi = {
   getCompanies: async (params = {}) => {
     try {
       const response = await api.get('/tpo/companies', { params });
-      return response.data.data || response.data; // Handle both response formats
+      return response.data.companies || response.data; // Handle both response formats
     } catch (error) {
       throw error.response?.data || error.message;
     }
   },
-
-  // Placement Drives
-  getPlacementDrives: async (params = {}) => {
-    try {
-      const response = await api.get('/tpo/placement-drives', { params });
-      return response.data.data || response.data; // Handle both response formats
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
-  },
-
-  // Create Placement Drive
-  createPlacementDrive: async (driveData) => {
-    try {
-      const response = await api.post('/tpo/placement-drives', driveData);
-      return response.data.data || response.data; // Handle both response formats
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
-  },
-
-
 
   // Internship Records
   getInternshipRecords: async () => {
@@ -170,16 +148,6 @@ export const tpoApi = {
   updateCompanyStatus: async (companyId, status) => {
     try {
       const response = await api.put(`/tpo/companies/${companyId}/status`, { status });
-      return response.data.data; // Access the nested data property
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
-  },
-
-  // Placement Drive Management
-  getDriveApplications: async (driveId) => {
-    try {
-      const response = await api.get(`/tpo/placement-drives/${driveId}/applications`);
       return response.data.data; // Access the nested data property
     } catch (error) {
       throw error.response?.data || error.message;
@@ -318,6 +286,71 @@ export const tpoApi = {
     try {
       const response = await api.get(`/tpo/internship-offers/${internshipId}/applications`);
       return response.data.data || response.data; // Handle both response formats
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Interview Management
+  getInterviews: async (params = {}) => {
+    try {
+      const response = await api.get('/tpo/interviews', { params });
+      return response.data.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  createInterview: async (interviewData) => {
+    try {
+      const response = await api.post('/tpo/interviews', interviewData);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  updateInterview: async (interviewId, interviewData) => {
+    try {
+      const response = await api.put(`/tpo/interviews/${interviewId}`, interviewData);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  deleteInterview: async (interviewId) => {
+    try {
+      const response = await api.delete(`/tpo/interviews/${interviewId}`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  getInterviewStats: async () => {
+    try {
+      const response = await api.get('/tpo/interviews/stats');
+      return response.data.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Job Management
+  getJobs: async (params = {}) => {
+    try {
+      const response = await api.get('/tpo/jobs', { params });
+      return response.data.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  getJobStats: async () => {
+    try {
+      const response = await api.get('/tpo/jobs/stats');
+      return response.data.data;
     } catch (error) {
       throw error.response?.data || error.message;
     }

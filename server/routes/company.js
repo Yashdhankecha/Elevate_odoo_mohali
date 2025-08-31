@@ -316,7 +316,7 @@ router.get('/applications', auth, ensureCompany, async (req, res) => {
     }
 
     const applications = await Application.find(query)
-      .populate('student', 'name email')
+      .populate('applicant', 'name email')
       .populate('job', 'title department')
       .sort({ createdAt: -1 });
 
@@ -331,7 +331,7 @@ router.get('/applications', auth, ensureCompany, async (req, res) => {
 router.get('/applications/:id', auth, ensureCompany, async (req, res) => {
   try {
     const application = await Application.findOne({ _id: req.params.id, company: req.user.id })
-      .populate('student', 'name email phone')
+      .populate('applicant', 'name email phone')
       .populate('job', 'title department description requirements');
 
     if (!application) {
@@ -394,13 +394,12 @@ router.put('/profile', auth, ensureCompany, async (req, res) => {
 
     const company = await User.findById(req.user.id);
     
-    if (companyName) company.companyName = companyName;
-    if (contactNumber) company.contactNumber = contactNumber;
-    if (industry) company.industry = industry;
-    if (companySize) company.companySize = companySize;
-    if (website) company.website = website;
-    if (address) company.address = address;
-    if (description) company.description = description;
+    if (companyName) company.company.companyName = companyName;
+    if (contactNumber) company.company.contactNumber = contactNumber;
+    if (industry) company.company.industry = industry;
+    if (companySize) company.company.companySize = companySize;
+    if (website) company.company.website = website;
+    if (description) company.company.description = description;
 
     await company.save();
     
