@@ -1,61 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  FaUsers, 
-  FaPlus, 
-  FaSearch, 
-  FaFilter, 
-  FaEdit, 
   FaEye, 
-  FaTrash,
   FaCheckCircle,
   FaTimesCircle,
   FaClock,
   FaGraduationCap,
   FaUserGraduate,
-  FaChevronLeft,
-  FaChevronRight
+  FaTimes,
+  FaEnvelope,
+  FaPhone,
+  FaBriefcase,
+  FaThumbsUp,
+  FaThumbsDown,
+  FaFileAlt
 } from 'react-icons/fa';
 import tpoApi from '../../../services/tpoApi';
 
-const StudentManagement = () => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterDepartment, setFilterDepartment] = useState('All');
-  const [filterStatus, setFilterStatus] = useState('All');
+const StudentApprovalSystem = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [students, setStudents] = useState([]);
-  const [pagination, setPagination] = useState({
-    currentPage: 1,
-    totalPages: 1,
-    totalStudents: 0,
-    hasNext: false,
-    hasPrev: false
-  });
-
-  const departments = ['All', 'Computer Science', 'Electronics', 'Mechanical', 'Information Technology', 'Civil'];
-  const statuses = ['All', 'Placed', 'Not Placed'];
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [showStudentModal, setShowStudentModal] = useState(false);
 
   useEffect(() => {
     fetchStudents();
-  }, [searchQuery, filterDepartment, filterStatus, pagination.currentPage]);
+  }, []);
 
   const fetchStudents = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      const params = {
-        page: pagination.currentPage,
-        limit: 10
-      };
-
-      if (searchQuery) params.search = searchQuery;
-      if (filterDepartment !== 'All') params.department = filterDepartment;
-      if (filterStatus !== 'All') params.status = filterStatus;
-
-      const response = await tpoApi.getStudents(params);
-      setStudents(response.data.students);
-      setPagination(response.data.pagination);
+      const response = await tpoApi.getStudents();
+      setStudents(response.students);
     } catch (err) {
       console.error('Error fetching students:', err);
       setError(err.message || 'Failed to load students');
@@ -64,46 +42,93 @@ const StudentManagement = () => {
     }
   };
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    setPagination(prev => ({ ...prev, currentPage: 1 }));
+  const handleViewStudent = (student) => {
+    setSelectedStudent(student);
+    setShowStudentModal(true);
   };
 
-  const handleFilterChange = () => {
-    setPagination(prev => ({ ...prev, currentPage: 1 }));
+  const handleCloseModal = () => {
+    setShowStudentModal(false);
+    setSelectedStudent(null);
   };
 
-  const handlePageChange = (newPage) => {
-    setPagination(prev => ({ ...prev, currentPage: newPage }));
+  const handleApproveStudent = async (studentId) => {
+    try {
+      await tpoApi.approveStudent(studentId);
+      fetchStudents(); // Refresh the list
+      alert('Student profile approved successfully');
+    } catch (error) {
+      console.error('Error approving student:', error);
+      const errorMessage = error.message || 'Failed to approve student. Please try again.';
+      alert(errorMessage);
+    }
+  };
+
+  const handleRejectStudent = async (studentId) => {
+    const reason = prompt('Please provide a reason for rejection:');
+    if (reason) {
+      try {
+        await tpoApi.rejectStudent(studentId, reason);
+        fetchStudents(); // Refresh the list
+        alert('Student profile rejected');
+      } catch (error) {
+        console.error('Error rejecting student:', error);
+        const errorMessage = error.message || 'Failed to reject student. Please try again.';
+        alert(errorMessage);
+      }
+    }
   };
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'Placed': return 'bg-green-100 text-green-800';
-      case 'Not Placed': return 'bg-gray-100 text-gray-800';
+      case 'Approved': return 'bg-green-100 text-green-800';
+      case 'Rejected': return 'bg-red-100 text-red-800';
+      case 'Pending': return 'bg-yellow-100 text-yellow-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case 'Placed': return <FaCheckCircle className="w-4 h-4" />;
-      case 'Not Placed': return <FaClock className="w-4 h-4" />;
+      case 'Approved': return <FaCheckCircle className="w-4 h-4" />;
+      case 'Rejected': return <FaTimesCircle className="w-4 h-4" />;
+      case 'Pending': return <FaClock className="w-4 h-4" />;
       default: return <FaClock className="w-4 h-4" />;
     }
   };
 
-  if (loading && students.length === 0) {
+  const formatPackage = (packageValue) => {
+    if (!packageValue) return 'N/A';
+    if (packageValue >= 100000) {
+      return `₹${(packageValue / 100000).toFixed(1)}L`;
+    } else if (packageValue >= 1000) {
+      return `₹${(packageValue / 1000).toFixed(1)}K`;
+    }
+    return `₹${packageValue}`;
+  };
+
+  if (loading) {
     return (
-      <div className="space-y-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-300 rounded w-1/4 mb-4"></div>
-            <div className="space-y-3">
-              {[...Array(5)].map((_, index) => (
-                <div key={index} className="h-16 bg-gray-200 rounded"></div>
-              ))}
-            </div>
+      <div className="flex items-center justify-center h-64">
+        <div className="text-lg text-gray-600">Loading students...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+        <div className="flex items-center">
+          <FaTimesCircle className="w-5 h-5 text-red-500 mr-3" />
+          <div>
+            <h3 className="text-red-800 font-medium">Error Loading Students</h3>
+            <p className="text-red-600 text-sm mt-1">{error}</p>
+            <button 
+              onClick={fetchStudents}
+              className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            >
+              Retry
+            </button>
           </div>
         </div>
       </div>
@@ -115,91 +140,10 @@ const StudentManagement = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Student Management</h1>
-          <p className="text-gray-600">Manage and track student placements</p>
-        </div>
-        <div className="flex items-center space-x-3">
-          <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2">
-            <FaPlus className="w-4 h-4" />
-            <span>Add Student</span>
-          </button>
+          <h1 className="text-2xl font-bold text-gray-800">Student Profile Approval</h1>
+          <p className="text-gray-600">Review and approve student profiles</p>
         </div>
       </div>
-
-      {/* Search and Filters */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <form onSubmit={handleSearch} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {/* Search */}
-            <div className="relative">
-              <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <input
-                type="text"
-                placeholder="Search students..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-
-            {/* Department Filter */}
-            <select
-              value={filterDepartment}
-              onChange={(e) => {
-                setFilterDepartment(e.target.value);
-                handleFilterChange();
-              }}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              {departments.map((dept) => (
-                <option key={dept} value={dept}>{dept}</option>
-              ))}
-            </select>
-
-            {/* Status Filter */}
-            <select
-              value={filterStatus}
-              onChange={(e) => {
-                setFilterStatus(e.target.value);
-                handleFilterChange();
-              }}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              {statuses.map((status) => (
-                <option key={status} value={status}>{status}</option>
-              ))}
-            </select>
-
-            {/* Search Button */}
-            <button
-              type="submit"
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
-            >
-              <FaSearch className="w-4 h-4" />
-              <span>Search</span>
-            </button>
-          </div>
-        </form>
-      </div>
-
-      {/* Error Display */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-          <div className="flex items-center">
-            <FaTimesCircle className="w-5 h-5 text-red-500 mr-3" />
-            <div>
-              <h3 className="text-red-800 font-medium">Error Loading Students</h3>
-              <p className="text-red-600 text-sm mt-1">{error}</p>
-              <button 
-                onClick={fetchStudents}
-                className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-              >
-                Retry
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Students Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -217,13 +161,7 @@ const StudentManagement = () => {
                   CGPA
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Applications
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Offers
+                  Approval Status
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
@@ -241,40 +179,50 @@ const StudentManagement = () => {
                         </div>
                       </div>
                       <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">{student.name}</div>
-                        <div className="text-sm text-gray-500">{student.student?.rollNo || 'N/A'}</div>
+                        <div className="text-sm font-medium text-gray-900">{student.name || student.student?.name || 'N/A'}</div>
+                        <div className="text-sm text-gray-500">{student.student?.rollNumber || 'N/A'}</div>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{student.student?.department || 'N/A'}</div>
+                    <div className="text-sm text-gray-900">{student.student?.branch || 'N/A'}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{student.student?.cgpa || 'N/A'}</div>
+                    <div className="text-sm text-gray-900">{student.student?.cgpa || student.student?.academicInfo?.cgpa || 'N/A'}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(student.student?.isPlaced ? 'Placed' : 'Not Placed')}`}>
-                      {getStatusIcon(student.student?.isPlaced ? 'Placed' : 'Not Placed')}
-                      <span className="ml-1">{student.student?.isPlaced ? 'Placed' : 'Not Placed'}</span>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(student.approvalStatus || 'Pending')}`}>
+                      {getStatusIcon(student.approvalStatus || 'Pending')}
+                      <span className="ml-1">{student.approvalStatus || 'Pending'}</span>
                     </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {student.applications || 0}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {student.offers || 0}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex space-x-2">
-                      <button className="text-blue-600 hover:text-blue-900">
+                      <button 
+                        onClick={() => handleViewStudent(student)}
+                        className="text-blue-600 hover:text-blue-900"
+                        title="View Profile"
+                      >
                         <FaEye className="w-4 h-4" />
                       </button>
-                      <button className="text-green-600 hover:text-green-900">
-                        <FaEdit className="w-4 h-4" />
-                      </button>
-                      <button className="text-red-600 hover:text-red-900">
-                        <FaTrash className="w-4 h-4" />
-                      </button>
+                      {student.approvalStatus === 'Pending' && (
+                        <>
+                          <button 
+                            onClick={() => handleApproveStudent(student._id)}
+                            className="text-green-600 hover:text-green-900" 
+                            title="Approve"
+                          >
+                            <FaThumbsUp className="w-4 h-4" />
+                          </button>
+                          <button 
+                            onClick={() => handleRejectStudent(student._id)}
+                            className="text-red-600 hover:text-red-900" 
+                            title="Reject"
+                          >
+                            <FaThumbsDown className="w-4 h-4" />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -282,80 +230,234 @@ const StudentManagement = () => {
             </tbody>
           </table>
         </div>
+      </div>
 
-        {/* Pagination */}
-        {pagination.totalPages > 1 && (
-          <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-            <div className="flex-1 flex justify-between sm:hidden">
-              <button
-                onClick={() => handlePageChange(pagination.currentPage - 1)}
-                disabled={!pagination.hasPrev}
-                className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Previous
-              </button>
-              <button
-                onClick={() => handlePageChange(pagination.currentPage + 1)}
-                disabled={!pagination.hasNext}
-                className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Next
-              </button>
-            </div>
-            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-              <div>
-                <p className="text-sm text-gray-700">
-                  Showing <span className="font-medium">{((pagination.currentPage - 1) * 10) + 1}</span> to{' '}
-                  <span className="font-medium">
-                    {Math.min(pagination.currentPage * 10, pagination.totalStudents)}
-                  </span>{' '}
-                  of <span className="font-medium">{pagination.totalStudents}</span> results
-                </p>
+      {/* Student Profile Modal */}
+      {showStudentModal && selectedStudent && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-800">Student Profile Review</h2>
+                <button
+                  onClick={handleCloseModal}
+                  className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  <FaTimes className="w-5 h-5 text-gray-500" />
+                </button>
               </div>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              {/* Profile Status */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800">{selectedStudent.name || selectedStudent.student?.name || 'N/A'}</h3>
+                    <p className="text-gray-600">{selectedStudent.student?.rollNumber || 'N/A'} • {selectedStudent.student?.branch || 'N/A'}</p>
+                  </div>
+                  <div className="text-right">
+                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(selectedStudent.approvalStatus || 'Pending')}`}>
+                      {getStatusIcon(selectedStudent.approvalStatus || 'Pending')}
+                      <span className="ml-1">{selectedStudent.approvalStatus || 'Pending'}</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Basic Information */}
               <div>
-                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Basic Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Full Name</label>
+                    <p className="text-gray-800">{selectedStudent.name}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Roll Number</label>
+                    <p className="text-gray-800">{selectedStudent.student?.rollNumber || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Email</label>
+                    <p className="text-gray-800 flex items-center">
+                      <FaEnvelope className="w-4 h-4 text-gray-400 mr-2" />
+                      {selectedStudent.email}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Contact Number</label>
+                    <p className="text-gray-800 flex items-center">
+                      <FaPhone className="w-4 h-4 text-gray-400 mr-2" />
+                      {selectedStudent.phone || selectedStudent.student?.personalInfo?.phoneNumber || 'N/A'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Academic Information */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Academic Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Department</label>
+                    <p className="text-gray-800 flex items-center">
+                      <FaGraduationCap className="w-4 h-4 text-gray-400 mr-2" />
+                      {selectedStudent.student?.branch || 'N/A'}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">CGPA</label>
+                    <p className="text-gray-800">{selectedStudent.student?.cgpa || selectedStudent.student?.academicInfo?.cgpa || 'N/A'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Resume & Documents */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Resume & Documents</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-center">
+                      <FaFileAlt className="w-5 h-5 text-blue-600 mr-3" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-800">Resume</p>
+                        <p className="text-xs text-gray-500">Last updated: {selectedStudent.resumeUpdatedAt ? new Date(selectedStudent.resumeUpdatedAt).toLocaleDateString() : 'Not uploaded'}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-center">
+                      <FaFileAlt className="w-5 h-5 text-green-600 mr-3" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-800">Academic Documents</p>
+                        <p className="text-xs text-gray-500">Status: {selectedStudent.documentsVerified ? 'Verified' : 'Pending'}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Skills & Certifications */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Skills & Certifications</h3>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Technical Skills</label>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {selectedStudent.student?.skills?.technicalSkills?.map((skill, index) => (
+                        <span key={index} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                          {skill}
+                        </span>
+                      )) || <p className="text-gray-500 text-sm">No skills listed</p>}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Certifications</label>
+                    <div className="space-y-2 mt-2">
+                      {selectedStudent.student?.skills?.certifications?.map((cert, index) => (
+                        <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                          <span className="text-sm text-gray-800">{cert.name}</span>
+                          <span className="text-xs text-gray-500">{cert.issuer}</span>
+                        </div>
+                      )) || <p className="text-gray-500 text-sm">No certifications listed</p>}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Placement Information */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Placement Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Status</label>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(selectedStudent.student?.placementInfo?.isPlaced ? 'Placed' : 'Not Placed')}`}>
+                      {getStatusIcon(selectedStudent.student?.placementInfo?.isPlaced ? 'Placed' : 'Not Placed')}
+                      <span className="ml-1">{selectedStudent.student?.placementInfo?.isPlaced ? 'Placed' : 'Not Placed'}</span>
+                    </span>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Package</label>
+                    <p className="text-gray-800 flex items-center">
+                      <FaBriefcase className="w-4 h-4 text-gray-400 mr-2" />
+                      {formatPackage(selectedStudent.student?.placementInfo?.placementPackage)}
+                    </p>
+                  </div>
+                  {selectedStudent.student?.placementInfo?.isPlaced && (
+                    <>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Company</label>
+                        <p className="text-gray-800">{selectedStudent.student?.placementInfo?.placementCompany || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Job Title</label>
+                        <p className="text-gray-800">{selectedStudent.student?.placementInfo?.placementRole || 'N/A'}</p>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Application Statistics */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Application Statistics</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Total Applications</label>
+                    <p className="text-gray-800 flex items-center">
+                      <FaUserGraduate className="w-4 h-4 text-gray-400 mr-2" />
+                      {selectedStudent.applications || 0}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Offers Received</label>
+                    <p className="text-gray-800 text-green-600">{selectedStudent.offers || 0}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Approval Actions */}
+            <div className="p-6 border-t border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <span className="text-sm text-gray-600">
+                    Current Status: <span className="font-medium">{selectedStudent.approvalStatus || 'Pending'}</span>
+                  </span>
+                </div>
+                <div className="flex space-x-3">
                   <button
-                    onClick={() => handlePageChange(pagination.currentPage - 1)}
-                    disabled={!pagination.hasPrev}
-                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={handleCloseModal}
+                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                   >
-                    <FaChevronLeft className="w-4 h-4" />
+                    Close
                   </button>
-                  
-                  {[...Array(pagination.totalPages)].map((_, index) => {
-                    const pageNumber = index + 1;
-                    const isCurrentPage = pageNumber === pagination.currentPage;
-                    
-                    return (
-                      <button
-                        key={pageNumber}
-                        onClick={() => handlePageChange(pageNumber)}
-                        className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                          isCurrentPage
-                            ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                        }`}
+                  {selectedStudent.approvalStatus === 'Pending' && (
+                    <>
+                      <button 
+                        onClick={() => handleApproveStudent(selectedStudent._id)}
+                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
                       >
-                        {pageNumber}
+                        <FaThumbsUp className="w-4 h-4" />
+                        <span>Approve Profile</span>
                       </button>
-                    );
-                  })}
-                  
-                  <button
-                    onClick={() => handlePageChange(pagination.currentPage + 1)}
-                    disabled={!pagination.hasNext}
-                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <FaChevronRight className="w-4 h-4" />
-                  </button>
-                </nav>
+                      <button 
+                        onClick={() => handleRejectStudent(selectedStudent._id)}
+                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center space-x-2"
+                      >
+                        <FaThumbsDown className="w-4 h-4" />
+                        <span>Reject Profile</span>
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };
 
-export default StudentManagement;
+export default StudentApprovalSystem;

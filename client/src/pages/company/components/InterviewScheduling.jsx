@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   FaCalendarAlt, 
   FaPlus, 
@@ -9,53 +9,115 @@ import {
   FaEdit,
   FaTrash,
   FaCheck,
-  FaTimes
+  FaTimes,
+  FaSpinner
 } from 'react-icons/fa';
+import { 
+  getCompanyInterviews, 
+  createInterview, 
+  updateInterview, 
+  deleteInterview,
+  updateInterviewStatus
+} from '../../../services/companyApi';
 
 const InterviewScheduling = () => {
+  const [interviews, setInterviews] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [showInterviewModal, setShowInterviewModal] = useState(false);
+  const [selectedInterview, setSelectedInterview] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
-  const interviews = [
-    {
-      id: 1,
-      candidate: 'Priya Sharma',
-      role: 'Software Engineer',
-      date: '2024-12-18',
-      time: '10:00 AM',
-      type: 'Technical',
-      status: 'Scheduled',
-      interviewer: 'John Doe',
-      location: 'Conference Room A',
-      duration: '60 min',
-      notes: 'Focus on React and Node.js skills'
-    },
-    {
-      id: 2,
-      candidate: 'Arjun Patel',
-      role: 'Data Analyst',
-      date: '2024-12-19',
-      time: '2:00 PM',
-      type: 'HR Round',
-      status: 'Scheduled',
-      interviewer: 'Sarah Johnson',
-      location: 'Virtual Meeting',
-      duration: '45 min',
-      notes: 'Discuss career goals and company culture'
-    },
-    {
-      id: 3,
-      candidate: 'Kavya Reddy',
-      role: 'Product Manager',
-      date: '2024-12-20',
-      time: '11:30 AM',
-      type: 'Technical',
-      status: 'Completed',
-      interviewer: 'Mike Wilson',
-      location: 'Conference Room B',
-      duration: '90 min',
-      notes: 'Case study discussion completed'
+  // Fetch interviews on component mount
+  useEffect(() => {
+    fetchInterviews();
+  }, []);
+
+  const fetchInterviews = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await getCompanyInterviews();
+      setInterviews(data);
+    } catch (err) {
+      setError('Failed to fetch interviews. Please try again.');
+      console.error('Error fetching interviews:', err);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  const handleEditInterview = (interview) => {
+    setSelectedInterview(interview);
+    setShowInterviewModal(true);
+  };
+
+  const handleCreateInterview = () => {
+    setSelectedInterview(null);
+    setShowInterviewModal(true);
+  };
+
+  const handleDeleteInterview = async (interviewId) => {
+    if (!window.confirm('Are you sure you want to delete this interview?')) {
+      return;
+    }
+
+    try {
+      await deleteInterview(interviewId);
+      setInterviews(interviews.filter(interview => interview._id !== interviewId));
+      setSuccessMessage('Interview deleted successfully!');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err) {
+      setError('Failed to delete interview. Please try again.');
+      console.error('Error deleting interview:', err);
+    }
+  };
+
+  const handleStatusUpdate = async (interviewId, newStatus) => {
+    try {
+      await updateInterviewStatus(interviewId, newStatus);
+      setInterviews(interviews.map(interview => 
+        interview._id === interviewId 
+          ? { ...interview, status: newStatus }
+          : interview
+      ));
+      setSuccessMessage('Interview status updated successfully!');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err) {
+      setError('Failed to update interview status. Please try again.');
+      console.error('Error updating interview status:', err);
+    }
+  };
+
+  const handleSubmitInterview = async (formData) => {
+    try {
+      setSubmitting(true);
+      setError(null);
+
+      if (selectedInterview) {
+        // Update existing interview
+        const updatedInterview = await updateInterview(selectedInterview._id, formData);
+        setInterviews(interviews.map(interview => 
+          interview._id === selectedInterview._id ? updatedInterview : interview
+        ));
+        setSuccessMessage('Interview updated successfully!');
+      } else {
+        // Create new interview
+        const newInterview = await createInterview(formData);
+        setInterviews([...interviews, newInterview]);
+        setSuccessMessage('Interview scheduled successfully!');
+      }
+
+      setShowInterviewModal(false);
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err) {
+      setError('Failed to save interview. Please try again.');
+      console.error('Error saving interview:', err);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const getStatusColor = (status) => {
     switch (status.toLowerCase()) {
@@ -65,10 +127,23 @@ const InterviewScheduling = () => {
         return 'bg-green-100 text-green-700';
       case 'cancelled':
         return 'bg-red-100 text-red-700';
+      case 'in progress':
+        return 'bg-yellow-100 text-yellow-700';
       default:
         return 'bg-gray-100 text-gray-700';
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <FaSpinner className="animate-spin text-4xl text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600">Loading interviews...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -79,7 +154,7 @@ const InterviewScheduling = () => {
           <p className="text-gray-600">Manage and schedule candidate interviews</p>
         </div>
         <button 
-          onClick={() => setShowInterviewModal(true)}
+          onClick={handleCreateInterview}
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
         >
           <FaPlus className="w-4 h-4" />
@@ -87,107 +162,154 @@ const InterviewScheduling = () => {
         </button>
       </div>
 
+      {/* Success/Error Messages */}
+      {successMessage && (
+        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg">
+          {successMessage}
+        </div>
+      )}
+      
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg">
+          {error}
+        </div>
+      )}
+
       {/* Interview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {interviews.map((interview) => (
-          <div key={interview.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-            <div className="flex justify-between items-start mb-4">
-              <div className="flex-1">
-                <h3 className="font-semibold text-gray-800 mb-1">{interview.candidate}</h3>
-                <p className="text-sm text-gray-600">{interview.role}</p>
+      {interviews.length === 0 ? (
+        <div className="text-center py-12">
+          <FaCalendarAlt className="text-4xl text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-600 mb-2">No interviews scheduled</h3>
+          <p className="text-gray-500">
+            You haven't scheduled any interviews yet. Schedule your first interview!
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {interviews.map((interview) => (
+            <div key={interview._id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+              <div className="flex justify-between items-start mb-4">
+                <div className="flex-1">
+                  <h3 className="font-semibold text-gray-800 mb-1">{interview.candidate}</h3>
+                  <p className="text-sm text-gray-600">{interview.role}</p>
+                </div>
+                <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(interview.status)}`}>
+                  {interview.status}
+                </span>
               </div>
-              <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(interview.status)}`}>
-                {interview.status}
-              </span>
-            </div>
 
-            <div className="space-y-2 mb-4">
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <FaCalendarAlt className="w-4 h-4" />
-                {new Date(interview.date).toLocaleDateString()}
+              <div className="space-y-2 mb-4">
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <FaCalendarAlt className="w-4 h-4" />
+                  {new Date(interview.date).toLocaleDateString()}
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <FaClock className="w-4 h-4" />
+                  {interview.time} ({interview.duration})
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <FaUsers className="w-4 h-4" />
+                  {interview.interviewer}
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  {interview.location.includes('Virtual') ? (
+                    <FaVideo className="w-4 h-4" />
+                  ) : (
+                    <FaMapMarkerAlt className="w-4 h-4" />
+                  )}
+                  {interview.location}
+                </div>
               </div>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <FaClock className="w-4 h-4" />
-                {interview.time} ({interview.duration})
-              </div>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <FaUsers className="w-4 h-4" />
-                {interview.interviewer}
-              </div>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                {interview.location.includes('Virtual') ? (
-                  <FaVideo className="w-4 h-4" />
-                ) : (
-                  <FaMapMarkerAlt className="w-4 h-4" />
-                )}
-                {interview.location}
-              </div>
-            </div>
 
-            <div className="mb-4">
-              <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs">
-                {interview.type}
-              </span>
-            </div>
-
-            {interview.notes && (
-              <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-                <p className="text-xs text-gray-600">{interview.notes}</p>
+              <div className="mb-4">
+                <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs">
+                  {interview.type}
+                </span>
               </div>
-            )}
 
-            <div className="flex gap-2">
-              <button className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-sm">
-                <FaEdit className="w-3 h-3" />
-                Edit
-              </button>
-              {interview.status === 'Scheduled' && (
-                <button className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors text-sm">
-                  <FaCheck className="w-3 h-3" />
-                  Join
-                </button>
+              {interview.notes && (
+                <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                  <p className="text-xs text-gray-600">{interview.notes}</p>
+                </div>
               )}
-              <button className="px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm">
-                <FaTrash className="w-3 h-3" />
-              </button>
+
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => handleEditInterview(interview)}
+                  className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-sm"
+                >
+                  <FaEdit className="w-3 h-3" />
+                  Edit
+                </button>
+                {interview.status === 'Scheduled' && (
+                  <button 
+                    onClick={() => handleStatusUpdate(interview._id, 'In Progress')}
+                    className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors text-sm"
+                  >
+                    <FaCheck className="w-3 h-3" />
+                    Start
+                  </button>
+                )}
+                {interview.status === 'In Progress' && (
+                  <button 
+                    onClick={() => handleStatusUpdate(interview._id, 'Completed')}
+                    className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors text-sm"
+                  >
+                    <FaCheck className="w-3 h-3" />
+                    Complete
+                  </button>
+                )}
+                <button 
+                  onClick={() => handleDeleteInterview(interview._id)}
+                  className="px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm"
+                >
+                  <FaTrash className="w-3 h-3" />
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Interview Modal */}
       {showInterviewModal && (
-        <InterviewModal onClose={() => setShowInterviewModal(false)} />
+        <InterviewModal 
+          interview={selectedInterview} 
+          onClose={() => setShowInterviewModal(false)}
+          onSubmit={handleSubmitInterview}
+          submitting={submitting}
+        />
       )}
     </div>
   );
 };
 
 // Interview Modal Component
-const InterviewModal = ({ onClose }) => {
+const InterviewModal = ({ interview, onClose, onSubmit, submitting }) => {
   const [formData, setFormData] = useState({
-    candidate: '',
-    role: '',
-    date: '',
-    time: '',
-    type: 'Technical',
-    interviewer: '',
-    location: '',
-    duration: '60',
-    notes: ''
+    candidate: interview?.candidate || '',
+    role: interview?.role || '',
+    date: interview?.date ? interview.date.split('T')[0] : '',
+    time: interview?.time || '',
+    type: interview?.type || 'Technical',
+    interviewer: interview?.interviewer || '',
+    location: interview?.location || '',
+    duration: interview?.duration || '60',
+    notes: interview?.notes || ''
   });
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log('Interview data:', formData);
-    onClose();
+    onSubmit(formData);
   };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl w-full max-w-lg">
         <div className="flex justify-between items-center p-6 border-b border-gray-200">
-          <h2 className="text-xl font-bold text-gray-800">Schedule Interview</h2>
+          <h2 className="text-xl font-bold text-gray-800">
+            {interview ? 'Edit Interview' : 'Schedule Interview'}
+          </h2>
           <button 
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700 text-2xl"
@@ -199,17 +321,26 @@ const InterviewModal = ({ onClose }) => {
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Candidate</label>
-            <select
+            <input
+              type="text"
               value={formData.candidate}
               onChange={(e) => setFormData({...formData, candidate: e.target.value})}
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Candidate name"
               required
-            >
-              <option value="">Select Candidate</option>
-              <option value="Priya Sharma">Priya Sharma</option>
-              <option value="Arjun Patel">Arjun Patel</option>
-              <option value="Kavya Reddy">Kavya Reddy</option>
-            </select>
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Role/Position</label>
+            <input
+              type="text"
+              value={formData.role}
+              onChange={(e) => setFormData({...formData, role: e.target.value})}
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Software Engineer"
+              required
+            />
           </div>
           
           <div className="grid grid-cols-2 gap-4">
@@ -246,6 +377,7 @@ const InterviewModal = ({ onClose }) => {
                 <option value="Technical">Technical Round</option>
                 <option value="HR Round">HR Round</option>
                 <option value="Managerial">Managerial Round</option>
+                <option value="Final">Final Round</option>
               </select>
             </div>
             <div>
@@ -300,14 +432,17 @@ const InterviewModal = ({ onClose }) => {
           <div className="flex gap-3 pt-4">
             <button
               type="submit"
-              className="flex-1 bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 font-medium transition-colors"
+              disabled={submitting}
+              className="flex-1 bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              Schedule Interview
+              {submitting && <FaSpinner className="animate-spin w-4 h-4" />}
+              {interview ? 'Update Interview' : 'Schedule Interview'}
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              disabled={submitting}
+              className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
             >
               Cancel
             </button>

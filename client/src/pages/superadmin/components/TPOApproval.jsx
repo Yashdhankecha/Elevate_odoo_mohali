@@ -36,7 +36,7 @@ api.interceptors.request.use(
   }
 );
 
-const TPOApproval = () => {
+const TPOApproval = ({ onApprovalProcessed }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterInstitute, setFilterInstitute] = useState('All');
   const [sortBy, setSortBy] = useState('newest');
@@ -56,7 +56,10 @@ const TPOApproval = () => {
       setLoading(true);
       setError(null);
       const response = await api.get('/admin/pending-registrations');
-      setPendingTPOs(response.data.pendingUsers || []);
+      
+      // Filter only TPO registrations
+      const tpoOnly = response.data.pendingUsers.filter(user => user.role === 'tpo');
+      setPendingTPOs(tpoOnly);
     } catch (err) {
       console.error('Error fetching pending TPOs:', err);
       setError(err.response?.data?.message || err.message || 'Failed to load pending TPOs');
@@ -71,6 +74,9 @@ const TPOApproval = () => {
       await api.post(`/admin/approve-user/${tpoId}`);
       alert('TPO approved successfully!');
       fetchPendingTPOs(); // Refresh the list
+      if (onApprovalProcessed) {
+        onApprovalProcessed();
+      }
     } catch (error) {
       console.error('Error approving TPO:', error);
       alert('Failed to approve TPO: ' + (error.response?.data?.message || error.message));
@@ -85,6 +91,9 @@ const TPOApproval = () => {
       await api.post(`/admin/reject-user/${tpoId}`);
       alert('TPO rejected successfully!');
       fetchPendingTPOs(); // Refresh the list
+      if (onApprovalProcessed) {
+        onApprovalProcessed();
+      }
     } catch (error) {
       console.error('Error rejecting TPO:', error);
       alert('Failed to reject TPO: ' + (error.response?.data?.message || error.message));
@@ -128,6 +137,9 @@ const TPOApproval = () => {
       setSelectedTPOs([]);
       setShowBulkActions(false);
       fetchPendingTPOs();
+      if (onApprovalProcessed) {
+        onApprovalProcessed();
+      }
     } catch (error) {
       console.error('Error in bulk approval:', error);
       alert('Failed to approve some TPOs: ' + (error.response?.data?.message || error.message));
@@ -147,6 +159,9 @@ const TPOApproval = () => {
       setSelectedTPOs([]);
       setShowBulkActions(false);
       fetchPendingTPOs();
+      if (onApprovalProcessed) {
+        onApprovalProcessed();
+      }
     } catch (error) {
       console.error('Error in bulk rejection:', error);
       alert('Failed to reject some TPOs: ' + (error.response?.data?.message || error.message));
@@ -235,9 +250,9 @@ const TPOApproval = () => {
         <div>
           <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
             <FaShieldAlt className="text-orange-600" />
-            Pending Approvals
+            TPO Management
           </h2>
-          <p className="text-gray-600">Review and approve new TPO and Company registration requests</p>
+          <p className="text-gray-600">Review and approve new TPO registration requests</p>
         </div>
         <div className="flex gap-2">
           <button 
@@ -412,8 +427,8 @@ const TPOApproval = () => {
           ) : (
             <div className="p-12 text-center text-gray-500">
               <FaShieldAlt className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-              <p className="text-lg font-medium">No pending registrations found</p>
-              <p className="text-sm">There are currently no pending TPO or Company approval requests.</p>
+              <p className="text-lg font-medium">No pending TPO registrations found</p>
+              <p className="text-sm">There are currently no pending TPO approval requests.</p>
             </div>
           )}
         </div>

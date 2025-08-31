@@ -130,16 +130,10 @@ const DashboardOverview = () => {
           const Icon = stat.icon;
           return (
             <div key={index} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center mb-4">
                 <div className={`${stat.color} p-3 rounded-lg`}>
                   <Icon className="w-6 h-6 text-white" />
                 </div>
-                <span className={`text-sm font-medium ${
-                  stat.changeType === 'positive' ? 'text-blue-600' : 
-                  stat.changeType === 'negative' ? 'text-red-600' : 'text-gray-600'
-                }`}>
-                  {stat.change}
-                </span>
               </div>
               <div className="text-3xl font-bold text-gray-800 mb-1">{stat.value}</div>
               <div className="text-sm text-gray-600">{stat.title}</div>

@@ -16,7 +16,8 @@
     "react-scripts": "5.0.1",
     "react-to-pdf": "^2.0.1",
     "recharts": "^2.7.2",
-    "web-vitals": "^2.1.4"
+    "web-vitals": "^2.1.4",
+    "xlsx": "^0.18.5"
   },
   "scripts": {
     "start": "react-scripts start",

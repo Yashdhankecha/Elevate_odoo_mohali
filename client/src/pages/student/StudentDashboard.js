@@ -5,11 +5,12 @@ import Sidebar from './components/Sidebar';
 import DashboardOverview from './components/DashboardOverview';
 import ResumeBuilder from './components/ResumeBuilder';
 import PracticeHub from './components/PracticeHub';
-import SkillTracker from './components/SkillTracker';
 import Applications from './components/Applications';
 import JobBrowse from './components/JobBrowse';
 import PlacementHistory from './components/PlacementHistory';
 import AICareerCoach from './components/AICareerCoach';
+import ProfileApproval from './components/ProfileApproval';
+import InternshipOffers from './components/InternshipOffers';
 
 const StudentDashboard = () => {
   const location = useLocation();
@@ -38,16 +39,18 @@ const StudentDashboard = () => {
         return <ResumeBuilder />;
       case 'practice':
         return <PracticeHub />;
-      case 'skills':
-        return <SkillTracker />;
       case 'applications':
         return <Applications />;
       case 'jobs':
         return <JobBrowse setActiveSection={setActiveSection} />;
+      case 'internships':
+        return <InternshipOffers />;
       case 'history':
         return <PlacementHistory />;
       case 'ai-coach':
         return <AICareerCoach />;
+      case 'profile-approval':
+        return <ProfileApproval />;
       default:
         return <DashboardOverview />;
     }

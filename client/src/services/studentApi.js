@@ -30,8 +30,15 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      window.location.href = '/login';
+      // Check if user is not verified before logging out
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      if (user && !user.isVerified) {
+        // Don't log out, just redirect to not-verified page
+        window.location.href = '/not-verified';
+      } else {
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }
@@ -149,6 +156,38 @@ export const studentApi = {
 
   createAISession: async (sessionData) => {
     const response = await api.post('/student/ai-coach/session', sessionData);
+    return response.data;
+  },
+
+  // Profile Approval
+  getProfileApprovalStatus: async () => {
+    const response = await api.get('/student/profile/approval-status');
+    return response.data;
+  },
+
+  approveProfile: async (studentId) => {
+    const response = await api.put(`/student/profile/${studentId}/approve`);
+    return response.data;
+  },
+
+  rejectProfile: async (studentId, reason) => {
+    const response = await api.put(`/student/profile/${studentId}/reject`, { reason });
+    return response.data;
+  },
+
+  // Internship Offers
+  getInternshipOffers: async (params = {}) => {
+    const response = await api.get('/student/internship-offers', { params });
+    return response.data;
+  },
+
+  applyForInternship: async (internshipId) => {
+    const response = await api.post(`/student/internship-offers/${internshipId}/apply`);
+    return response.data;
+  },
+
+  getMyInternshipApplications: async () => {
+    const response = await api.get('/student/internship-applications');
     return response.data;
   },
 };

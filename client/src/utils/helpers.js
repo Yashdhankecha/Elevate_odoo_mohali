@@ -1,8 +1,11 @@
 // Helper function to get user initials from name
 export const getUserInitials = (name) => {
-  if (!name) return 'U';
+  if (!name || typeof name !== 'string') return 'U';
   
-  const names = name.trim().split(' ');
+  const trimmedName = name.trim();
+  if (!trimmedName) return 'U';
+  
+  const names = trimmedName.split(' ');
   if (names.length === 1) {
     return names[0].charAt(0).toUpperCase();
   }

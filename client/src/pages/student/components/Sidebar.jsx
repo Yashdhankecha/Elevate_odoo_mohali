@@ -4,14 +4,15 @@ import {
   FaHome, 
   FaFileAlt, 
   FaBookOpen, 
-  FaChartBar, 
   FaBriefcase, 
   FaHistory,
   FaUser,
   FaGraduationCap,
   FaSearch,
   FaSignOutAlt,
-  FaBars
+  FaBars,
+  FaCheckCircle,
+  FaLaptopCode
 } from 'react-icons/fa';
 import { useAuth } from '../../../contexts/AuthContext';
 import { getUserDisplayName, getUserInitials } from '../../../utils/helpers';
@@ -26,11 +27,12 @@ const Sidebar = ({ activeSection, setActiveSection, isCollapsed, setSidebarColla
     { id: 'dashboard', label: 'Dashboard', icon: FaHome, color: 'text-blue-600' },
     { id: 'resume', label: 'Resume Builder', icon: FaFileAlt, color: 'text-green-600' },
     { id: 'practice', label: 'Practice Hub', icon: FaBookOpen, color: 'text-purple-600' },
-    { id: 'skills', label: 'Skill Tracker', icon: FaChartBar, color: 'text-orange-600' },
     { id: 'applications', label: 'Applications', icon: FaBriefcase, color: 'text-indigo-600' },
     { id: 'jobs', label: 'Browse Jobs', icon: FaSearch, color: 'text-yellow-600' },
+    { id: 'internships', label: 'Internship Offers', icon: FaLaptopCode, color: 'text-cyan-600' },
     { id: 'history', label: 'Placement History', icon: FaHistory, color: 'text-pink-600' },
-    { id: 'ai-coach', label: 'AI Career Coach', icon: FaGraduationCap, color: 'text-teal-600' }
+    { id: 'ai-coach', label: 'AI Career Coach', icon: FaGraduationCap, color: 'text-teal-600' },
+    { id: 'profile-approval', label: 'Profile Approval', icon: FaCheckCircle, color: 'text-orange-600' }
   ];
 
   const handleProfile = () => {

@@ -21,6 +21,19 @@ const RoleBasedRoute = ({ allowedRoles = null }) => {
       return;
     }
 
+    // Check if user is not verified
+    if (user && !user.isVerified) {
+      navigate('/not-verified', { 
+        replace: true,
+        state: { 
+          email: user.email,
+          role: user.role,
+          message: 'Please verify your email address to access your dashboard.' 
+        } 
+      });
+      return;
+    }
+
     // If specific roles are allowed, check if user has access
     if (allowedRoles && !allowedRoles.includes(user?.role)) {
       // User doesn't have access to this specific route, redirect to their dashboard

@@ -42,8 +42,15 @@ api.interceptors.response.use(
   (error) => {
     // Handle 401 Unauthorized errors
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      window.location.href = '/login';
+      // Check if user is not verified before logging out
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      if (user && !user.isVerified) {
+        // Don't log out, just redirect to not-verified page
+        window.location.href = '/not-verified';
+      } else {
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+      }
     }
     
     // Handle 403 Forbidden errors
@@ -73,6 +80,15 @@ export const registerUser = async (userData) => {
 export const verifyOTP = async (userId, otp) => {
   try {
     const response = await api.post('/auth/verify-otp', { userId, otp });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const resendVerification = async (email) => {
+  try {
+    const response = await api.post('/auth/resend-verification', { email });
     return response.data;
   } catch (error) {
     throw error;
@@ -396,6 +412,30 @@ export const getSystemAnalytics = async () => {
   try {
     const response = await api.get('/superadmin/system-analytics');
     return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Generic API call function for flexibility
+export const apiCall = async (method, url, data = null, config = {}) => {
+  try {
+    const requestConfig = {
+      method: method.toLowerCase(),
+      url: url,
+      ...config
+    };
+
+    if (data) {
+      if (method.toLowerCase() === 'get') {
+        requestConfig.params = data;
+      } else {
+        requestConfig.data = data;
+      }
+    }
+
+    const response = await api(requestConfig);
+    return response;
   } catch (error) {
     throw error;
   }

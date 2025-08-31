@@ -270,6 +270,23 @@ const studentSchema = new mongoose.Schema({
     min: 0,
     max: 100,
     default: 0
+  },
+  // Verification fields for TPO
+  verificationStatus: {
+    type: String,
+    enum: ['pending', 'verified', 'rejected'],
+    default: 'pending'
+  },
+  verificationNotes: {
+    type: String,
+    trim: true
+  },
+  verifiedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  verifiedAt: {
+    type: Date
   }
 }, {
   timestamps: true

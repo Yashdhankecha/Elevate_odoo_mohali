@@ -14,7 +14,11 @@ import {
   FaEnvelope,
   FaPhone,
   FaChevronLeft,
-  FaChevronRight
+  FaChevronRight,
+  FaTimes,
+  FaGlobe,
+  FaDownload,
+  FaBriefcase
 } from 'react-icons/fa';
 import tpoApi from '../../../services/tpoApi';
 
@@ -24,6 +28,8 @@ const CompanyManagement = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [companies, setCompanies] = useState([]);
+  const [selectedCompany, setSelectedCompany] = useState(null);
+  const [showCompanyModal, setShowCompanyModal] = useState(false);
   const [pagination, setPagination] = useState({
     currentPage: 1,
     totalPages: 1,
@@ -52,8 +58,8 @@ const CompanyManagement = () => {
       if (filterStatus !== 'All') params.status = filterStatus;
 
       const response = await tpoApi.getCompanies(params);
-      setCompanies(response.data.companies);
-      setPagination(response.data.pagination);
+      setCompanies(response.companies);
+      setPagination(response.pagination);
     } catch (err) {
       console.error('Error fetching companies:', err);
       setError(err.message || 'Failed to load companies');
@@ -73,6 +79,16 @@ const CompanyManagement = () => {
 
   const handlePageChange = (newPage) => {
     setPagination(prev => ({ ...prev, currentPage: newPage }));
+  };
+
+  const handleViewCompany = (company) => {
+    setSelectedCompany(company);
+    setShowCompanyModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowCompanyModal(false);
+    setSelectedCompany(null);
   };
 
   const getStatusColor = (status) => {
@@ -101,6 +117,11 @@ const CompanyManagement = () => {
     });
   };
 
+  const exportCompanyData = () => {
+    // Implementation for exporting company data
+    console.log('Exporting company data...');
+  };
+
   if (loading && companies.length === 0) {
     return (
       <div className="space-y-6">
@@ -127,6 +148,13 @@ const CompanyManagement = () => {
           <p className="text-gray-600">Manage and track company partnerships</p>
         </div>
         <div className="flex items-center space-x-3">
+          <button 
+            onClick={exportCompanyData}
+            className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center space-x-2"
+          >
+            <FaDownload className="w-4 h-4" />
+            <span>Export Data</span>
+          </button>
           <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2">
             <FaPlus className="w-4 h-4" />
             <span>Add Company</span>
@@ -197,163 +225,281 @@ const CompanyManagement = () => {
         </div>
       )}
 
-      {/* Companies Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {companies.map((company) => (
-          <div key={company._id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
-                  <FaBuilding className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-800">{company.companyName}</h3>
-                  <p className="text-sm text-gray-500">{company.industry || 'Technology'}</p>
-                </div>
-              </div>
-              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(company.status)}`}>
-                {getStatusIcon(company.status)}
-                <span className="ml-1">{company.status}</span>
-              </span>
-            </div>
+      {/* Companies Table */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Company
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Contact
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Location
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Jobs Posted
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Active Jobs
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {companies.map((company) => (
+                <tr key={company._id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0 h-10 w-10">
+                        <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                          <FaBuilding className="w-5 h-5 text-blue-600" />
+                        </div>
+                      </div>
+                      <div className="ml-4">
+                        <div className="text-sm font-medium text-gray-900">{company.companyName}</div>
+                        <div className="text-sm text-gray-500">{company.industry || 'N/A'}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">{company.email}</div>
+                    <div className="text-sm text-gray-500">{company.contactNumber || 'N/A'}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">
+                      {company.address?.city}, {company.address?.state}
+                    </div>
+                    <div className="text-sm text-gray-500">{company.address?.country}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(company.status)}`}>
+                      {getStatusIcon(company.status)}
+                      <span className="ml-1 capitalize">{company.status}</span>
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {company.totalJobs || 0}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {company.activeJobs || 0}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div className="flex space-x-2">
+                      <button 
+                        onClick={() => handleViewCompany(company)}
+                        className="text-blue-600 hover:text-blue-900"
+                        title="View Details"
+                      >
+                        <FaEye className="w-4 h-4" />
+                      </button>
+                      <button className="text-green-600 hover:text-green-900" title="Edit">
+                        <FaEdit className="w-4 h-4" />
+                      </button>
+                      <button className="text-red-600 hover:text-red-900" title="Delete">
+                        <FaTrash className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
-            <div className="space-y-3 mb-4">
-              <div className="flex items-center text-sm text-gray-600">
-                <FaMapMarkerAlt className="w-4 h-4 mr-2 text-gray-400" />
-                <span>{company.address?.city || 'Location not specified'}</span>
+        {/* Pagination */}
+        {pagination.totalPages > 1 && (
+          <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+            <div className="flex-1 flex justify-between sm:hidden">
+              <button
+                onClick={() => handlePageChange(pagination.currentPage - 1)}
+                disabled={!pagination.hasPrev}
+                className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => handlePageChange(pagination.currentPage + 1)}
+                disabled={!pagination.hasNext}
+                className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
+            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm text-gray-700">
+                  Showing <span className="font-medium">{((pagination.currentPage - 1) * 10) + 1}</span> to{' '}
+                  <span className="font-medium">
+                    {Math.min(pagination.currentPage * 10, pagination.totalCompanies)}
+                  </span>{' '}
+                  of <span className="font-medium">{pagination.totalCompanies}</span> results
+                </p>
               </div>
-              <div className="flex items-center text-sm text-gray-600">
-                <FaEnvelope className="w-4 h-4 mr-2 text-gray-400" />
-                <span>{company.email}</span>
+              <div>
+                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                  <button
+                    onClick={() => handlePageChange(pagination.currentPage - 1)}
+                    disabled={!pagination.hasPrev}
+                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <FaChevronLeft className="w-4 h-4" />
+                  </button>
+                  
+                  {[...Array(pagination.totalPages)].map((_, index) => {
+                    const pageNumber = index + 1;
+                    const isCurrentPage = pageNumber === pagination.currentPage;
+                    
+                    return (
+                      <button
+                        key={pageNumber}
+                        onClick={() => handlePageChange(pageNumber)}
+                        className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                          isCurrentPage
+                            ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                        }`}
+                      >
+                        {pageNumber}
+                      </button>
+                    );
+                  })}
+                  
+                  <button
+                    onClick={() => handlePageChange(pagination.currentPage + 1)}
+                    disabled={!pagination.hasNext}
+                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <FaChevronRight className="w-4 h-4" />
+                  </button>
+                </nav>
               </div>
-              {company.contactNumber && (
-                <div className="flex items-center text-sm text-gray-600">
-                  <FaPhone className="w-4 h-4 mr-2 text-gray-400" />
-                  <span>{company.contactNumber}</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Company Details Modal */}
+      {showCompanyModal && selectedCompany && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-800">Company Details</h2>
+                <button
+                  onClick={handleCloseModal}
+                  className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  <FaTimes className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              {/* Basic Information */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Company Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Company Name</label>
+                    <p className="text-gray-800">{selectedCompany.companyName}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Industry</label>
+                    <p className="text-gray-800">{selectedCompany.industry || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Email</label>
+                    <p className="text-gray-800 flex items-center">
+                      <FaEnvelope className="w-4 h-4 text-gray-400 mr-2" />
+                      {selectedCompany.email}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Phone</label>
+                    <p className="text-gray-800 flex items-center">
+                      <FaPhone className="w-4 h-4 text-gray-400 mr-2" />
+                      {selectedCompany.contactNumber || 'N/A'}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Website</label>
+                    <p className="text-gray-800 flex items-center">
+                      <FaGlobe className="w-4 h-4 text-gray-400 mr-2" />
+                      {selectedCompany.website || 'N/A'}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Status</label>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(selectedCompany.status)}`}>
+                      {getStatusIcon(selectedCompany.status)}
+                      <span className="ml-1 capitalize">{selectedCompany.status}</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Job Statistics */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Job Statistics</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Total Jobs Posted</label>
+                    <p className="text-gray-800 flex items-center">
+                      <FaBriefcase className="w-4 h-4 text-gray-400 mr-2" />
+                      {selectedCompany.totalJobs || 0}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Active Jobs</label>
+                    <p className="text-gray-800">{selectedCompany.activeJobs || 0}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Address Information */}
+              {selectedCompany.address && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Address</h3>
+                  <div className="flex items-start">
+                    <FaMapMarkerAlt className="w-4 h-4 text-gray-400 mr-2 mt-1" />
+                    <div>
+                      <p className="text-gray-800">{selectedCompany.address.street}</p>
+                      <p className="text-gray-800">{selectedCompany.address.city}, {selectedCompany.address.state}</p>
+                      <p className="text-gray-800">{selectedCompany.address.country} - {selectedCompany.address.zipCode}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Description */}
+              {selectedCompany.description && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Description</h3>
+                  <p className="text-gray-800">{selectedCompany.description}</p>
                 </div>
               )}
             </div>
 
-            <div className="border-t border-gray-200 pt-4">
-              <div className="flex items-center justify-between text-sm">
-                <div>
-                  <p className="text-gray-600">Total Jobs</p>
-                  <p className="font-semibold text-gray-800">{company.totalJobs || 0}</p>
-                </div>
-                <div>
-                  <p className="text-gray-600">Active Jobs</p>
-                  <p className="font-semibold text-blue-600">{company.activeJobs || 0}</p>
-                </div>
-                <div>
-                  <p className="text-gray-600">Joined</p>
-                  <p className="font-semibold text-gray-800">{formatDate(company.createdAt)}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
-              <div className="flex space-x-2">
-                <button className="text-blue-600 hover:text-blue-900 p-2 rounded-lg hover:bg-blue-50 transition-colors">
-                  <FaEye className="w-4 h-4" />
-                </button>
-                <button className="text-green-600 hover:text-green-900 p-2 rounded-lg hover:bg-green-50 transition-colors">
-                  <FaEdit className="w-4 h-4" />
-                </button>
-                <button className="text-red-600 hover:text-red-900 p-2 rounded-lg hover:bg-red-50 transition-colors">
-                  <FaTrash className="w-4 h-4" />
-                </button>
-              </div>
-              <button className="text-sm text-blue-600 hover:text-blue-800 font-medium">
-                View Details
+            <div className="p-6 border-t border-gray-200 flex justify-end space-x-3">
+              <button
+                onClick={handleCloseModal}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Close
               </button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Empty State */}
-      {!loading && companies.length === 0 && (
-        <div className="text-center py-12">
-          <FaBuilding className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No companies found</h3>
-          <p className="text-gray-500 mb-6">
-            {searchQuery || filterStatus !== 'All' 
-              ? 'Try adjusting your search or filters'
-              : 'Get started by adding your first company'
-            }
-          </p>
-          <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-            Add Company
-          </button>
-        </div>
-      )}
-
-      {/* Pagination */}
-      {pagination.totalPages > 1 && (
-        <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6 rounded-xl shadow-sm border border-gray-200">
-          <div className="flex-1 flex justify-between sm:hidden">
-            <button
-              onClick={() => handlePageChange(pagination.currentPage - 1)}
-              disabled={!pagination.hasPrev}
-              className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Previous
-            </button>
-            <button
-              onClick={() => handlePageChange(pagination.currentPage + 1)}
-              disabled={!pagination.hasNext}
-              className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Next
-            </button>
-          </div>
-          <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm text-gray-700">
-                Showing <span className="font-medium">{((pagination.currentPage - 1) * 10) + 1}</span> to{' '}
-                <span className="font-medium">
-                  {Math.min(pagination.currentPage * 10, pagination.totalCompanies)}
-                </span>{' '}
-                of <span className="font-medium">{pagination.totalCompanies}</span> results
-              </p>
-            </div>
-            <div>
-              <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                <button
-                  onClick={() => handlePageChange(pagination.currentPage - 1)}
-                  disabled={!pagination.hasPrev}
-                  className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <FaChevronLeft className="w-4 h-4" />
-                </button>
-                
-                {[...Array(pagination.totalPages)].map((_, index) => {
-                  const pageNumber = index + 1;
-                  const isCurrentPage = pageNumber === pagination.currentPage;
-                  
-                  return (
-                    <button
-                      key={pageNumber}
-                      onClick={() => handlePageChange(pageNumber)}
-                      className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                        isCurrentPage
-                          ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                          : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                      }`}
-                    >
-                      {pageNumber}
-                    </button>
-                  );
-                })}
-                
-                <button
-                  onClick={() => handlePageChange(pagination.currentPage + 1)}
-                  disabled={!pagination.hasNext}
-                  className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <FaChevronRight className="w-4 h-4" />
-                </button>
-              </nav>
+              <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2">
+                <FaEdit className="w-4 h-4" />
+                <span>Edit Company</span>
+              </button>
             </div>
           </div>
         </div>

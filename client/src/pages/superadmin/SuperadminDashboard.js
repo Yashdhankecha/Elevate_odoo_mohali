@@ -1,27 +1,75 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import DashboardOverview from './components/DashboardOverview';
 import TPOApproval from './components/TPOApproval';
 import CompanyApproval from './components/CompanyApproval';
+import axios from 'axios';
 
 const SuperadminDashboard = () => {
   const [activeSection, setActiveSection] = useState('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [pendingTPOs, setPendingTPOs] = useState(0);
+  const [pendingCompanies, setPendingCompanies] = useState(0);
+
+  // Create axios instance with base configuration
+  const api = axios.create({
+    baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    withCredentials: true,
+  });
+
+  // Request interceptor to add auth token
+  api.interceptors.request.use(
+    (config) => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
+    },
+    (error) => {
+      return Promise.reject(error);
+    }
+  );
+
+  useEffect(() => {
+    fetchPendingCounts();
+  }, []);
+
+  const fetchPendingCounts = async () => {
+    try {
+      const response = await api.get('/admin/pending-registrations');
+      const pendingUsers = response.data.pendingUsers || [];
+      const tpoCount = pendingUsers.filter(user => user.role === 'tpo').length;
+      const companyCount = pendingUsers.filter(user => user.role === 'company').length;
+      
+      setPendingTPOs(tpoCount);
+      setPendingCompanies(companyCount);
+    } catch (error) {
+      console.error('Error fetching pending counts:', error);
+    }
+  };
 
   const toggleSidebar = () => {
     setSidebarCollapsed(!sidebarCollapsed);
   };
 
+  const handleNavigateToSection = (section) => {
+    setActiveSection(section);
+  };
+
   const renderContent = () => {
     switch (activeSection) {
       case 'dashboard':
-        return <DashboardOverview />;
+        return <DashboardOverview onNavigateToSection={handleNavigateToSection} />;
       case 'tpo-approval':
-        return <TPOApproval />;
+        return <TPOApproval onApprovalProcessed={fetchPendingCounts} />;
       case 'company-approval':
-        return <CompanyApproval />;
+        return <CompanyApproval onApprovalProcessed={fetchPendingCounts} />;
       default:
-        return <DashboardOverview />;
+        return <DashboardOverview onNavigateToSection={handleNavigateToSection} />;
     }
   };
 
@@ -32,6 +80,8 @@ const SuperadminDashboard = () => {
         activeSection={activeSection} 
         setActiveSection={setActiveSection}
         isCollapsed={sidebarCollapsed}
+        pendingTPOs={pendingTPOs}
+        pendingCompanies={pendingCompanies}
       />
       
       {/* Main Content Area */}

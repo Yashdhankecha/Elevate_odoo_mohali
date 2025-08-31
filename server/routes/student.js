@@ -6,6 +6,7 @@ const JobApplication = require('../models/JobApplication');
 const JobPosting = require('../models/JobPosting');
 const PracticeSession = require('../models/PracticeSession');
 const SkillProgress = require('../models/SkillProgress');
+const Notification = require('../models/Notification');
 
 const router = express.Router();
 
@@ -1298,6 +1299,363 @@ router.post('/ai-coach/session', authenticateToken, ensureStudent, async (req, r
     res.status(500).json({
       success: false,
       message: 'Server error'
+    });
+  }
+});
+
+// @route   GET /api/student/profile/approval-status
+// @desc    Get student profile approval status
+// @access  Private (Student)
+router.get('/profile/approval-status', authenticateToken, ensureStudent, async (req, res) => {
+  try {
+    const student = await User.findById(req.user._id);
+    
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        approvalStatus: student.approvalStatus || 'Pending',
+        approvedAt: student.approvedAt,
+        approvedBy: student.approvedBy,
+        rejectedAt: student.rejectedAt,
+        rejectedBy: student.rejectedBy,
+        rejectionReason: student.rejectionReason
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching approval status:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch approval status'
+    });
+  }
+});
+
+// @route   PUT /api/student/profile/:studentId/approve
+// @desc    Approve student profile (TPO/Superadmin only)
+// @access  Private (TPO/Superadmin)
+router.put('/profile/:studentId/approve', authenticateToken, async (req, res) => {
+  try {
+    // Check if user has permission to approve profiles
+    if (!['tpo', 'superadmin'].includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. TPO or Superadmin role required.'
+      });
+    }
+
+    const student = await User.findById(req.params.studentId);
+    
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student not found'
+      });
+    }
+
+    // Update student approval status
+    student.approvalStatus = 'Approved';
+    student.approvedAt = new Date();
+    student.approvedBy = req.user._id;
+    await student.save();
+
+    // Create notification for student
+    const notification = new Notification({
+      recipient: student._id,
+      sender: req.user._id,
+      title: 'Profile Approved',
+      message: 'Your profile has been approved by the TPO.',
+      type: 'achievement'
+    });
+    await notification.save();
+
+    res.json({
+      success: true,
+      message: 'Student profile approved successfully',
+      data: student
+    });
+  } catch (error) {
+    console.error('Error approving student profile:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to approve student profile'
+    });
+  }
+});
+
+// @route   PUT /api/student/profile/:studentId/reject
+// @desc    Reject student profile (TPO/Superadmin only)
+// @access  Private (TPO/Superadmin)
+router.put('/profile/:studentId/reject', authenticateToken, async (req, res) => {
+  try {
+    // Check if user has permission to reject profiles
+    if (!['tpo', 'superadmin'].includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. TPO or Superadmin role required.'
+      });
+    }
+
+    const { reason } = req.body;
+    
+    if (!reason || reason.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        message: 'Rejection reason is required'
+      });
+    }
+
+    const student = await User.findById(req.params.studentId);
+    
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student not found'
+      });
+    }
+
+    // Update student approval status
+    student.approvalStatus = 'Rejected';
+    student.rejectedAt = new Date();
+    student.rejectedBy = req.user._id;
+    student.rejectionReason = reason;
+    await student.save();
+
+    // Create notification for student
+    const notification = new Notification({
+      recipient: student._id,
+      sender: req.user._id,
+      title: 'Profile Rejected',
+      message: `Your profile has been rejected. Reason: ${reason}`,
+      type: 'admin'
+    });
+    await notification.save();
+
+    res.json({
+      success: true,
+      message: 'Student profile rejected',
+      data: student
+    });
+  } catch (error) {
+    console.error('Error rejecting student profile:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to reject student profile'
+    });
+  }
+});
+
+// @route   GET /api/student/internship-offers
+// @desc    Get internship offers for students
+// @access  Private (Student)
+router.get('/internship-offers', authenticateToken, ensureStudent, async (req, res) => {
+  try {
+    const { page = 1, limit = 12, search, category, location, type } = req.query;
+    const skip = (page - 1) * limit;
+
+    // Build filter query
+    const filter = {
+      type: 'internship',
+      isActive: true,
+      deadline: { $gte: new Date() } // Only show active internships
+    };
+
+    if (search) {
+      filter.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+        { 'company.companyName': { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    if (category && category !== 'All') {
+      filter.category = category;
+    }
+
+    if (location && location !== 'All') {
+      filter.location = location;
+    }
+
+    if (type && type !== 'All') {
+      filter.internshipType = type;
+    }
+
+    // Get internships with pagination
+    const internships = await JobPosting.find(filter)
+      .populate('company', 'companyName email')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    // Get total count for pagination
+    const totalInternships = await JobPosting.countDocuments(filter);
+    const totalPages = Math.ceil(totalInternships / limit);
+
+    // Check if current user has applied to each internship
+    const studentId = req.user._id;
+    const userApplications = await JobApplication.find({
+      student: studentId,
+      jobPosting: { $in: internships.map(job => job._id) }
+    });
+
+    const appliedJobIds = new Set(userApplications.map(app => app.jobPosting.toString()));
+
+    // Add application status to each internship
+    const internshipsWithStatus = internships.map(internship => {
+      const internshipObj = internship.toObject();
+      internshipObj.hasApplied = appliedJobIds.has(internship._id.toString());
+      internshipObj.applicationCount = internship.applicationCount || 0;
+      
+      // Determine status based on deadline
+      const now = new Date();
+      const deadline = new Date(internship.deadline);
+      if (deadline < now) {
+        internshipObj.status = 'expired';
+      } else if (deadline.getTime() - now.getTime() < 7 * 24 * 60 * 60 * 1000) { // Less than 7 days
+        internshipObj.status = 'urgent';
+      } else {
+        internshipObj.status = 'active';
+      }
+
+      return internshipObj;
+    });
+
+    res.json({
+      success: true,
+      data: {
+        internships: internshipsWithStatus,
+        pagination: {
+          currentPage: parseInt(page),
+          totalPages,
+          totalInternships,
+          hasNext: page < totalPages,
+          hasPrev: page > 1
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching internship offers:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch internship offers'
+    });
+  }
+});
+
+// @route   POST /api/student/internship-offers/:internshipId/apply
+// @desc    Apply for an internship
+// @access  Private (Student)
+router.post('/internship-offers/:internshipId/apply', authenticateToken, ensureStudent, async (req, res) => {
+  try {
+    const { internshipId } = req.params;
+    const studentId = req.user._id;
+
+    // Check if internship exists and is active
+    const internship = await JobPosting.findById(internshipId);
+    if (!internship) {
+      return res.status(404).json({
+        success: false,
+        message: 'Internship not found'
+      });
+    }
+
+    if (!internship.isActive) {
+      return res.status(400).json({
+        success: false,
+        message: 'This internship is no longer active'
+      });
+    }
+
+    if (new Date(internship.deadline) < new Date()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Application deadline has passed'
+      });
+    }
+
+    // Check if student has already applied
+    const existingApplication = await JobApplication.findOne({
+      student: studentId,
+      jobPosting: internshipId
+    });
+
+    if (existingApplication) {
+      return res.status(400).json({
+        success: false,
+        message: 'You have already applied for this internship'
+      });
+    }
+
+    // Create new application
+    const application = new JobApplication({
+      student: studentId,
+      jobPosting: internshipId,
+      company: internship.company,
+      status: 'applied',
+      appliedDate: new Date()
+    });
+
+    await application.save();
+
+    // Update application count on job posting
+    await JobPosting.findByIdAndUpdate(internshipId, {
+      $inc: { applicationCount: 1 }
+    });
+
+    res.json({
+      success: true,
+      message: 'Application submitted successfully',
+      data: application
+    });
+  } catch (error) {
+    console.error('Error applying for internship:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to submit application'
+    });
+  }
+});
+
+// @route   GET /api/student/internship-applications
+// @desc    Get student's internship applications
+// @access  Private (Student)
+router.get('/internship-applications', authenticateToken, ensureStudent, async (req, res) => {
+  try {
+    const studentId = req.user._id;
+
+    const applications = await JobApplication.find({
+      student: studentId,
+      'jobPosting.type': 'internship'
+    })
+    .populate('jobPosting', 'title company location deadline')
+    .populate('company', 'companyName')
+    .sort({ appliedDate: -1 });
+
+    res.json({
+      success: true,
+      data: {
+        applications: applications.map(app => ({
+          id: app._id,
+          internshipTitle: app.jobPosting?.title,
+          company: app.company?.companyName,
+          location: app.jobPosting?.location,
+          status: app.status,
+          appliedDate: app.appliedDate,
+          deadline: app.jobPosting?.deadline
+        }))
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching internship applications:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch internship applications'
     });
   }
 });

@@ -1,10 +1,11 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const { authenticateToken } = require('../middleware/auth');
+const { tpoInstituteAccess, verifyStudentInstitute, buildInstituteFilter, verifyBulkInstituteAccess } = require('../middleware/tpoInstituteAccess');
 const User = require('../models/User');
-const TPO = require('../models/TPO');
 const Company = require('../models/Company');
 const Job = require('../models/Job');
+const JobPosting = require('../models/JobPosting');
 const JobApplication = require('../models/JobApplication');
 const Notification = require('../models/Notification');
 
@@ -24,21 +25,12 @@ const isTPO = (req, res, next) => {
 // @route   GET /api/tpo/dashboard-stats
 // @desc    Get TPO dashboard statistics
 // @access  Private (TPO only)
-router.get('/dashboard-stats', authenticateToken, isTPO, async (req, res) => {
+router.get('/dashboard-stats', authenticateToken, isTPO, tpoInstituteAccess, async (req, res) => {
   try {
-    // Get TPO's institute
-    const tpo = await TPO.findById(req.user._id);
-    if (!tpo) {
-      return res.status(404).json({
-        success: false,
-        message: 'TPO profile not found'
-      });
-    }
-
     // Get students from TPO's institute
     const students = await User.find({ 
       role: 'student',
-      'student.instituteName': tpo.instituteName 
+      'student.collegeName': req.tpoInstitute 
     });
 
     // Get companies that have posted jobs
@@ -52,17 +44,21 @@ router.get('/dashboard-stats', authenticateToken, isTPO, async (req, res) => {
 
     // Calculate statistics
     const totalStudents = students.length;
-    const placedStudents = students.filter(student => student.student?.isPlaced).length;
+    const placedStudents = students.filter(student => student.student?.placementInfo?.isPlaced).length;
     const activeCompanies = companies.length;
     const totalApplications = applications.length;
     const totalOffers = applications.filter(app => app.status === 'accepted').length;
     
     // Calculate average package
     const placedStudentsWithPackage = students.filter(student => 
-      student.student?.isPlaced && student.student?.package
+      student.student?.placementInfo?.isPlaced && student.student?.placementInfo?.placementPackage
     );
     const averagePackage = placedStudentsWithPackage.length > 0 
-      ? placedStudentsWithPackage.reduce((sum, student) => sum + (student.student.package || 0), 0) / placedStudentsWithPackage.length
+      ? placedStudentsWithPackage.reduce((sum, student) => {
+          const packageStr = student.student.placementInfo.placementPackage;
+          const packageNum = parseFloat(packageStr.replace(/[^\d.]/g, '')) || 0;
+          return sum + packageNum;
+        }, 0) / placedStudentsWithPackage.length
       : 0;
 
     // Calculate placement rate
@@ -76,12 +72,12 @@ router.get('/dashboard-stats', authenticateToken, isTPO, async (req, res) => {
     .limit(10)
     .populate('sender', 'name email');
 
-    // Get upcoming placement drives (jobs with future dates)
-    const upcomingDrives = await Job.find({
+    // Get upcoming placement drives (job postings with future dates)
+    const upcomingDrives = await JobPosting.find({
       deadline: { $gte: new Date() },
-      status: 'active'
+      isActive: true
     })
-    .populate('company', 'name')
+    .populate('company', 'companyName')
     .sort({ deadline: 1 })
     .limit(5);
 
@@ -107,9 +103,9 @@ router.get('/dashboard-stats', authenticateToken, isTPO, async (req, res) => {
         upcomingDrives: upcomingDrives.map(drive => ({
           id: drive._id,
           title: drive.title,
-          company: drive.company.name,
+          company: drive.company.companyName,
           deadline: drive.deadline,
-          applications: drive.applications?.length || 0
+          applications: drive.applicationCount || 0
         }))
       }
     });
@@ -125,7 +121,7 @@ router.get('/dashboard-stats', authenticateToken, isTPO, async (req, res) => {
 // @route   GET /api/tpo/students
 // @desc    Get all students for TPO's institute
 // @access  Private (TPO only)
-router.get('/students', authenticateToken, isTPO, async (req, res) => {
+router.get('/students', authenticateToken, isTPO, tpoInstituteAccess, async (req, res) => {
   try {
     const { 
       search, 
@@ -137,38 +133,26 @@ router.get('/students', authenticateToken, isTPO, async (req, res) => {
       limit = 10 
     } = req.query;
 
-    // Get TPO's institute
-    const tpo = await TPO.findById(req.user._id);
-    if (!tpo) {
-      return res.status(404).json({
-        success: false,
-        message: 'TPO profile not found'
-      });
-    }
-
-    // Build filter
-    const filter = { 
-      role: 'student',
-      'student.instituteName': tpo.instituteName 
-    };
+    // Build filter using helper function
+    const filter = buildInstituteFilter(req.tpoInstitute);
 
     if (search) {
       filter.$or = [
         { name: { $regex: search, $options: 'i' } },
-        { 'student.rollNo': { $regex: search, $options: 'i' } },
+        { 'student.rollNumber': { $regex: search, $options: 'i' } },
         { email: { $regex: search, $options: 'i' } }
       ];
     }
 
     if (department && department !== 'All') {
-      filter['student.department'] = department;
+      filter['student.branch'] = department;
     }
 
     if (status && status !== 'All') {
       if (status === 'Placed') {
-        filter['student.isPlaced'] = true;
+        filter['student.placementInfo.isPlaced'] = true;
       } else if (status === 'Not Placed') {
-        filter['student.isPlaced'] = false;
+        filter['student.placementInfo.isPlaced'] = false;
       }
     }
 
@@ -200,7 +184,7 @@ router.get('/students', authenticateToken, isTPO, async (req, res) => {
     const studentsWithApplications = await Promise.all(
       students.map(async (student) => {
         const applications = await JobApplication.find({ student: student._id });
-        const acceptedApplications = applications.filter(app => app.status === 'accepted');
+        const acceptedApplications = applications.filter(app => app.status === 'offer_received');
         
         return {
           ...student.toObject(),
@@ -232,78 +216,218 @@ router.get('/students', authenticateToken, isTPO, async (req, res) => {
   }
 });
 
-// @route   GET /api/tpo/companies
-// @desc    Get all companies for TPO
+// @route   POST /api/tpo/students
+// @desc    Add a new student to TPO's institute
 // @access  Private (TPO only)
-router.get('/companies', authenticateToken, isTPO, async (req, res) => {
+router.post('/students', authenticateToken, isTPO, tpoInstituteAccess, [
+  body('name').notEmpty().withMessage('Name is required'),
+  body('email').isEmail().withMessage('Valid email is required'),
+  body('rollNumber').notEmpty().withMessage('Roll number is required'),
+  body('branch').notEmpty().withMessage('Branch is required'),
+  body('cgpa').isFloat({ min: 0, max: 10 }).withMessage('CGPA must be between 0 and 10')
+], async (req, res) => {
   try {
-    const { 
-      search, 
-      status, 
-      page = 1, 
-      limit = 10 
-    } = req.query;
-
-    // Build filter
-    const filter = {};
-
-    if (search) {
-      filter.$or = [
-        { companyName: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } },
-        { 'address.city': { $regex: search, $options: 'i' } }
-      ];
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
     }
 
-    if (status && status !== 'All') {
-      filter.status = status;
+    const {
+      name,
+      email,
+      rollNumber,
+      branch,
+      cgpa,
+      phoneNumber,
+      graduationYear,
+      skills,
+      isPlaced,
+      package: packageAmount,
+      companyName,
+      jobTitle
+    } = req.body;
+
+    // Check if email already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email already registered'
+      });
     }
 
-    // Calculate pagination
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    // Check if roll number already exists in the institute
+    const existingRollNo = await User.findOne({
+      'student.rollNumber': rollNumber,
+      'student.collegeName': req.tpoInstitute
+    });
+    if (existingRollNo) {
+      return res.status(400).json({
+        success: false,
+        message: 'Roll number already exists in this institute'
+      });
+    }
 
-    // Get companies
-    const companies = await Company.find(filter)
-      .select('-password -emailVerificationOTP -passwordResetToken')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(parseInt(limit));
+    // Create new student
+    const newStudent = new User({
+      name,
+      email,
+      phoneNumber,
+      role: 'student',
+      status: 'active',
+      isVerified: true,
+      student: {
+        name,
+        rollNumber,
+        branch,
+        cgpa: parseFloat(cgpa),
+        collegeName: req.tpoInstitute,
+        graduationYear: graduationYear || new Date().getFullYear(),
+        skills: skills ? skills.split(',').map(s => s.trim()).filter(s => s) : [],
+        isPlaced: isPlaced || false,
+        placementDetails: isPlaced ? {
+          company: companyName,
+          package: { amount: packageAmount ? parseFloat(packageAmount) : 0, currency: "INR", type: "CTC" },
+          role: jobTitle,
+          placementDate: new Date()
+        } : null,
+        phoneNumber
+      }
+    });
 
-    // Get total count
-    const totalCompanies = await Company.countDocuments(filter);
+    await newStudent.save();
 
-    // Get job counts for each company
-    const companiesWithJobs = await Promise.all(
-      companies.map(async (company) => {
-        const jobs = await Job.find({ company: company._id });
-        const activeJobs = jobs.filter(job => job.status === 'active');
-        
-        return {
-          ...company.toObject(),
-          totalJobs: jobs.length,
-          activeJobs: activeJobs.length
-        };
-      })
-    );
-
-    res.json({
+    res.status(201).json({
       success: true,
+      message: 'Student added successfully',
       data: {
-        companies: companiesWithJobs,
-        pagination: {
-          currentPage: parseInt(page),
-          totalPages: Math.ceil(totalCompanies / parseInt(limit)),
-          totalCompanies,
-          hasNext: skip + companies.length < totalCompanies,
-          hasPrev: parseInt(page) > 1
+        student: {
+          _id: newStudent._id,
+          name: newStudent.name,
+          email: newStudent.email,
+          student: newStudent.student
         }
       }
     });
   } catch (error) {
-    console.error('Error fetching companies:', error);
+    console.error('Error adding student:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch companies'
+      message: 'Failed to add student'
+    });
+  }
+});
+
+// @route   PUT /api/tpo/students/:id
+// @desc    Update student information
+// @access  Private (TPO only)
+router.put('/students/:id', authenticateToken, isTPO, verifyStudentInstitute, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+    const student = req.student; // Already verified by middleware
+
+    // Update student data
+    if (updateData.name) student.name = updateData.name;
+    if (updateData.email) student.email = updateData.email;
+    if (updateData.phoneNumber) student.student.phoneNumber = updateData.phoneNumber;
+    
+    if (updateData.student) {
+      if (updateData.student.rollNumber) student.student.rollNumber = updateData.student.rollNumber;
+      if (updateData.student.branch) student.student.branch = updateData.student.branch;
+      if (updateData.student.cgpa) student.student.cgpa = parseFloat(updateData.student.cgpa);
+      if (updateData.student.graduationYear) student.student.graduationYear = updateData.student.graduationYear;
+      if (updateData.student.skills) student.student.skills = updateData.student.skills;
+      if (updateData.student.isPlaced !== undefined) student.student.isPlaced = updateData.student.isPlaced;
+      if (updateData.student.placementDetails) student.student.placementDetails = updateData.student.placementDetails;
+    }
+
+    await student.save();
+
+    res.json({
+      success: true,
+      message: 'Student updated successfully',
+      data: {
+        student: {
+          _id: student._id,
+          name: student.name,
+          email: student.email,
+          student: student.student
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error updating student:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update student'
+    });
+  }
+});
+
+// @route   DELETE /api/tpo/students/:id
+// @desc    Delete a student
+// @access  Private (TPO only)
+router.delete('/students/:id', authenticateToken, isTPO, verifyStudentInstitute, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const student = req.student; // Already verified by middleware
+
+    // Delete student
+    await User.findByIdAndDelete(id);
+
+    res.json({
+      success: true,
+      message: 'Student deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting student:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete student'
+    });
+  }
+});
+
+// @route   GET /api/tpo/companies
+// @desc    Get list of companies for dropdown
+// @access  Private (TPO only)
+router.get('/companies', authenticateToken, isTPO, async (req, res) => {
+  try {
+    const { search } = req.query;
+    
+    // Build filter
+    const filter = { role: 'company' };
+    
+    if (search) {
+      filter.$or = [
+        { 'company.companyName': { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    const companies = await User.find(filter)
+      .select('_id company.companyName company.industry email')
+      .sort({ 'company.companyName': 1 });
+
+    res.json({
+      success: true,
+      data: companies.map(company => ({
+        _id: company._id,
+        companyName: company.company?.companyName,
+        industry: company.company?.industry,
+        email: company.email
+      }))
+    });
+  } catch (error) {
+    console.error('Error fetching companies list:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch companies list'
     });
   }
 });
@@ -331,32 +455,59 @@ router.get('/placement-drives', authenticateToken, isTPO, async (req, res) => {
     }
 
     if (status && status !== 'All') {
-      filter.status = status;
+      if (status === 'active') {
+        filter.isActive = true;
+      } else if (status === 'inactive') {
+        filter.isActive = false;
+      } else if (status === 'completed') {
+        filter.deadline = { $lt: new Date() };
+      }
     }
 
     // Calculate pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     // Get jobs
-    const jobs = await Job.find(filter)
-      .populate('company', 'companyName email')
-      .sort({ deadline: -1 })
+    const jobs = await JobPosting.find(filter)
+      .populate('company', 'company.companyName email')
+      .sort({ deadline: -1, postedAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
 
     // Get total count
-    const totalJobs = await Job.countDocuments(filter);
+    const totalJobs = await JobPosting.countDocuments(filter);
 
     // Get application counts for each job
     const jobsWithApplications = await Promise.all(
       jobs.map(async (job) => {
-        const applications = await JobApplication.find({ job: job._id });
-        const acceptedApplications = applications.filter(app => app.status === 'accepted');
+        const applications = await JobApplication.find({ jobPosting: job._id });
+        const acceptedApplications = applications.filter(app => app.status === 'offer_received');
         
         return {
-          ...job.toObject(),
+          _id: job._id,
+          title: job.title,
+          description: job.description,
+          company: {
+            _id: job.company._id,
+            companyName: job.company.company?.companyName || 'Unknown Company',
+            email: job.company.email
+          },
+          location: job.location,
+          type: job.type,
+          category: job.category,
+          package: job.package,
+          requirements: job.requirements,
+          responsibilities: job.responsibilities,
+          skills: job.skills,
+          isActive: job.isActive,
+          postedAt: job.postedAt,
+          deadline: job.deadline,
+          applicationCount: job.applicationCount,
+          views: job.views,
           totalApplications: applications.length,
-          acceptedApplications: acceptedApplications.length
+          acceptedApplications: acceptedApplications.length,
+          createdAt: job.createdAt,
+          updatedAt: job.updatedAt
         };
       })
     );
@@ -383,58 +534,103 @@ router.get('/placement-drives', authenticateToken, isTPO, async (req, res) => {
   }
 });
 
-// @route   GET /api/tpo/training-programs
-// @desc    Get training programs for TPO
+// @route   POST /api/tpo/placement-drives
+// @desc    Create a new placement drive
 // @access  Private (TPO only)
-router.get('/training-programs', authenticateToken, isTPO, async (req, res) => {
+router.post('/placement-drives', authenticateToken, isTPO, [
+  body('title').notEmpty().withMessage('Title is required'),
+  body('description').notEmpty().withMessage('Description is required'),
+  body('company').notEmpty().withMessage('Company is required'),
+  body('package.min').isNumeric().withMessage('Minimum package must be a number'),
+  body('package.max').isNumeric().withMessage('Maximum package must be a number'),
+  body('deadline').isISO8601().withMessage('Valid deadline date is required'),
+  body('location').notEmpty().withMessage('Location is required'),
+  body('type').isIn(['full-time', 'internship', 'contract', 'part-time']).withMessage('Invalid job type'),
+  body('category').isIn(['software-engineering', 'data-science', 'product-management', 'design', 'marketing', 'sales', 'other']).withMessage('Invalid category'),
+  body('requirements').isArray().withMessage('Requirements must be an array'),
+  body('responsibilities').isArray().withMessage('Responsibilities must be an array'),
+  body('skills').isArray().withMessage('Skills must be an array'),
+  body('experience.min').isNumeric().withMessage('Minimum experience must be a number'),
+  body('experience.max').isNumeric().withMessage('Maximum experience must be a number')
+], async (req, res) => {
   try {
-    // For now, return mock data since training programs model doesn't exist
-    const trainingPrograms = [
-      {
-        id: 1,
-        name: 'Technical Interview Preparation',
-        description: 'Comprehensive training for technical interviews',
-        duration: '4 weeks',
-        participants: 45,
-        status: 'Active',
-        startDate: '2024-01-15',
-        endDate: '2024-02-15'
-      },
-      {
-        id: 2,
-        name: 'Soft Skills Development',
-        description: 'Communication and leadership skills training',
-        duration: '3 weeks',
-        participants: 32,
-        status: 'Active',
-        startDate: '2024-01-20',
-        endDate: '2024-02-10'
-      }
-    ];
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
 
-    res.json({
+    const {
+      title,
+      description,
+      company,
+      package: packageData,
+      deadline,
+      location,
+      type,
+      category,
+      requirements,
+      responsibilities,
+      skills,
+      experience
+    } = req.body;
+
+    // Create new job posting
+    const newJobPosting = new JobPosting({
+      title,
+      description,
+      company: company, // This should be the company ID
+      package: {
+        min: parseFloat(packageData.min) * 100000, // Convert LPA to actual amount
+        max: parseFloat(packageData.max) * 100000, // Convert LPA to actual amount
+        currency: packageData.currency || 'INR'
+      },
+      deadline: new Date(deadline),
+      location,
+      type,
+      category,
+      requirements,
+      responsibilities,
+      skills,
+      experience: {
+        min: parseFloat(experience.min),
+        max: parseFloat(experience.max)
+      },
+      isActive: true,
+      postedAt: new Date()
+    });
+
+    await newJobPosting.save();
+
+    res.status(201).json({
       success: true,
+      message: 'Placement drive created successfully',
       data: {
-        trainingPrograms
+        jobPosting: newJobPosting
       }
     });
   } catch (error) {
-    console.error('Error fetching training programs:', error);
+    console.error('Error creating placement drive:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch training programs'
+      message: 'Failed to create placement drive'
     });
   }
 });
+
+
 
 // @route   GET /api/tpo/internship-records
 // @desc    Get internship records for TPO
 // @access  Private (TPO only)
 router.get('/internship-records', authenticateToken, isTPO, async (req, res) => {
   try {
-    // Get TPO's institute
-    const tpo = await TPO.findById(req.user._id);
-    if (!tpo) {
+    // Get TPO's institute from user document
+    const tpoUser = await User.findById(req.user._id);
+    if (!tpoUser || !tpoUser.tpo) {
       return res.status(404).json({
         success: false,
         message: 'TPO profile not found'
@@ -444,7 +640,7 @@ router.get('/internship-records', authenticateToken, isTPO, async (req, res) => 
     // Get students from TPO's institute
     const students = await User.find({ 
       role: 'student',
-      'student.instituteName': tpo.instituteName 
+      'student.instituteName': tpoUser.tpo.instituteName 
     });
 
     // Get internship applications
@@ -488,9 +684,9 @@ router.get('/internship-records', authenticateToken, isTPO, async (req, res) => 
 // @access  Private (TPO only)
 router.get('/reports-analytics', authenticateToken, isTPO, async (req, res) => {
   try {
-    // Get TPO's institute
-    const tpo = await TPO.findById(req.user._id);
-    if (!tpo) {
+    // Get TPO's institute from user document
+    const tpoUser = await User.findById(req.user._id);
+    if (!tpoUser || !tpoUser.tpo) {
       return res.status(404).json({
         success: false,
         message: 'TPO profile not found'
@@ -500,29 +696,29 @@ router.get('/reports-analytics', authenticateToken, isTPO, async (req, res) => {
     // Get students from TPO's institute
     const students = await User.find({ 
       role: 'student',
-      'student.instituteName': tpo.instituteName 
+      'student.collegeName': tpoUser.tpo.instituteName 
     });
 
     // Get applications
     const studentIds = students.map(student => student._id);
     const applications = await JobApplication.find({
       student: { $in: studentIds }
-    }).populate('job company student');
+    }).populate('jobPosting company student');
 
     // Calculate analytics
     const totalStudents = students.length;
-    const placedStudents = students.filter(student => student.student?.isPlaced).length;
+    const placedStudents = students.filter(student => student.student?.placementInfo?.isPlaced).length;
     const placementRate = totalStudents > 0 ? (placedStudents / totalStudents) * 100 : 0;
 
     // Department-wise statistics
     const departmentStats = {};
     students.forEach(student => {
-      const dept = student.student?.department || 'Unknown';
+      const dept = student.student?.branch || 'Unknown';
       if (!departmentStats[dept]) {
         departmentStats[dept] = { total: 0, placed: 0 };
       }
       departmentStats[dept].total++;
-      if (student.student?.isPlaced) {
+      if (student.student?.placementInfo?.isPlaced) {
         departmentStats[dept].placed++;
       }
     });
@@ -535,7 +731,7 @@ router.get('/reports-analytics', authenticateToken, isTPO, async (req, res) => {
         companyStats[companyName] = { applications: 0, offers: 0 };
       }
       companyStats[companyName].applications++;
-      if (app.status === 'accepted') {
+      if (app.status === 'offer_received') {
         companyStats[companyName].offers++;
       }
     });
@@ -548,7 +744,7 @@ router.get('/reports-analytics', authenticateToken, isTPO, async (req, res) => {
       const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
       
       const monthlyPlacements = applications.filter(app => 
-        app.status === 'accepted' &&
+        app.status === 'offer_received' &&
         app.updatedAt >= date &&
         app.updatedAt <= monthEnd
       ).length;
@@ -567,7 +763,7 @@ router.get('/reports-analytics', authenticateToken, isTPO, async (req, res) => {
           placedStudents,
           placementRate: Math.round(placementRate * 10) / 10,
           totalApplications: applications.length,
-          totalOffers: applications.filter(app => app.status === 'accepted').length
+          totalOffers: applications.filter(app => app.status === 'offer_received').length
         },
         departmentStats: Object.entries(departmentStats).map(([dept, stats]) => ({
           department: dept,
@@ -613,8 +809,8 @@ router.put('/profile', authenticateToken, isTPO, [
       });
     }
 
-    const tpo = await TPO.findById(req.user._id);
-    if (!tpo) {
+    const tpoUser = await User.findById(req.user._id);
+    if (!tpoUser || !tpoUser.tpo) {
       return res.status(404).json({
         success: false,
         message: 'TPO profile not found'
@@ -625,22 +821,962 @@ router.put('/profile', authenticateToken, isTPO, [
     const updateFields = ['name', 'contactNumber', 'designation', 'department', 'address'];
     updateFields.forEach(field => {
       if (req.body[field] !== undefined) {
-        tpo[field] = req.body[field];
+        if (field === 'name' || field === 'contactNumber') {
+          tpoUser[field] = req.body[field];
+        } else {
+          tpoUser.tpo[field] = req.body[field];
+        }
       }
     });
 
-    await tpo.save();
+    await tpoUser.save();
 
     res.json({
       success: true,
       message: 'Profile updated successfully',
-      data: tpo
+      data: tpoUser
     });
   } catch (error) {
     console.error('Error updating TPO profile:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to update profile'
+    });
+  }
+});
+
+// @route   PUT /api/tpo/students/:studentId/placement
+// @desc    Update student placement status
+// @access  Private (TPO only)
+router.put('/students/:studentId/placement', authenticateToken, isTPO, verifyStudentInstitute, [
+  body('isPlaced').optional().isBoolean(),
+  body('package').optional().isNumeric(),
+  body('companyName').optional().isLength({ min: 2, max: 100 }),
+  body('jobTitle').optional().isLength({ min: 2, max: 100 }),
+  body('placementDate').optional().isISO8601()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const student = req.student; // Already verified by middleware
+
+    // Update student placement information
+    if (req.body.isPlaced !== undefined) {
+      student.student.isPlaced = req.body.isPlaced;
+    }
+    if (req.body.package !== undefined || req.body.companyName !== undefined || req.body.jobTitle !== undefined) {
+      student.student.placementDetails = {
+        company: req.body.companyName || student.student.placementDetails?.company,
+        package: { 
+          amount: req.body.package || student.student.placementDetails?.package?.amount || 0, 
+          currency: "INR", 
+          type: "CTC" 
+        },
+        role: req.body.jobTitle || student.student.placementDetails?.role,
+        placementDate: req.body.placementDate ? new Date(req.body.placementDate) : student.student.placementDetails?.placementDate || new Date()
+      };
+    }
+
+    await student.save();
+
+    res.json({
+      success: true,
+      message: 'Student placement information updated successfully',
+      data: student
+    });
+  } catch (error) {
+    console.error('Error updating student placement:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update student placement'
+    });
+  }
+});
+
+// @route   GET /api/tpo/students/:studentId/applications
+// @desc    Get student's job applications
+// @access  Private (TPO only)
+router.get('/students/:studentId/applications', authenticateToken, isTPO, verifyStudentInstitute, async (req, res) => {
+  try {
+    const applications = await JobApplication.find({ student: req.params.studentId })
+      .populate('jobPosting', 'title company deadline')
+      .populate('company', 'companyName')
+      .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      data: {
+        applications: applications.map(app => ({
+          id: app._id,
+          jobTitle: app.jobPosting?.title || 'N/A',
+          companyName: app.company?.companyName || 'N/A',
+          status: app.status,
+          appliedDate: app.createdAt,
+          deadline: app.jobPosting?.deadline || 'N/A'
+        }))
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching student applications:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch student applications'
+    });
+  }
+});
+
+// @route   PUT /api/tpo/companies/:companyId/status
+// @desc    Update company status
+// @access  Private (TPO only)
+router.put('/companies/:companyId/status', authenticateToken, isTPO, [
+  body('status').isIn(['active', 'inactive', 'pending']).withMessage('Invalid status')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const company = await Company.findById(req.params.companyId);
+    if (!company) {
+      return res.status(404).json({
+        success: false,
+        message: 'Company not found'
+      });
+    }
+
+    company.status = req.body.status;
+    await company.save();
+
+    res.json({
+      success: true,
+      message: 'Company status updated successfully',
+      data: company
+    });
+  } catch (error) {
+    console.error('Error updating company status:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update company status'
+    });
+  }
+});
+
+// @route   GET /api/tpo/placement-drives/:driveId/applications
+// @desc    Get applications for a specific placement drive
+// @access  Private (TPO only)
+router.get('/placement-drives/:driveId/applications', authenticateToken, isTPO, async (req, res) => {
+  try {
+    const applications = await JobApplication.find({ job: req.params.driveId })
+      .populate('student', 'name student.rollNo student.department student.cgpa')
+      .populate('company', 'companyName')
+      .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      data: {
+        applications: applications.map(app => ({
+          id: app._id,
+          studentName: app.student.name,
+          rollNo: app.student.student.rollNo,
+          department: app.student.student.department,
+          cgpa: app.student.student.cgpa,
+          status: app.status,
+          appliedDate: app.createdAt,
+          companyName: app.company.companyName
+        }))
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching drive applications:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch drive applications'
+    });
+  }
+});
+
+// @route   POST /api/tpo/notifications
+// @desc    Create notification for students
+// @access  Private (TPO only)
+router.post('/notifications', authenticateToken, isTPO, [
+  body('title').isLength({ min: 5, max: 100 }).withMessage('Title must be between 5 and 100 characters'),
+  body('message').isLength({ min: 10, max: 500 }).withMessage('Message must be between 10 and 500 characters'),
+  body('type').isIn(['info', 'success', 'warning', 'error']).withMessage('Invalid notification type'),
+  body('recipients').optional().isArray().withMessage('Recipients must be an array'),
+  body('department').optional().isString().withMessage('Department must be a string')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    // Get TPO's institute from user document
+    const tpoUser = await User.findById(req.user._id);
+    if (!tpoUser || !tpoUser.tpo) {
+      return res.status(404).json({
+        success: false,
+        message: 'TPO profile not found'
+      });
+    }
+
+    // Build recipient filter
+    let recipientFilter = { 
+      role: 'student',
+      'student.instituteName': tpoUser.tpo.instituteName 
+    };
+
+    if (req.body.department && req.body.department !== 'All') {
+      recipientFilter['student.department'] = req.body.department;
+    }
+
+    if (req.body.recipients && req.body.recipients.length > 0) {
+      recipientFilter._id = { $in: req.body.recipients };
+    }
+
+    // Get students to notify
+    const students = await User.find(recipientFilter);
+
+    // Create notifications for each student
+    const notifications = students.map(student => ({
+      recipient: student._id,
+      sender: req.user._id,
+      title: req.body.title,
+      message: req.body.message,
+      type: req.body.type,
+      actionLink: req.body.actionLink || null
+    }));
+
+    await Notification.insertMany(notifications);
+
+    res.json({
+      success: true,
+      message: `Notification sent to ${students.length} students`,
+      data: {
+        sentCount: students.length
+      }
+    });
+  } catch (error) {
+    console.error('Error creating notifications:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create notifications'
+    });
+  }
+});
+
+// @route   GET /api/tpo/export/students
+// @desc    Export student data for TPO
+// @access  Private (TPO only)
+router.get('/export/students', authenticateToken, isTPO, tpoInstituteAccess, async (req, res) => {
+  try {
+    // Get students from TPO's institute
+    const students = await User.find({ 
+      role: 'student',
+      'student.collegeName': req.tpoInstitute 
+    }).select('-password -emailVerificationOTP -passwordResetToken');
+
+    // Get application counts for each student
+    const studentsWithApplications = await Promise.all(
+      students.map(async (student) => {
+        const applications = await JobApplication.find({ student: student._id });
+        const acceptedApplications = applications.filter(app => app.status === 'accepted');
+        
+        return {
+          name: student.name,
+          email: student.email,
+          rollNumber: student.student?.rollNumber || 'N/A',
+          branch: student.student?.branch || 'N/A',
+          cgpa: student.student?.cgpa || 'N/A',
+          isPlaced: student.student?.isPlaced || false,
+          package: student.student?.placementDetails?.package?.amount || 'N/A',
+          companyName: student.student?.placementDetails?.company || 'N/A',
+          jobTitle: student.student?.placementDetails?.role || 'N/A',
+          totalApplications: applications.length,
+          acceptedApplications: acceptedApplications.length,
+          phoneNumber: student.student?.phoneNumber || 'N/A'
+        };
+      })
+    );
+
+    res.json({
+      success: true,
+      data: {
+        students: studentsWithApplications,
+        exportDate: new Date().toISOString(),
+        totalStudents: studentsWithApplications.length,
+        placedStudents: studentsWithApplications.filter(s => s.isPlaced).length,
+        placementRate: studentsWithApplications.length > 0 
+          ? (studentsWithApplications.filter(s => s.isPlaced).length / studentsWithApplications.length * 100).toFixed(2)
+          : 0
+      }
+    });
+  } catch (error) {
+    console.error('Error exporting student data:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to export student data'
+    });
+  }
+});
+
+// @route   PUT /api/tpo/students/bulk-update
+// @desc    Bulk update students
+// @access  Private (TPO only)
+router.put('/students/bulk-update', authenticateToken, isTPO, tpoInstituteAccess, [
+  body('studentIds').isArray().withMessage('Student IDs must be an array'),
+  body('updateData').isObject().withMessage('Update data must be an object')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const { studentIds, updateData } = req.body;
+
+    // Verify all students belong to TPO's institute
+    try {
+      await verifyBulkInstituteAccess(studentIds, req.tpoInstitute);
+    } catch (error) {
+      return res.status(403).json({
+        success: false,
+        message: error.message
+      });
+    }
+
+    // Update students
+    const result = await User.updateMany(
+      {
+        _id: { $in: studentIds },
+        role: 'student',
+        'student.collegeName': req.tpoInstitute
+      },
+      { $set: updateData }
+    );
+
+    res.json({
+      success: true,
+      message: `Updated ${result.modifiedCount} students successfully`,
+      data: {
+        modifiedCount: result.modifiedCount
+      }
+    });
+  } catch (error) {
+    console.error('Error bulk updating students:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to bulk update students'
+    });
+  }
+});
+
+// @route   GET /api/tpo/activity-feed
+// @desc    Get activity feed for TPO
+// @access  Private (TPO only)
+router.get('/activity-feed', authenticateToken, isTPO, async (req, res) => {
+  try {
+    const { limit = 20, page = 1 } = req.query;
+
+    // Get TPO's institute from user document
+    const tpoUser = await User.findById(req.user._id);
+    if (!tpoUser || !tpoUser.tpo) {
+      return res.status(404).json({
+        success: false,
+        message: 'TPO profile not found'
+      });
+    }
+
+    // Get recent activities
+    const activities = await Notification.find({
+      recipient: req.user._id
+    })
+    .sort({ createdAt: -1 })
+    .limit(parseInt(limit))
+    .skip((parseInt(page) - 1) * parseInt(limit))
+    .populate('sender', 'name email');
+
+    const totalActivities = await Notification.countDocuments({
+      recipient: req.user._id
+    });
+
+    res.json({
+      success: true,
+      data: {
+        activities: activities.map(activity => ({
+          id: activity._id,
+          title: activity.title,
+          message: activity.message,
+          type: activity.type,
+          createdAt: activity.createdAt,
+          isRead: activity.isRead,
+          sender: activity.sender ? {
+            name: activity.sender.name,
+            email: activity.sender.email
+          } : null
+        })),
+        pagination: {
+          currentPage: parseInt(page),
+          totalPages: Math.ceil(totalActivities / parseInt(limit)),
+          totalActivities,
+          hasNext: (parseInt(page) * parseInt(limit)) < totalActivities,
+          hasPrev: parseInt(page) > 1
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching activity feed:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch activity feed'
+    });
+  }
+});
+
+// @route   GET /api/tpo/placement-trends
+// @desc    Get placement trends for TPO
+// @access  Private (TPO only)
+router.get('/placement-trends', authenticateToken, isTPO, async (req, res) => {
+  try {
+    const { period = '12' } = req.query; // months
+
+    // Get TPO's institute from user document
+    const tpoUser = await User.findById(req.user._id);
+    if (!tpoUser || !tpoUser.tpo) {
+      return res.status(404).json({
+        success: false,
+        message: 'TPO profile not found'
+      });
+    }
+
+    // Get students from TPO's institute
+    const students = await User.find({ 
+      role: 'student',
+      'student.instituteName': tpoUser.tpo.instituteName 
+    });
+
+    // Get applications
+    const studentIds = students.map(student => student._id);
+    const applications = await JobApplication.find({
+      student: { $in: studentIds }
+    }).populate('job company student');
+
+    // Calculate trends for the specified period
+    const trends = [];
+    const currentDate = new Date();
+    
+    for (let i = parseInt(period) - 1; i >= 0; i--) {
+      const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+      const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+      
+      const monthlyApplications = applications.filter(app => 
+        app.createdAt >= date && app.createdAt <= monthEnd
+      );
+      
+      const monthlyPlacements = applications.filter(app => 
+        app.status === 'accepted' &&
+        app.updatedAt >= date && 
+        app.updatedAt <= monthEnd
+      );
+
+      trends.push({
+        month: date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+        applications: monthlyApplications.length,
+        placements: monthlyPlacements.length,
+        successRate: monthlyApplications.length > 0 
+          ? (monthlyPlacements.length / monthlyApplications.length * 100).toFixed(1)
+          : 0
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        trends,
+        period: parseInt(period)
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching placement trends:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch placement trends'
+    });
+  }
+});
+
+// @route   POST /api/tpo/students/:studentId/verify
+// @desc    Verify a student's profile and documents
+// @access  Private (TPO only)
+router.post('/students/:studentId/verify', authenticateToken, isTPO, verifyStudentInstitute, [
+  body('verificationStatus').isIn(['verified', 'pending', 'rejected']).withMessage('Invalid verification status'),
+  body('verificationNotes').optional().isString().withMessage('Verification notes must be a string')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const { verificationStatus, verificationNotes } = req.body;
+    const student = req.student; // Already verified by middleware
+
+    // Update student verification status
+    student.student.verificationStatus = verificationStatus;
+    if (verificationNotes) {
+      student.student.verificationNotes = verificationNotes;
+    }
+    student.student.verifiedBy = req.user._id;
+    student.student.verifiedAt = new Date();
+
+    await student.save();
+
+    // Create notification for student
+    const notification = new Notification({
+      recipient: student._id,
+      sender: req.user._id,
+      title: `Profile ${verificationStatus === 'verified' ? 'Verified' : verificationStatus === 'rejected' ? 'Rejected' : 'Under Review'}`,
+      message: `Your profile has been ${verificationStatus} by the TPO. ${verificationNotes ? `Notes: ${verificationNotes}` : ''}`,
+      type: verificationStatus === 'verified' ? 'achievement' : verificationStatus === 'rejected' ? 'admin' : 'general'
+    });
+    await notification.save();
+
+    res.json({
+      success: true,
+      message: `Student profile ${verificationStatus} successfully`,
+      data: {
+        student: {
+          _id: student._id,
+          name: student.name,
+          email: student.email,
+          verificationStatus: student.student.verificationStatus,
+          verificationNotes: student.student.verificationNotes
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error verifying student:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to verify student'
+    });
+  }
+});
+
+// @route   GET /api/tpo/students/verification-status
+// @desc    Get students with their verification status
+// @access  Private (TPO only)
+router.get('/students/verification-status', authenticateToken, isTPO, tpoInstituteAccess, async (req, res) => {
+  try {
+    const { status, page = 1, limit = 10 } = req.query;
+
+    // Build filter
+    const filter = buildInstituteFilter(req.tpoInstitute);
+    
+    if (status && status !== 'All') {
+      filter['student.verificationStatus'] = status;
+    }
+
+    // Calculate pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Get students with verification status
+    const students = await User.find(filter)
+      .select('name email student.rollNumber student.branch student.verificationStatus student.verificationNotes student.verifiedAt')
+      .sort({ 'student.verificationStatus': 1, name: 1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    // Get total count
+    const totalStudents = await User.countDocuments(filter);
+
+    res.json({
+      success: true,
+      data: {
+        students: students.map(student => ({
+          _id: student._id,
+          name: student.name,
+          email: student.email,
+          rollNumber: student.student?.rollNumber,
+          branch: student.student?.branch,
+          verificationStatus: student.student?.verificationStatus || 'pending',
+          verificationNotes: student.student?.verificationNotes,
+          verifiedAt: student.student?.verifiedAt
+        })),
+        pagination: {
+          currentPage: parseInt(page),
+          totalPages: Math.ceil(totalStudents / parseInt(limit)),
+          totalStudents,
+          hasNext: skip + students.length < totalStudents,
+          hasPrev: parseInt(page) > 1
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching student verification status:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch student verification status'
+    });
+  }
+});
+
+// @route   PUT /api/tpo/students/:id/approve
+// @desc    Approve student profile
+// @access  Private (TPO only)
+router.put('/students/:id/approve', authenticateToken, isTPO, verifyStudentInstitute, async (req, res) => {
+  try {
+    const student = await User.findById(req.params.id);
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student not found'
+      });
+    }
+
+    // Update student approval status
+    student.approvalStatus = 'Approved';
+    student.approvedAt = new Date();
+    student.approvedBy = req.user._id;
+    await student.save();
+
+    // Create notification for student
+    const notification = new Notification({
+      recipient: student._id,
+      sender: req.user._id,
+      title: 'Profile Approved',
+      message: 'Your profile has been approved by the TPO.',
+      type: 'achievement'
+    });
+    await notification.save();
+
+    res.json({
+      success: true,
+      message: 'Student profile approved successfully',
+      data: student
+    });
+  } catch (error) {
+    console.error('Error approving student:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to approve student profile'
+    });
+  }
+});
+
+// @route   PUT /api/tpo/students/:id/reject
+// @desc    Reject student profile
+// @access  Private (TPO only)
+router.put('/students/:id/reject', authenticateToken, isTPO, verifyStudentInstitute, async (req, res) => {
+  try {
+    const { reason } = req.body;
+    const student = await User.findById(req.params.id);
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student not found'
+      });
+    }
+
+    // Update student approval status
+    student.approvalStatus = 'Rejected';
+    student.rejectedAt = new Date();
+    student.rejectedBy = req.user._id;
+    student.rejectionReason = reason;
+    await student.save();
+
+    // Create notification for student
+    const notification = new Notification({
+      recipient: student._id,
+      sender: req.user._id,
+      title: 'Profile Rejected',
+      message: `Your profile has been rejected. Reason: ${reason}`,
+      type: 'admin'
+    });
+    await notification.save();
+
+    res.json({
+      success: true,
+      message: 'Student profile rejected',
+      data: student
+    });
+  } catch (error) {
+    console.error('Error rejecting student:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to reject student profile'
+    });
+  }
+});
+
+// @route   PUT /api/tpo/students/bulk-approve
+// @desc    Bulk approve student profiles
+// @access  Private (TPO only)
+router.put('/students/bulk-approve', authenticateToken, isTPO, tpoInstituteAccess, async (req, res) => {
+  try {
+    const { studentIds } = req.body;
+    
+    if (!studentIds || !Array.isArray(studentIds)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Student IDs array is required'
+      });
+    }
+
+    // Verify all students belong to TPO's institute
+    try {
+      await verifyBulkInstituteAccess(studentIds, req.tpoInstitute);
+    } catch (error) {
+      return res.status(403).json({
+        success: false,
+        message: error.message
+      });
+    }
+
+    // Update all students
+    const result = await User.updateMany(
+      {
+        _id: { $in: studentIds },
+        role: 'student',
+        'student.collegeName': req.tpoInstitute
+      },
+      {
+        $set: {
+          approvalStatus: 'Approved',
+          approvedAt: new Date(),
+          approvedBy: req.user._id
+        }
+      }
+    );
+
+    res.json({
+      success: true,
+      message: `Approved ${result.modifiedCount} student profiles successfully`,
+      data: {
+        modifiedCount: result.modifiedCount
+      }
+    });
+  } catch (error) {
+    console.error('Error bulk approving students:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to approve student profiles'
+    });
+  }
+});
+
+// @route   GET /api/tpo/internship-offers
+// @desc    Get internship offers for TPO
+// @access  Private (TPO only)
+router.get('/internship-offers', authenticateToken, isTPO, tpoInstituteAccess, async (req, res) => {
+  try {
+    const { page = 1, limit = 10, search, status } = req.query;
+    const skip = (page - 1) * limit;
+
+    // Build filter query
+    const filter = {
+      type: 'internship'
+    };
+
+    if (search) {
+      filter.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+        { 'company.companyName': { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    if (status && status !== 'All') {
+      filter.isActive = status === 'active';
+    }
+
+    // Get internships with pagination
+    const internships = await JobPosting.find(filter)
+      .populate('company', 'companyName email')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    // Get total count for pagination
+    const totalInternships = await JobPosting.countDocuments(filter);
+    const totalPages = Math.ceil(totalInternships / limit);
+
+    res.json({
+      success: true,
+      data: {
+        internships,
+        pagination: {
+          currentPage: parseInt(page),
+          totalPages,
+          totalInternships,
+          hasNext: page < totalPages,
+          hasPrev: page > 1
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching internship offers:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch internship offers'
+    });
+  }
+});
+
+// @route   POST /api/tpo/internship-offers
+// @desc    Create new internship offer
+// @access  Private (TPO only)
+router.post('/internship-offers', authenticateToken, isTPO, tpoInstituteAccess, async (req, res) => {
+  try {
+    const internshipData = {
+      ...req.body,
+      type: 'internship',
+      createdBy: req.user._id,
+      createdAt: new Date()
+    };
+
+    const internship = new JobPosting(internshipData);
+    await internship.save();
+
+    res.json({
+      success: true,
+      message: 'Internship offer created successfully',
+      data: internship
+    });
+  } catch (error) {
+    console.error('Error creating internship offer:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create internship offer'
+    });
+  }
+});
+
+// @route   PUT /api/tpo/internship-offers/:id
+// @desc    Update internship offer
+// @access  Private (TPO only)
+router.put('/internship-offers/:id', authenticateToken, isTPO, tpoInstituteAccess, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = {
+      ...req.body,
+      updatedAt: new Date()
+    };
+
+    const internship = await JobPosting.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true }
+    );
+
+    if (!internship) {
+      return res.status(404).json({
+        success: false,
+        message: 'Internship offer not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Internship offer updated successfully',
+      data: internship
+    });
+  } catch (error) {
+    console.error('Error updating internship offer:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update internship offer'
+    });
+  }
+});
+
+// @route   DELETE /api/tpo/internship-offers/:id
+// @desc    Delete internship offer
+// @access  Private (TPO only)
+router.delete('/internship-offers/:id', authenticateToken, isTPO, tpoInstituteAccess, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const internship = await JobPosting.findByIdAndDelete(id);
+
+    if (!internship) {
+      return res.status(404).json({
+        success: false,
+        message: 'Internship offer not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Internship offer deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting internship offer:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete internship offer'
+    });
+  }
+});
+
+// @route   GET /api/tpo/internship-offers/:id/applications
+// @desc    Get applications for specific internship
+// @access  Private (TPO only)
+router.get('/internship-offers/:id/applications', authenticateToken, isTPO, tpoInstituteAccess, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const applications = await JobApplication.find({
+      jobPosting: id
+    })
+    .populate('student', 'name email student.rollNo student.department')
+    .populate('company', 'companyName')
+    .sort({ appliedDate: -1 });
+
+    res.json({
+      success: true,
+      data: {
+        applications: applications.map(app => ({
+          id: app._id,
+          studentName: app.student.name,
+          studentEmail: app.student.email,
+          rollNo: app.student.student?.rollNo,
+          department: app.student.student?.department,
+          status: app.status,
+          appliedDate: app.appliedDate,
+          company: app.company?.companyName
+        }))
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching internship applications:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch internship applications'
     });
   }
 });

@@ -112,6 +112,7 @@ const AICareerCoach = () => {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [healthy, setHealthy] = useState(null); // null=unknown, true=ok, false=down
+  const [apiKeyMissing, setApiKeyMissing] = useState(false);
   const endRef = useRef(null);
 
   useEffect(() => {
@@ -130,10 +131,48 @@ const AICareerCoach = () => {
     })();
   }, [apiBase]);
 
+  // Fallback responses for when AI service is unavailable
+  const fallbackResponses = {
+    'resume': 'To improve your resume:\n\n• Use action verbs and quantifiable achievements\n• Tailor it to each job application\n• Keep it concise (1-2 pages)\n• Include relevant keywords from job descriptions\n• Proofread thoroughly\n• Use a clean, professional format\n\nConsider using ATS-friendly templates and getting feedback from career counselors.',
+    
+    'interview': 'Interview preparation tips:\n\n• Research the company and role thoroughly\n• Practice common behavioral questions (STAR method)\n• Prepare questions to ask the interviewer\n• Dress professionally and arrive early\n• Bring copies of your resume and portfolio\n• Follow up with a thank-you email\n\nPractice with mock interviews to build confidence.',
+    
+    'internship': 'Finding internships:\n\n• Use job portals like LinkedIn, Indeed, Glassdoor\n• Network with alumni and professionals\n• Attend career fairs and company events\n• Apply to multiple positions\n• Customize your application for each role\n• Follow up on applications\n• Consider both paid and unpaid opportunities for experience',
+    
+    'skills': 'Essential skills for tech careers:\n\n• Technical: Programming languages, frameworks, tools\n• Soft skills: Communication, teamwork, problem-solving\n• Industry knowledge: Stay updated with trends\n• Certifications: Relevant professional certifications\n• Projects: Build a portfolio of work\n• Networking: Connect with professionals in your field',
+    
+    'career': 'Career development strategies:\n\n• Set clear short-term and long-term goals\n• Continuously learn and upskill\n• Build a strong professional network\n• Seek mentorship and guidance\n• Stay updated with industry trends\n• Consider different career paths and opportunities\n• Balance technical and soft skills development',
+    
+    'job': 'Job search strategies:\n\n• Use multiple job portals and company websites\n• Leverage your professional network\n• Attend career fairs and networking events\n• Optimize your LinkedIn profile\n• Apply to positions that match your skills\n• Follow up on applications\n• Prepare for interviews thoroughly',
+    
+    'default': 'I\'m here to help with your career questions! You can ask me about:\n\n• Resume writing and optimization\n• Interview preparation and techniques\n• Finding internships and job opportunities\n• Skill development and learning paths\n• Career planning and goal setting\n• Industry insights and trends\n\nWhat specific career topic would you like to discuss?'
+  };
+
+  const getFallbackResponse = (text) => {
+    const lowerText = text.toLowerCase();
+    
+    if (lowerText.includes('resume') || lowerText.includes('cv')) {
+      return fallbackResponses.resume;
+    } else if (lowerText.includes('interview')) {
+      return fallbackResponses.interview;
+    } else if (lowerText.includes('internship')) {
+      return fallbackResponses.internship;
+    } else if (lowerText.includes('skill')) {
+      return fallbackResponses.skills;
+    } else if (lowerText.includes('career')) {
+      return fallbackResponses.career;
+    } else if (lowerText.includes('job')) {
+      return fallbackResponses.job;
+    } else {
+      return fallbackResponses.default;
+    }
+  };
+
   const send = async (e) => {
     e?.preventDefault?.();
     const text = input.trim();
     if (!text) return;
+    
     // Client-side filtering: refuse restricted, require career context
     if (containsAny(text, restrictedKeywords)) {
       setMessages((m) => [
@@ -148,6 +187,7 @@ const AICareerCoach = () => {
       setInput('');
       return;
     }
+    
     const isCareer = containsAny(text, allowedKeywords);
     if (!isCareer) {
       setMessages((m) => [
@@ -162,20 +202,52 @@ const AICareerCoach = () => {
       setInput('');
       return;
     }
+    
     setMessages((m) => [...m, { role: 'user', content: text }]);
     setInput('');
     setLoading(true);
+    
     try {
       const res = await fetch(`${apiBase.replace(/\/$/, '')}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: text }),
       });
+      
       const data = await res.json();
-      const reply = res.ok ? data.reply : data.error || 'Request failed';
-      setMessages((m) => [...m, { role: res.ok ? 'assistant' : 'system', content: reply }]);
+      
+      if (res.ok) {
+        const reply = data.reply;
+        setMessages((m) => [...m, { role: 'assistant', content: reply }]);
+        setApiKeyMissing(false);
+      } else {
+        const errorMessage = data.error || 'Request failed';
+        
+        // Check if it's an API key missing error
+        if (errorMessage.includes('GROQ_API_KEY')) {
+          setApiKeyMissing(true);
+          const fallbackReply = getFallbackResponse(text);
+          setMessages((m) => [
+            ...m, 
+            { 
+              role: 'assistant', 
+              content: `🤖 AI Service Note: I'm currently operating in limited mode due to missing API configuration. Here's some helpful guidance:\n\n${fallbackReply}\n\n💡 For more personalized advice, please contact your career counselor or administrator to set up the full AI service.` 
+            }
+          ]);
+        } else {
+          setMessages((m) => [...m, { role: 'system', content: errorMessage }]);
+        }
+      }
     } catch (err) {
-      setMessages((m) => [...m, { role: 'system', content: 'Network error. Please try again.' }]);
+      // Provide fallback response on network errors too
+      const fallbackReply = getFallbackResponse(text);
+      setMessages((m) => [
+        ...m, 
+        { 
+          role: 'assistant', 
+          content: `🤖 AI Service Note: I'm currently operating in limited mode due to connection issues. Here's some helpful guidance:\n\n${fallbackReply}\n\n💡 Please try again later or contact support if the issue persists.` 
+        }
+      ]);
     } finally {
       setLoading(false);
     }
@@ -209,6 +281,24 @@ const AICareerCoach = () => {
         </div>
       </div>
 
+      {/* API Key Missing Warning */}
+      {apiKeyMissing && (
+        <div className="p-4 bg-yellow-50 border-l-4 border-yellow-400">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-yellow-700">
+                <strong>AI Service Note:</strong> Operating in limited mode. For full AI assistance, contact your administrator to configure the API.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Messages */}
       <div className="overflow-y-auto p-4 space-y-3">
         {messages.map((m, i) => (
@@ -235,7 +325,7 @@ const AICareerCoach = () => {
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask your career question..."
+            placeholder={apiKeyMissing ? "Limited mode - Ask career questions..." : "Ask your career question..."}
             className="flex-1 px-4 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
           <button
@@ -247,7 +337,10 @@ const AICareerCoach = () => {
           </button>
         </div>
         <p className="mt-2 text-xs text-gray-500">
-          The assistant only answers career-related questions and may refuse other topics.
+          {apiKeyMissing 
+            ? "Operating in limited mode with basic career guidance. Full AI service requires API configuration."
+            : "The assistant only answers career-related questions and may refuse other topics."
+          }
         </p>
       </form>
     </div>

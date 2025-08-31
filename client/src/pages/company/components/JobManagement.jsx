@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   FaBriefcase, 
   FaPlus, 
@@ -9,72 +9,45 @@ import {
   FaUsers,
   FaMapMarkerAlt,
   FaDollarSign,
-  FaCalendarAlt
+  FaCalendarAlt,
+  FaSpinner
 } from 'react-icons/fa';
+import { 
+  getCompanyJobs, 
+  createJob, 
+  updateJob, 
+  deleteJob 
+} from '../../../services/companyApi';
 
 const JobManagement = () => {
+  const [jobs, setJobs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [showJobModal, setShowJobModal] = useState(false);
   const [selectedJob, setSelectedJob] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
+  const [filterDepartment, setFilterDepartment] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
-  const jobs = [
-    {
-      id: 1,
-      title: 'Software Engineer Intern',
-      department: 'Engineering',
-      location: 'Bangalore, India',
-      salary: '₹8-12 LPA',
-      applications: 89,
-      deadline: '2024-12-15',
-      status: 'Active',
-      description: 'We are looking for a talented software engineer intern to join our team...',
-      requirements: ['React', 'Node.js', 'JavaScript', 'Git'],
-      postedDate: '2024-11-01'
-    },
-    {
-      id: 2,
-      title: 'Data Analyst',
-      department: 'Data Science',
-      location: 'Mumbai, India',
-      salary: '₹10-15 LPA',
-      applications: 67,
-      deadline: '2024-12-20',
-      status: 'Active',
-      description: 'Join our data science team to analyze and interpret complex data sets...',
-      requirements: ['Python', 'SQL', 'Tableau', 'Statistics'],
-      postedDate: '2024-11-05'
-    },
-    {
-      id: 3,
-      title: 'Product Manager Trainee',
-      department: 'Product',
-      location: 'Delhi, India',
-      salary: '₹12-18 LPA',
-      applications: 45,
-      deadline: '2024-12-25',
-      status: 'Draft',
-      description: 'Learn product management from industry experts...',
-      requirements: ['Analytics', 'Communication', 'Leadership'],
-      postedDate: '2024-11-10'
-    },
-    {
-      id: 4,
-      title: 'Frontend Developer',
-      department: 'Engineering',
-      location: 'Hyderabad, India',
-      salary: '₹15-25 LPA',
-      applications: 123,
-      deadline: '2024-12-10',
-      status: 'Active',
-      description: 'Build beautiful and responsive user interfaces...',
-      requirements: ['React', 'TypeScript', 'CSS', 'UI/UX'],
-      postedDate: '2024-10-25'
+  // Fetch jobs on component mount
+  useEffect(() => {
+    fetchJobs();
+  }, []);
+
+  const fetchJobs = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await getCompanyJobs();
+      setJobs(data);
+    } catch (err) {
+      setError('Failed to fetch jobs. Please try again.');
+      console.error('Error fetching jobs:', err);
+    } finally {
+      setLoading(false);
     }
-  ];
-
-  const filteredJobs = filterStatus === 'all' 
-    ? jobs 
-    : jobs.filter(job => job.status.toLowerCase() === filterStatus.toLowerCase());
+  };
 
   const handleEditJob = (job) => {
     setSelectedJob(job);
@@ -85,6 +58,67 @@ const JobManagement = () => {
     setSelectedJob(null);
     setShowJobModal(true);
   };
+
+  const handleDeleteJob = async (jobId) => {
+    if (!window.confirm('Are you sure you want to delete this job?')) {
+      return;
+    }
+
+    try {
+      await deleteJob(jobId);
+      setJobs(jobs.filter(job => job._id !== jobId));
+      setSuccessMessage('Job deleted successfully!');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err) {
+      setError('Failed to delete job. Please try again.');
+      console.error('Error deleting job:', err);
+    }
+  };
+
+  const handleSubmitJob = async (formData) => {
+    try {
+      setSubmitting(true);
+      setError(null);
+
+      if (selectedJob) {
+        // Update existing job
+        const updatedJob = await updateJob(selectedJob._id, formData);
+        setJobs(jobs.map(job => job._id === selectedJob._id ? updatedJob : job));
+        setSuccessMessage('Job updated successfully!');
+      } else {
+        // Create new job
+        const newJob = await createJob(formData);
+        setJobs([...jobs, newJob]);
+        setSuccessMessage('Job created successfully!');
+      }
+
+      setShowJobModal(false);
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err) {
+      setError('Failed to save job. Please try again.');
+      console.error('Error saving job:', err);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Filter jobs based on status and department
+  const filteredJobs = jobs.filter(job => {
+    const statusMatch = filterStatus === 'all' || job.status.toLowerCase() === filterStatus.toLowerCase();
+    const departmentMatch = !filterDepartment || job.department.toLowerCase() === filterDepartment.toLowerCase();
+    return statusMatch && departmentMatch;
+  });
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <FaSpinner className="animate-spin text-4xl text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600">Loading jobs...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -102,6 +136,19 @@ const JobManagement = () => {
           Post New Job
         </button>
       </div>
+
+      {/* Success/Error Messages */}
+      {successMessage && (
+        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg">
+          {successMessage}
+        </div>
+      )}
+      
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg">
+          {error}
+        </div>
+      )}
 
       {/* Filters */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
@@ -121,78 +168,103 @@ const JobManagement = () => {
           </div>
           <div className="flex items-center gap-2">
             <label className="text-sm font-medium text-gray-700">Department:</label>
-            <select className="px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            <select 
+              value={filterDepartment}
+              onChange={(e) => setFilterDepartment(e.target.value)}
+              className="px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
               <option value="">All Departments</option>
               <option value="engineering">Engineering</option>
-              <option value="data-science">Data Science</option>
+              <option value="data science">Data Science</option>
               <option value="product">Product</option>
+              <option value="marketing">Marketing</option>
+              <option value="sales">Sales</option>
             </select>
           </div>
         </div>
       </div>
 
       {/* Jobs Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredJobs.map((job) => (
-          <div key={job.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-            <div className="flex justify-between items-start mb-4">
-              <div className="flex-1">
-                <h3 className="font-semibold text-gray-800 mb-1">{job.title}</h3>
-                <p className="text-sm text-gray-600">{job.department}</p>
+      {filteredJobs.length === 0 ? (
+        <div className="text-center py-12">
+          <FaBriefcase className="text-4xl text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-600 mb-2">No jobs found</h3>
+          <p className="text-gray-500">
+            {jobs.length === 0 
+              ? "You haven't posted any jobs yet. Create your first job posting!" 
+              : "No jobs match your current filters."}
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredJobs.map((job) => (
+            <div key={job._id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+              <div className="flex justify-between items-start mb-4">
+                <div className="flex-1">
+                  <h3 className="font-semibold text-gray-800 mb-1">{job.title}</h3>
+                  <p className="text-sm text-gray-600">{job.department}</p>
+                </div>
+                <span className={`px-2 py-1 rounded-full text-xs ${
+                  job.status === 'Active' 
+                    ? 'bg-green-100 text-green-700' 
+                    : job.status === 'Draft'
+                    ? 'bg-yellow-100 text-yellow-700'
+                    : 'bg-gray-100 text-gray-700'
+                }`}>
+                  {job.status}
+                </span>
               </div>
-              <span className={`px-2 py-1 rounded-full text-xs ${
-                job.status === 'Active' 
-                  ? 'bg-green-100 text-green-700' 
-                  : 'bg-gray-100 text-gray-700'
-              }`}>
-                {job.status}
-              </span>
-            </div>
 
-            <div className="space-y-2 mb-4">
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <FaMapMarkerAlt className="w-4 h-4" />
-                {job.location}
+              <div className="space-y-2 mb-4">
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <FaMapMarkerAlt className="w-4 h-4" />
+                  {job.location}
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <FaDollarSign className="w-4 h-4" />
+                  {job.salary}
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <FaUsers className="w-4 h-4" />
+                  {job.applications || 0} applications
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <FaCalendarAlt className="w-4 h-4" />
+                  Deadline: {new Date(job.deadline).toLocaleDateString()}
+                </div>
               </div>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <FaDollarSign className="w-4 h-4" />
-                {job.salary}
-              </div>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <FaUsers className="w-4 h-4" />
-                {job.applications} applications
-              </div>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <FaCalendarAlt className="w-4 h-4" />
-                Deadline: {new Date(job.deadline).toLocaleDateString()}
-              </div>
-            </div>
 
-            <div className="flex gap-2">
-              <button 
-                onClick={() => handleEditJob(job)}
-                className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-sm"
-              >
-                <FaEdit className="w-3 h-3" />
-                Edit
-              </button>
-              <button className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-gray-50 text-gray-600 rounded-lg hover:bg-gray-100 transition-colors text-sm">
-                <FaEye className="w-3 h-3" />
-                View
-              </button>
-              <button className="px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm">
-                <FaTrash className="w-3 h-3" />
-              </button>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => handleEditJob(job)}
+                  className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-sm"
+                >
+                  <FaEdit className="w-3 h-3" />
+                  Edit
+                </button>
+                <button className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-gray-50 text-gray-600 rounded-lg hover:bg-gray-100 transition-colors text-sm">
+                  <FaEye className="w-3 h-3" />
+                  View
+                </button>
+                <button 
+                  onClick={() => handleDeleteJob(job._id)}
+                  className="px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm"
+                >
+                  <FaTrash className="w-3 h-3" />
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Job Modal */}
       {showJobModal && (
         <JobModal 
           job={selectedJob} 
-          onClose={() => setShowJobModal(false)} 
+          onClose={() => setShowJobModal(false)}
+          onSubmit={handleSubmitJob}
+          submitting={submitting}
         />
       )}
     </div>
@@ -200,13 +272,13 @@ const JobManagement = () => {
 };
 
 // Job Modal Component
-const JobModal = ({ job, onClose }) => {
+const JobModal = ({ job, onClose, onSubmit, submitting }) => {
   const [formData, setFormData] = useState({
     title: job?.title || '',
     department: job?.department || '',
     location: job?.location || '',
     salary: job?.salary || '',
-    deadline: job?.deadline || '',
+    deadline: job?.deadline ? job.deadline.split('T')[0] : '',
     description: job?.description || '',
     requirements: job?.requirements?.join(', ') || '',
     status: job?.status || 'Draft'
@@ -214,9 +286,11 @@ const JobModal = ({ job, onClose }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Handle form submission
-    console.log('Job data:', formData);
-    onClose();
+    const submitData = {
+      ...formData,
+      requirements: formData.requirements.split(',').map(req => req.trim()).filter(req => req)
+    };
+    onSubmit(submitData);
   };
 
   return (
@@ -339,14 +413,17 @@ const JobModal = ({ job, onClose }) => {
           <div className="flex gap-3 pt-4">
             <button
               type="submit"
-              className="flex-1 bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 font-medium transition-colors"
+              disabled={submitting}
+              className="flex-1 bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
+              {submitting && <FaSpinner className="animate-spin w-4 h-4" />}
               {job ? 'Update Job' : 'Post Job'}
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              disabled={submitting}
+              className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
             >
               Cancel
             </button>

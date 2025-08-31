@@ -32,7 +32,7 @@ api.interceptors.request.use(
   }
 );
 
-const CompanyApproval = () => {
+const CompanyApproval = ({ onApprovalProcessed }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCompany, setSelectedCompany] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -70,6 +70,9 @@ const CompanyApproval = () => {
       fetchCompanyRequests(); // Refresh the list
       setShowModal(false);
       setSelectedCompany(null);
+      if (onApprovalProcessed) {
+        onApprovalProcessed();
+      }
     } catch (error) {
       console.error('Error approving company:', error);
       alert('Failed to approve company: ' + (error.response?.data?.message || error.message));
@@ -86,6 +89,9 @@ const CompanyApproval = () => {
       fetchCompanyRequests(); // Refresh the list
       setShowModal(false);
       setSelectedCompany(null);
+      if (onApprovalProcessed) {
+        onApprovalProcessed();
+      }
     } catch (error) {
       console.error('Error rejecting company:', error);
       alert('Failed to reject company: ' + (error.response?.data?.message || error.message));
@@ -148,7 +154,7 @@ const CompanyApproval = () => {
         <div>
           <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
             <FaBuilding className="text-purple-600" />
-            Pending Company Approvals
+            Company Management
           </h2>
           <p className="text-gray-600">Review and approve pending company registration requests</p>
         </div>

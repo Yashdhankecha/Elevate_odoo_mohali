@@ -190,7 +190,7 @@ const TopNavbar = ({ toggleSidebar }) => {
               ) : (
                 <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
                   <span className="text-white text-xs font-medium">
-                    {getUserInitials(user?.name)}
+                    {getUserInitials(getUserDisplayName(user))}
                   </span>
                 </div>
               )}

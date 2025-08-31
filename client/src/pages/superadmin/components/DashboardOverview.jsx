@@ -35,7 +35,7 @@ api.interceptors.request.use(
   }
 );
 
-const DashboardOverview = () => {
+const DashboardOverview = ({ onNavigateToSection }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [dashboardData, setDashboardData] = useState({
@@ -43,6 +43,8 @@ const DashboardOverview = () => {
     totalCompanies: 0,
     totalJobPostings: 0,
     totalApplications: 0,
+    pendingTPOs: 0,
+    pendingCompanies: 0,
     recentActivities: []
   });
 
@@ -58,11 +60,12 @@ const DashboardOverview = () => {
         const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
         
         // Fetch all data in parallel
-        const [studentsRes, companiesRes, jobsRes, applicationsRes, activitiesRes] = await Promise.all([
+        const [studentsRes, companiesRes, jobsRes, applicationsRes, pendingRes, activitiesRes] = await Promise.all([
           api.get('/admin/total-students'),
           api.get('/admin/total-companies'),
           api.get('/admin/total-job-postings'),
           api.get('/admin/total-applications'),
+          api.get('/admin/pending-registrations'),
           api.get('/admin/recent-activities')
         ]);
 
@@ -70,6 +73,11 @@ const DashboardOverview = () => {
         const currentCompanies = companiesRes.data.count || 0;
         const currentJobs = jobsRes.data.count || 0;
         const currentApplications = applicationsRes.data.count || 0;
+        
+        // Calculate pending approvals
+        const pendingUsers = pendingRes.data.pendingUsers || [];
+        const pendingTPOs = pendingUsers.filter(user => user.role === 'tpo').length;
+        const pendingCompanies = pendingUsers.filter(user => user.role === 'company').length;
 
 
 
@@ -78,6 +86,8 @@ const DashboardOverview = () => {
           totalCompanies: currentCompanies,
           totalJobPostings: currentJobs,
           totalApplications: currentApplications,
+          pendingTPOs: pendingTPOs,
+          pendingCompanies: pendingCompanies,
           recentActivities: activitiesRes.data.activities || []
         });
       } catch (err) {
@@ -127,6 +137,8 @@ const DashboardOverview = () => {
     totalCompanies, 
     totalJobPostings, 
     totalApplications, 
+    pendingTPOs,
+    pendingCompanies,
     recentActivities
   } = dashboardData;
 
@@ -192,6 +204,59 @@ const DashboardOverview = () => {
           <div className="text-sm text-gray-600">Applications</div>
             </div>
       </div>
+
+      {/* Pending Approvals Section */}
+      {(pendingTPOs > 0 || pendingCompanies > 0) && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            <FaShieldAlt className="text-orange-600" />
+            Pending Approvals
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* TPO Approvals */}
+            {pendingTPOs > 0 && (
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-lg font-semibold text-orange-800">TPO Management</h4>
+                    <p className="text-orange-600 text-sm">{pendingTPOs} pending TPO approval{pendingTPOs !== 1 ? 's' : ''}</p>
+                  </div>
+                  <div className="text-3xl font-bold text-orange-600">{pendingTPOs}</div>
+                </div>
+                <div className="mt-3">
+                  <button 
+                    onClick={() => onNavigateToSection('tpo-approval')}
+                    className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
+                  >
+                    Review TPO Approvals
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Company Approvals */}
+            {pendingCompanies > 0 && (
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-lg font-semibold text-purple-800">Company Management</h4>
+                    <p className="text-purple-600 text-sm">{pendingCompanies} pending company approval{pendingCompanies !== 1 ? 's' : ''}</p>
+                  </div>
+                  <div className="text-3xl font-bold text-purple-600">{pendingCompanies}</div>
+                </div>
+                <div className="mt-3">
+                  <button 
+                    onClick={() => onNavigateToSection('company-approval')}
+                    className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
+                  >
+                    Review Company Approvals
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
 
 

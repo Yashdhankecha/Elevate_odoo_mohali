@@ -9,13 +9,13 @@ import {
   FaSignOutAlt
 } from 'react-icons/fa';
 
-const Sidebar = ({ activeSection, setActiveSection, isCollapsed }) => {
+const Sidebar = ({ activeSection, setActiveSection, isCollapsed, pendingTPOs = 0, pendingCompanies = 0 }) => {
   const { logout } = useAuth();
 
   const navigationItems = [
     { id: 'dashboard', label: 'Dashboard', icon: FaHome, color: 'text-blue-600' },
-    { id: 'tpo-approval', label: 'TPO Approval', icon: FaShieldAlt, color: 'text-orange-600' },
-    { id: 'company-approval', label: 'Company Approval', icon: FaBuilding, color: 'text-purple-600' }
+    { id: 'tpo-approval', label: 'TPO Management', icon: FaShieldAlt, color: 'text-orange-600' },
+    { id: 'company-approval', label: 'Company Management', icon: FaBuilding, color: 'text-purple-600' }
   ];
 
   const handleLogout = async () => {
@@ -62,6 +62,8 @@ const Sidebar = ({ activeSection, setActiveSection, isCollapsed }) => {
         {navigationItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeSection === item.id;
+          const pendingCount = item.id === 'tpo-approval' ? pendingTPOs : 
+                              item.id === 'company-approval' ? pendingCompanies : 0;
           
           return (
             <button
@@ -73,7 +75,14 @@ const Sidebar = ({ activeSection, setActiveSection, isCollapsed }) => {
                   : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'
               }`}
             >
-              <Icon className={`w-5 h-5 ${isActive ? item.color : 'text-gray-500'}`} />
+              <div className="relative">
+                <Icon className={`w-5 h-5 ${isActive ? item.color : 'text-gray-500'}`} />
+                {pendingCount > 0 && (
+                  <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    {pendingCount > 9 ? '9+' : pendingCount}
+                  </div>
+                )}
+              </div>
               {!isCollapsed && (
                 <span className={`font-medium ${isActive ? 'text-red-700' : 'text-gray-700'}`}>
                   {item.label}

@@ -1,30 +1,61 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   FaChartBar, 
   FaBriefcase, 
   FaUsers, 
   FaCalendarAlt, 
-  FaBullhorn, 
-  FaBuilding, 
   FaFileAlt, 
   FaCog,
-  FaBars
+  FaBars,
+  FaUser,
+  FaSignOutAlt,
+  FaBuilding
 } from 'react-icons/fa';
+import { useAuth } from '../../../contexts/AuthContext';
+import { getUserDisplayName, getUserInitials } from '../../../utils/helpers';
 
 const Sidebar = ({ activeSection, setActiveSection, isCollapsed }) => {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const profileRef = useRef();
+
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: FaChartBar },
     { id: 'jobs', label: 'Job Management', icon: FaBriefcase },
     { id: 'applications', label: 'Applications', icon: FaUsers },
     { id: 'interviews', label: 'Interviews', icon: FaCalendarAlt },
-    { id: 'announcements', label: 'Announcements', icon: FaBullhorn },
-    { id: 'profile', label: 'Company Profile', icon: FaBuilding },
     { id: 'reports', label: 'Reports', icon: FaFileAlt },
     { id: 'settings', label: 'Settings', icon: FaCog },
   ];
 
+  const handleProfile = () => {
+    setIsProfileOpen(false);
+    navigate('/profile');
+  };
+
+  const handleLogout = async () => {
+    setIsProfileOpen(false);
+    await logout();
+  };
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (profileRef.current && !profileRef.current.contains(event.target)) {
+        setIsProfileOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   return (
-    <div className={`fixed left-0 top-0 h-full bg-white shadow-lg transition-all duration-300 z-40 ${
+    <div className={`fixed left-0 top-0 h-full bg-white shadow-lg transition-all duration-300 z-40 flex flex-col ${
       isCollapsed ? 'w-16' : 'w-64'
     }`}>
       {/* Logo/Brand */}
@@ -45,7 +76,7 @@ const Sidebar = ({ activeSection, setActiveSection, isCollapsed }) => {
       </div>
 
       {/* Navigation Menu */}
-      <nav className="p-4">
+      <nav className="flex-1 p-4">
         <ul className="space-y-2">
           {menuItems.map((item) => {
             const Icon = item.icon;
@@ -71,6 +102,59 @@ const Sidebar = ({ activeSection, setActiveSection, isCollapsed }) => {
           })}
         </ul>
       </nav>
+
+      {/* Bottom Section - Profile */}
+      <div className="border-t border-gray-200 p-4">
+        {/* Profile Section */}
+        <div className="relative" ref={profileRef}>
+          <button
+            onClick={() => setIsProfileOpen(!isProfileOpen)}
+            className="w-full flex items-center space-x-3 px-3 py-3 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+              <span className="text-white text-xs font-medium">
+                {getUserInitials(getUserDisplayName(user))}
+              </span>
+            </div>
+            {!isCollapsed && (
+              <div className="flex-1 text-left">
+                <p className="text-sm font-medium text-gray-800">
+                  {getUserDisplayName(user)}
+                </p>
+                <p className="text-xs text-gray-500">Company</p>
+              </div>
+            )}
+          </button>
+
+          {/* Profile Dropdown Menu */}
+          {isProfileOpen && (
+            <div className="absolute bottom-full left-0 mb-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+              <div className="px-4 py-2 border-b border-gray-100">
+                <p className="text-sm font-medium text-gray-800">{getUserDisplayName(user)}</p>
+                <p className="text-xs text-gray-500">{user?.email || 'user@example.com'}</p>
+              </div>
+              
+              <button 
+                onClick={handleProfile}
+                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
+              >
+                <FaUser className="text-gray-500" />
+                <span>Profile</span>
+              </button>
+              
+              <div className="border-t border-gray-100 my-1"></div>
+              
+              <button 
+                onClick={handleLogout}
+                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
+              >
+                <FaSignOutAlt className="text-red-500" />
+                <span>Sign Out</span>
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

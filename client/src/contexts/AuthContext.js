@@ -36,6 +36,17 @@ export const AuthProvider = ({ children }) => {
         try {
           const response = await getCurrentUser();
           setUser(response.user);
+          
+          // Check if user is not verified and redirect to not-verified page
+          if (response.user && !response.user.isVerified) {
+            navigate('/not-verified', { 
+              state: { 
+                email: response.user.email,
+                role: response.user.role,
+                message: 'Please verify your email address to access your dashboard.' 
+              } 
+            });
+          }
         } catch (error) {
           console.error('Auth check failed:', error);
           localStorage.removeItem('token');
@@ -46,7 +57,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     checkAuth();
-  }, [token]);
+  }, [token, navigate]);
 
   // Helper function to get dashboard route based on user role
   const getDashboardRoute = (userRole) => {
@@ -76,6 +87,18 @@ export const AuthProvider = ({ children }) => {
       setUser(userData);
       
       toast.success('Login successful!');
+      
+      // Check if user is not verified
+      if (!userData.isVerified) {
+        navigate('/not-verified', { 
+          state: { 
+            email: userData.email,
+            role: userData.role,
+            message: 'Please verify your email address to access your dashboard.' 
+          } 
+        });
+        return { success: true, requiresVerification: true };
+      }
       
       // Check if TPO or Company user is pending approval
       if ((userData.role === 'tpo' || userData.role === 'company') && userData.status === 'pending') {

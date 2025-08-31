@@ -11,6 +11,11 @@ const jobSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  department: {
+    type: String,
+    required: true,
+    trim: true
+  },
   description: {
     type: String,
     required: true
@@ -24,29 +29,20 @@ const jobSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  salary: {
+    type: String,
+    required: true,
+    trim: true
+  },
   type: {
     type: String,
     enum: ['full-time', 'part-time', 'internship', 'contract'],
     default: 'full-time'
   },
-  salary: {
-    min: {
-      type: Number,
-      required: true
-    },
-    max: {
-      type: Number,
-      required: true
-    },
-    currency: {
-      type: String,
-      default: 'USD'
-    }
-  },
   status: {
     type: String,
-    enum: ['active', 'closed', 'draft'],
-    default: 'active'
+    enum: ['Active', 'Draft', 'Closed'],
+    default: 'Draft'
   },
   applications: [{
     type: mongoose.Schema.Types.ObjectId,

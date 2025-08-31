@@ -13,6 +13,7 @@ import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import Profile from './pages/Profile';
 import ApprovalInProcess from './pages/ApprovalInProcess';
+import NotVerified from './pages/NotVerified';
 import StudentDashboard from './pages/student/StudentDashboard';
 import CompanyDashboard from './pages/company/CompanyDashboard';
 import TPODashboard from './pages/tpo/TPODashboard';
@@ -23,7 +24,8 @@ function ConditionalNavbar() {
   const location = useLocation();
   const isDashboardPage = location.pathname.includes('-dashboard') || 
                           location.pathname === '/dashboard' ||
-                          location.pathname === '/approval-pending';
+                          location.pathname === '/approval-pending' ||
+                          location.pathname === '/not-verified';
   const isAuthPage = location.pathname === '/login' || 
                      location.pathname === '/signup' || 
                      location.pathname === '/verify-otp' || 
@@ -41,7 +43,9 @@ function ConditionalNavbar() {
 // Component to conditionally apply main styling
 function ConditionalMain({ children }) {
   const location = useLocation();
-  const isDashboardPage = location.pathname.includes('-dashboard') || location.pathname === '/dashboard';
+  const isDashboardPage = location.pathname.includes('-dashboard') || 
+                          location.pathname === '/dashboard' ||
+                          location.pathname === '/not-verified';
   const isAuthPage = location.pathname === '/login' || 
                      location.pathname === '/signup' || 
                      location.pathname === '/verify-otp' || 
@@ -75,6 +79,7 @@ function App() {
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/approval-pending" element={<ApprovalInProcess />} />
+                <Route path="/not-verified" element={<NotVerified />} />
                 
                 {/* Role-based dashboard routes */}
                 <Route 

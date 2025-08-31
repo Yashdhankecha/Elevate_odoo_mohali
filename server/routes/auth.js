@@ -340,6 +340,73 @@ router.post('/verify-otp', [
   }
 });
 
+// @route   POST /api/auth/resend-verification
+// @desc    Resend verification OTP
+// @access  Public
+router.post('/resend-verification', [
+  body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const { email } = req.body;
+
+    // Find user
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Check if user is already verified
+    if (user.isVerified) {
+      return res.status(400).json({
+        success: false,
+        message: 'Account is already verified'
+      });
+    }
+
+    // Generate new OTP
+    const otp = user.generateOTP();
+    await user.save();
+
+    // Send OTP email
+    const emailSent = await sendOTPEmail(user.email, user.getDisplayName(), otp);
+    
+    if (!emailSent) {
+      console.log('❌ Email failed, but continuing in development mode');
+      // In development mode, we continue even if email fails
+      if (process.env.NODE_ENV === 'production') {
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to send verification email. Please try again.'
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      message: 'Verification email sent successfully! Please check your inbox.'
+    });
+
+  } catch (error) {
+    console.error('Resend verification error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error. Please try again.'
+    });
+  }
+});
+
 // @route   POST /api/auth/login
 // @desc    Login user
 // @access  Public
