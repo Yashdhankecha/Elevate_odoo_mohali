@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 require('dotenv').config();
 
 // Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://tripod:karanharshyash@clustercgc.lb9dcwd.mongodb.net/elevate_odoo_mohali?retryWrites=true&w=majority&appName=ClusterCGC', {
+mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
@@ -14,7 +14,7 @@ const checkAllCollections = async () => {
     // Wait for connection to be ready
     await mongoose.connection.asPromise();
     const db = mongoose.connection.db;
-    
+
     // Check users collection
     const usersCount = await db.collection('users').countDocuments();
     console.log(`📊 users collection: ${usersCount} documents`);
@@ -53,7 +53,7 @@ const checkAllCollections = async () => {
 
     // Show sample documents from each collection
     console.log(`\n📋 Sample Documents:`);
-    
+
     if (studentsCount > 0) {
       const sampleStudent = await db.collection('students').findOne();
       console.log(`\n👨‍🎓 Sample Student:`);

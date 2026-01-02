@@ -63,7 +63,7 @@ const applicationSchema = new mongoose.Schema({
 });
 
 // Index for better query performance
-applicationSchema.index({ job: 1, applicant: 1 });
+
 applicationSchema.index({ company: 1, status: 1 });
 applicationSchema.index({ appliedAt: -1 });
 applicationSchema.index({ status: 1, reviewedAt: 1 });
