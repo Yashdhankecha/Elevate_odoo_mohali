@@ -11,31 +11,25 @@ import JobManagement from './components/JobManagement';
 import ReportsAnalytics from './components/ReportsAnalytics';
 import ApprovalPending from './components/ApprovalPending';
 
+import { useAuth } from '../../contexts/AuthContext';
+
 const TPODashboard = () => {
+  const { user } = useAuth();
   const [activeSection, setActiveSection] = useState('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [userStatus, setUserStatus] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [userStatus, setUserStatus] = useState(user?.status || 'pending');
+  const [loading, setLoading] = useState(false); // AuthContext handles initial loading
+
+  useEffect(() => {
+    console.log('TPODashboard mounted. User:', user);
+    if (user) {
+      setUserStatus(user.status || 'pending');
+    }
+  }, [user]);
 
   const toggleSidebar = () => {
     setSidebarCollapsed(!sidebarCollapsed);
   };
-
-  useEffect(() => {
-    const checkUserStatus = () => {
-      try {
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
-        setUserStatus(user.status || 'pending');
-        setLoading(false);
-      } catch (error) {
-        console.error('Error parsing user data:', error);
-        setUserStatus('pending');
-        setLoading(false);
-      }
-    };
-
-    checkUserStatus();
-  }, []);
 
   const renderContent = () => {
     switch (activeSection) {
@@ -74,12 +68,12 @@ const TPODashboard = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Sidebar */}
-      <Sidebar 
-        activeSection={activeSection} 
+      <Sidebar
+        activeSection={activeSection}
         setActiveSection={setActiveSection}
         isCollapsed={sidebarCollapsed}
       />
-      
+
       {/* Main Content Area */}
       <div className={`transition-all duration-300 ${sidebarCollapsed ? 'ml-16' : 'ml-64'}`}>
         {/* Main Content */}

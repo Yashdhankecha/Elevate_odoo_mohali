@@ -1,28 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
 import { getUserDisplayName, getUserInitials } from '../../../utils/helpers';
 import { 
-  FaUsers, 
-  FaBuilding, 
+  FaUsers,  
   FaBriefcase, 
   FaGraduationCap, 
-  FaChartBar, 
-  FaCog,
-  FaCalendarAlt,
-  FaFileAlt,
+  FaChartBar,  
+  FaCalendarAlt, 
   FaHome,
-  FaChevronLeft,
-  FaChevronRight,
-  FaBell,
-  FaUser,
-  FaSignOutAlt,
-  FaKey,
-  FaTrash
+  FaSignOutAlt, 
 } from 'react-icons/fa';
 
 const Sidebar = ({ activeSection, setActiveSection, isCollapsed }) => {
-  const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const profileRef = useRef();

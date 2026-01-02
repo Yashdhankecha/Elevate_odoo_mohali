@@ -11,7 +11,6 @@ import {
   FaSignOutAlt,
   FaGraduationCap,
   FaBars,
-  FaTimes,
   FaCheckCircle,
   FaExclamationTriangle
 } from 'react-icons/fa';
