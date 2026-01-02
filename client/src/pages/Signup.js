@@ -1,13 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
-import { FaUserGraduate, FaBuilding, FaChalkboardTeacher } from 'react-icons/fa';
-import { registerUser } from '../utils/api';
+import { FaUserGraduate, FaBuilding, FaChalkboardTeacher, FaSearch, FaCheckCircle } from 'react-icons/fa';
+import { HiEye, HiEyeOff } from 'react-icons/hi';
+import { registerUser, getCollegesWithTPOs, searchTPOs } from '../utils/api';
 
 const Signup = () => {
   const navigate = useNavigate();
   const [selectedRole, setSelectedRole] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [collegeSuggestions, setCollegeSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isSearchingColleges, setIsSearchingColleges] = useState(false);
+  const [selectedTPO, setSelectedTPO] = useState(null);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -49,6 +56,45 @@ const Signup = () => {
       ...prev,
       [name]: value
     }));
+
+    // Handle college name search for students
+    if (name === 'collegeName' && selectedRole === 'student') {
+      searchColleges(value);
+    }
+  };
+
+  const searchColleges = async (collegeName) => {
+    if (!collegeName || collegeName.trim().length < 2) {
+      setCollegeSuggestions([]);
+      setShowSuggestions(false);
+      setSelectedTPO(null);
+      return;
+    }
+
+    setIsSearchingColleges(true);
+    try {
+      const response = await searchTPOs(collegeName);
+      if (response.success) {
+        setCollegeSuggestions(response.tpos);
+        setShowSuggestions(response.tpos.length > 0);
+      }
+    } catch (error) {
+      console.error('Error searching colleges:', error);
+      setCollegeSuggestions([]);
+      setShowSuggestions(false);
+    } finally {
+      setIsSearchingColleges(false);
+    }
+  };
+
+  const selectCollege = (college) => {
+    setFormData(prev => ({
+      ...prev,
+      collegeName: college.instituteName
+    }));
+    setSelectedTPO(college);
+    setShowSuggestions(false);
+    setCollegeSuggestions([]);
   };
 
   const validateForm = () => {
@@ -77,6 +123,11 @@ const Signup = () => {
       case 'student':
         if (!formData.name || !formData.rollNumber || !formData.branch || !formData.graduationYear || !formData.collegeName) {
           toast.error('Please fill in all student fields');
+          return false;
+        }
+        // Validate that a college with active TPO is selected
+        if (!selectedTPO) {
+          toast.error('Please select a college with an active TPO from the suggestions');
           return false;
         }
         break;
@@ -133,16 +184,23 @@ const Signup = () => {
       }
     } catch (error) {
       console.error('Signup error:', error);
-      toast.error(error.response?.data?.message || 'Signup failed. Please try again.');
+      const errorMessage = error.response?.data?.message || 'Signup failed. Please try again.';
+      
+      // Handle specific error for no active TPO
+      if (error.response?.data?.code === 'NO_ACTIVE_TPO') {
+        toast.error('No active TPO found for this college. Please select a college from the suggestions or contact your college administration to register a TPO first.');
+      } else {
+        toast.error(errorMessage);
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
   const renderStudentFields = () => (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div>
-        <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="name" className="block text-sm font-semibold text-gray-700 mb-2">
           Full Name *
         </label>
         <input
@@ -151,14 +209,14 @@ const Signup = () => {
           name="name"
           value={formData.name}
           onChange={handleInputChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 hover:border-gray-300"
           placeholder="Enter your full name"
           required
         />
       </div>
 
       <div>
-        <label htmlFor="rollNumber" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="rollNumber" className="block text-sm font-semibold text-gray-700 mb-2">
           Roll Number *
         </label>
         <input
@@ -167,14 +225,14 @@ const Signup = () => {
           name="rollNumber"
           value={formData.rollNumber}
           onChange={handleInputChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 hover:border-gray-300"
           placeholder="Enter your roll number"
           required
         />
       </div>
 
       <div>
-        <label htmlFor="branch" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="branch" className="block text-sm font-semibold text-gray-700 mb-2">
           Branch *
         </label>
         <input
@@ -183,14 +241,14 @@ const Signup = () => {
           name="branch"
           value={formData.branch}
           onChange={handleInputChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 hover:border-gray-300"
           placeholder="e.g., Computer Science, Mechanical, etc."
           required
         />
       </div>
 
       <div>
-        <label htmlFor="graduationYear" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="graduationYear" className="block text-sm font-semibold text-gray-700 mb-2">
           Graduation Year *
         </label>
         <input
@@ -199,7 +257,7 @@ const Signup = () => {
           name="graduationYear"
           value={formData.graduationYear}
           onChange={handleInputChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 hover:border-gray-300"
           placeholder="e.g., 2025"
           min={new Date().getFullYear()}
           max={new Date().getFullYear() + 10}
@@ -207,28 +265,85 @@ const Signup = () => {
         />
       </div>
 
-      <div>
-        <label htmlFor="collegeName" className="block text-sm font-medium text-gray-700 mb-1">
+      <div className="relative">
+        <label htmlFor="collegeName" className="block text-sm font-semibold text-gray-700 mb-2">
           College Name *
         </label>
-        <input
-          type="text"
-          id="collegeName"
-          name="collegeName"
-          value={formData.collegeName}
-          onChange={handleInputChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="Enter your college name"
-          required
-        />
+        <div className="relative">
+          <input
+            type="text"
+            id="collegeName"
+            name="collegeName"
+            value={formData.collegeName}
+            onChange={handleInputChange}
+            onFocus={() => {
+              if (collegeSuggestions.length > 0) {
+                setShowSuggestions(true);
+              }
+            }}
+            onBlur={() => {
+              // Delay hiding suggestions to allow clicking on them
+              setTimeout(() => setShowSuggestions(false), 200);
+            }}
+            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 hover:border-gray-300"
+            placeholder="Start typing your college name..."
+            required
+          />
+          {isSearchingColleges && (
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-500"></div>
+            </div>
+          )}
+          {selectedTPO && (
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+              <FaCheckCircle className="h-5 w-5 text-green-500" />
+            </div>
+          )}
+        </div>
+        
+        {/* College Suggestions Dropdown */}
+        {showSuggestions && collegeSuggestions.length > 0 && (
+          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+            {collegeSuggestions.map((college, index) => (
+              <div
+                key={index}
+                onClick={() => selectCollege(college)}
+                className="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+              >
+                <div className="font-medium text-gray-900">{college.instituteName}</div>
+                <div className="text-sm text-gray-600">
+                  TPO: {college.tpoName} • {college.tpoEmail}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        
+        {/* Selected TPO Info */}
+        {selectedTPO && (
+          <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-center text-green-800">
+              <FaCheckCircle className="h-4 w-4 mr-2" />
+              <span className="text-sm font-medium">College verified with active TPO</span>
+            </div>
+            <div className="mt-1 text-sm text-green-700">
+              TPO: {selectedTPO.tpoName} • Contact: {selectedTPO.tpoContact}
+            </div>
+          </div>
+        )}
+        
+        {/* Help Text */}
+        <div className="mt-1 text-xs text-gray-500">
+          Only colleges with registered and active TPOs are allowed. Start typing to search.
+        </div>
       </div>
     </div>
   );
 
   const renderCompanyFields = () => (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div>
-        <label htmlFor="companyName" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="companyName" className="block text-sm font-semibold text-gray-700 mb-2">
           Company Name *
         </label>
         <input
@@ -237,14 +352,14 @@ const Signup = () => {
           name="companyName"
           value={formData.companyName}
           onChange={handleInputChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 hover:border-gray-300"
           placeholder="Enter your company name"
           required
         />
       </div>
 
       <div>
-        <label htmlFor="contactNumber" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="contactNumber" className="block text-sm font-semibold text-gray-700 mb-2">
           Contact Number *
         </label>
         <input
@@ -253,7 +368,7 @@ const Signup = () => {
           name="contactNumber"
           value={formData.contactNumber}
           onChange={handleInputChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 hover:border-gray-300"
           placeholder="Enter contact number"
           required
         />
@@ -262,9 +377,9 @@ const Signup = () => {
   );
 
   const renderTPOFields = () => (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div>
-        <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="name" className="block text-sm font-semibold text-gray-700 mb-2">
           Full Name *
         </label>
         <input
@@ -273,14 +388,14 @@ const Signup = () => {
           name="name"
           value={formData.name}
           onChange={handleInputChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 hover:border-gray-300"
           placeholder="Enter your full name"
           required
         />
       </div>
 
       <div>
-        <label htmlFor="instituteName" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="instituteName" className="block text-sm font-semibold text-gray-700 mb-2">
           Institute Name *
         </label>
         <input
@@ -289,14 +404,14 @@ const Signup = () => {
           name="instituteName"
           value={formData.instituteName}
           onChange={handleInputChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 hover:border-gray-300"
           placeholder="Enter your institute name"
           required
         />
       </div>
 
       <div>
-        <label htmlFor="contactNumber" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="contactNumber" className="block text-sm font-semibold text-gray-700 mb-2">
           Contact Number *
         </label>
         <input
@@ -305,7 +420,7 @@ const Signup = () => {
           name="contactNumber"
           value={formData.contactNumber}
           onChange={handleInputChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 hover:border-gray-300"
           placeholder="Enter contact number"
           required
         />
@@ -314,63 +429,68 @@ const Signup = () => {
   );
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Elevate</h1>
-          <h2 className="text-2xl font-semibold text-gray-700 mb-6">Create Your Account</h2>
+        <div className="text-center animate-fade-in">
+          <div className="mb-6">
+            <div className="mx-auto w-16 h-16 bg-gradient-to-r from-primary-600 to-primary-700 rounded-2xl flex items-center justify-center shadow-lg">
+              <span className="text-2xl font-bold text-white">E</span>
+            </div>
+          </div>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-primary-600 to-primary-800 bg-clip-text text-transparent mb-2">Elevate</h1>
+          <h2 className="text-2xl font-semibold text-gray-800 mb-2">Create Your Account</h2>
           <p className="text-gray-600">Join the placement tracking platform</p>
         </div>
 
         {/* Role Selection */}
-        <div className="bg-white rounded-lg p-6 shadow-lg">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Select Your Role</h3>
-          <div className="grid grid-cols-3 gap-3 mb-6">
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-white/20">
+          <h3 className="text-xl font-semibold text-gray-800 mb-6 text-center">Select Your Role</h3>
+          <div className="grid grid-cols-3 gap-4 mb-8">
             <button
               type="button"
               onClick={() => handleRoleSelect('student')}
-              className={`p-4 rounded-lg border-2 transition-all duration-200 ${
+              className={`p-4 rounded-xl border-2 transition-all duration-200 transform hover:scale-105 ${
                 selectedRole === 'student'
-                  ? 'border-blue-500 bg-blue-50 text-blue-700'
-                  : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                  ? 'border-primary-500 bg-primary-50 text-primary-700 shadow-lg'
+                  : 'border-gray-200 hover:border-primary-300 text-gray-600 hover:bg-gray-50'
               }`}
             >
               <FaUserGraduate className="mx-auto text-2xl mb-2" />
-              <span className="text-sm font-medium">Student</span>
+              <span className="text-sm font-semibold">Student</span>
             </button>
 
             <button
               type="button"
               onClick={() => handleRoleSelect('company')}
-              className={`p-4 rounded-lg border-2 transition-all duration-200 ${
+              className={`p-4 rounded-xl border-2 transition-all duration-200 transform hover:scale-105 ${
                 selectedRole === 'company'
-                  ? 'border-blue-500 bg-blue-50 text-blue-700'
-                  : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                  ? 'border-primary-500 bg-primary-50 text-primary-700 shadow-lg'
+                  : 'border-gray-200 hover:border-primary-300 text-gray-600 hover:bg-gray-50'
               }`}
             >
               <FaBuilding className="mx-auto text-2xl mb-2" />
-              <span className="text-sm font-medium">Company</span>
+              <span className="text-sm font-semibold">Company</span>
             </button>
 
             <button
               type="button"
               onClick={() => handleRoleSelect('tpo')}
-              className={`p-4 rounded-lg border-2 transition-all duration-200 ${
+              className={`p-4 rounded-xl border-2 transition-all duration-200 transform hover:scale-105 ${
                 selectedRole === 'tpo'
-                  ? 'border-blue-500 bg-blue-50 text-blue-700'
-                  : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                  ? 'border-primary-500 bg-primary-50 text-primary-700 shadow-lg'
+                  : 'border-gray-200 hover:border-primary-300 text-gray-600 hover:bg-gray-50'
               }`}
             >
               <FaChalkboardTeacher className="mx-auto text-2xl mb-2" />
-              <span className="text-sm font-medium">TPO</span>
+              <span className="text-sm font-semibold">TPO</span>
             </button>
           </div>
 
           {selectedRole && (
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-5">
               {/* Common Fields */}
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">
                   Email Address *
                 </label>
                 <input
@@ -379,42 +499,68 @@ const Signup = () => {
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 hover:border-gray-300"
                   placeholder="Enter your email"
                   required
                 />
               </div>
 
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-2">
                   Password *
                 </label>
-                <input
-                  type="password"
-                  id="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Create a password"
-                  required
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    id="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 pr-12 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 hover:border-gray-300"
+                    placeholder="Create a password (min. 6 characters)"
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="absolute inset-y-0 right-0 pr-4 flex items-center hover:bg-gray-50 rounded-r-xl transition-colors duration-200"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? (
+                      <HiEyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                    ) : (
+                      <HiEye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                    )}
+                  </button>
+                </div>
               </div>
 
               <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="confirmPassword" className="block text-sm font-semibold text-gray-700 mb-2">
                   Confirm Password *
                 </label>
-                <input
-                  type="password"
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Confirm your password"
-                  required
-                />
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    value={formData.confirmPassword}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 pr-12 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 hover:border-gray-300"
+                    placeholder="Confirm your password"
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="absolute inset-y-0 right-0 pr-4 flex items-center hover:bg-gray-50 rounded-r-xl transition-colors duration-200"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  >
+                    {showConfirmPassword ? (
+                      <HiEyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                    ) : (
+                      <HiEye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                    )}
+                  </button>
+                </div>
               </div>
 
               {/* Role-specific fields */}
@@ -425,18 +571,25 @@ const Signup = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white py-3 px-4 rounded-xl hover:from-primary-700 hover:to-primary-800 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
               >
-                {isLoading ? 'Creating Account...' : 'Create Account'}
+                {isLoading ? (
+                  <div className="flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                    Creating Account...
+                  </div>
+                ) : (
+                  'Create Account'
+                )}
               </button>
             </form>
           )}
         </div>
 
-        <div className="text-center">
+        <div className="text-center animate-fade-in">
           <p className="text-gray-600">
             Already have an account?{' '}
-            <Link to="/login" className="text-blue-600 hover:text-blue-500 font-medium">
+            <Link to="/login" className="font-semibold text-primary-600 hover:text-primary-700 transition-colors duration-200">
               Sign in
             </Link>
           </p>

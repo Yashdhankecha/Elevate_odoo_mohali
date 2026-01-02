@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const jobPostingSchema = new mongoose.Schema({
   company: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: 'Company',
     required: true
   },
   title: {
@@ -56,6 +56,16 @@ const jobPostingSchema = new mongoose.Schema({
   views: {
     type: Number,
     default: 0
+  },
+  // College targeting for internships
+  targetColleges: [{
+    type: String,
+    trim: true
+  }],
+  // TPO who created this posting (for college-specific internships)
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
   }
 }, {
   timestamps: true
@@ -65,5 +75,7 @@ const jobPostingSchema = new mongoose.Schema({
 jobPostingSchema.index({ company: 1, isActive: 1 });
 jobPostingSchema.index({ category: 1, isActive: 1 });
 jobPostingSchema.index({ type: 1, isActive: 1 });
+jobPostingSchema.index({ targetColleges: 1, isActive: 1 });
+jobPostingSchema.index({ createdBy: 1, isActive: 1 });
 
 module.exports = mongoose.model('JobPosting', jobPostingSchema);

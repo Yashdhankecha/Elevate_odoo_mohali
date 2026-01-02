@@ -25,11 +25,12 @@ const Login = () => {
       ...prev,
       [name]: value
     }));
-    // Clear error when user starts typing
-    if (errors[name]) {
+    // Clear errors when user starts typing
+    if (errors[name] || errors.general) {
       setErrors(prev => ({
         ...prev,
-        [name]: ''
+        [name]: '',
+        general: ''
       }));
     }
   };
@@ -57,6 +58,8 @@ const Login = () => {
     if (!validateForm()) return;
 
     setLoading(true);
+    setErrors({}); // Clear previous errors
+    
     try {
       const result = await login(formData.email, formData.password);
       if (result.success) {
@@ -70,39 +73,58 @@ const Login = () => {
             email: formData.email 
           } 
         });
+      } else if (result.requiresApproval) {
+        // Handle approval pending case
+        // Navigation is handled by AuthContext
+      } else {
+        // Show error message for failed login
+        setErrors({ general: result.message || 'Login failed. Please check your credentials.' });
       }
     } catch (error) {
       console.error('Login error:', error);
+      setErrors({ general: 'An unexpected error occurred. Please try again.' });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         {/* Header */}
-        <div className="text-center">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Elevate</h1>
-          <h2 className="text-2xl font-semibold text-gray-700 mb-2">
-            Sign in to your account
+        <div className="text-center animate-fade-in">
+          <div className="mb-6">
+            <div className="mx-auto w-16 h-16 bg-gradient-to-r from-primary-600 to-primary-700 rounded-2xl flex items-center justify-center shadow-lg">
+              <span className="text-2xl font-bold text-white">E</span>
+            </div>
+          </div>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-primary-600 to-primary-800 bg-clip-text text-transparent mb-2">Elevate</h1>
+          <h2 className="text-2xl font-semibold text-gray-800 mb-2">
+            Welcome back
           </h2>
           <p className="text-gray-600">
-            Welcome back to the placement tracking platform
+            Sign in to continue your placement journey
           </p>
         </div>
 
         {/* Login Form */}
-        <div className="bg-white rounded-lg p-6 shadow-lg">
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-white/20">
+          {/* General Error Message */}
+          {errors.general && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
+              <p className="text-sm text-red-600 font-medium">{errors.general}</p>
+            </div>
+          )}
+          
           <form className="space-y-6" onSubmit={handleSubmit}>
-            <div className="space-y-4">
+            <div className="space-y-5">
               {/* Email Field */}
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">
                   Email address
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                     <HiMail className="h-5 w-5 text-gray-400" />
                   </div>
                   <input
@@ -111,8 +133,8 @@ const Login = () => {
                     type="email"
                     autoComplete="email"
                     required
-                    className={`w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      errors.email ? 'border-red-500 focus:ring-red-500' : ''
+                    className={`w-full pl-12 pr-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 ${
+                      errors.email ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-200 hover:border-gray-300'
                     }`}
                     placeholder="Enter your email"
                     value={formData.email}
@@ -120,17 +142,17 @@ const Login = () => {
                   />
                 </div>
                 {errors.email && (
-                  <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+                  <p className="mt-2 text-sm text-red-600 font-medium">{errors.email}</p>
                 )}
               </div>
 
               {/* Password Field */}
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-2">
                   Password
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                     <HiLockClosed className="h-5 w-5 text-gray-400" />
                   </div>
                   <input
@@ -139,8 +161,8 @@ const Login = () => {
                     type={showPassword ? 'text' : 'password'}
                     autoComplete="current-password"
                     required
-                    className={`w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      errors.password ? 'border-red-500 focus:ring-red-500' : ''
+                    className={`w-full pl-12 pr-12 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 ${
+                      errors.password ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-200 hover:border-gray-300'
                     }`}
                     placeholder="Enter your password"
                     value={formData.password}
@@ -148,7 +170,7 @@ const Login = () => {
                   />
                   <button
                     type="button"
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    className="absolute inset-y-0 right-0 pr-4 flex items-center hover:bg-gray-50 rounded-r-xl transition-colors duration-200"
                     onClick={() => setShowPassword(!showPassword)}
                   >
                     {showPassword ? (
@@ -159,7 +181,7 @@ const Login = () => {
                   </button>
                 </div>
                 {errors.password && (
-                  <p className="mt-1 text-sm text-red-600">{errors.password}</p>
+                  <p className="mt-2 text-sm text-red-600 font-medium">{errors.password}</p>
                 )}
               </div>
             </div>
@@ -169,7 +191,7 @@ const Login = () => {
               <div className="text-sm">
                 <Link
                   to="/forgot-password"
-                  className="font-medium text-blue-600 hover:text-blue-500"
+                  className="font-semibold text-primary-600 hover:text-primary-700 transition-colors duration-200"
                 >
                   Forgot your password?
                 </Link>
@@ -181,7 +203,7 @@ const Login = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 flex justify-center items-center"
+                className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white py-3 px-4 rounded-xl hover:from-primary-700 hover:to-primary-800 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex justify-center items-center font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
               >
                 {loading ? (
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
@@ -197,12 +219,12 @@ const Login = () => {
         </div>
 
         {/* Footer */}
-        <div className="text-center">
+        <div className="text-center animate-fade-in">
           <p className="text-gray-600">
             Don't have an account?{' '}
             <Link
               to="/signup"
-              className="font-medium text-blue-600 hover:text-blue-500"
+              className="font-semibold text-primary-600 hover:text-primary-700 transition-colors duration-200"
             >
               Sign up here
             </Link>

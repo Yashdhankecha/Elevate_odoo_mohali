@@ -2,6 +2,10 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const Student = require('../models/Student');
+const Company = require('../models/Company');
+const TPO = require('../models/TPO');
+const SuperAdmin = require('../models/SuperAdmin');
 const { sendOTPEmail, sendPasswordResetEmail } = require('../utils/emailService');
 const { authenticateToken } = require('../middleware/auth');
 
@@ -97,6 +101,79 @@ const getValidationRules = (role) => {
   }
 };
 
+// @route   GET /api/auth/colleges-with-tpos
+// @desc    Get list of colleges that have registered and active TPOs
+// @access  Public
+router.get('/colleges-with-tpos', async (req, res) => {
+  try {
+    const colleges = await User.find({
+      role: 'tpo',
+      status: 'active'
+    }).select('tpo.instituteName tpo.name email tpo.contactNumber');
+
+    const collegeList = colleges.map(user => ({
+      instituteName: user.tpo.instituteName,
+      tpoName: user.tpo.name,
+      tpoEmail: user.email,
+      tpoContact: user.tpo.contactNumber
+    }));
+
+    res.json({
+      success: true,
+      colleges: collegeList
+    });
+  } catch (error) {
+    console.error('Error fetching colleges with TPOs:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching colleges with TPOs'
+    });
+  }
+});
+
+// @route   GET /api/auth/search-tpos
+// @desc    Search TPOs by college name (for autocomplete)
+// @access  Public
+router.get('/search-tpos', async (req, res) => {
+  try {
+    const { collegeName } = req.query;
+    
+    if (!collegeName || collegeName.trim().length < 2) {
+      return res.json({
+        success: true,
+        tpos: []
+      });
+    }
+
+    const tpos = await User.find({
+      role: 'tpo',
+      status: 'active',
+      'tpo.instituteName': { 
+        $regex: collegeName.trim(), 
+        $options: 'i' 
+      }
+    }).select('tpo.instituteName tpo.name email tpo.contactNumber');
+
+    const tpoList = tpos.map(user => ({
+      instituteName: user.tpo.instituteName,
+      tpoName: user.tpo.name,
+      tpoEmail: user.email,
+      tpoContact: user.tpo.contactNumber
+    }));
+
+    res.json({
+      success: true,
+      tpos: tpoList
+    });
+  } catch (error) {
+    console.error('Error searching TPOs:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error searching TPOs'
+    });
+  }
+});
+
 // @route   POST /api/auth/register
 // @desc    Register a new user with role-based fields
 // @access  Public
@@ -129,8 +206,21 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    // Check if user already exists
-    const existingUser = await User.findOne({ email: userData.email });
+    // Check if user already exists in any collection
+    let existingUser = await Student.findOne({ email: userData.email });
+    if (!existingUser) {
+      existingUser = await Company.findOne({ email: userData.email });
+    }
+    if (!existingUser) {
+      existingUser = await TPO.findOne({ email: userData.email });
+    }
+    if (!existingUser) {
+      existingUser = await SuperAdmin.findOne({ email: userData.email });
+    }
+    if (!existingUser) {
+      existingUser = await User.findOne({ email: userData.email });
+    }
+    
     if (existingUser) {
       return res.status(400).json({
         success: false,
@@ -140,9 +230,8 @@ router.post('/register', async (req, res) => {
 
     // Check for unique constraints based on role
     if (role === 'student' && userData.rollNumber) {
-      const existingStudent = await User.findOne({
-        role: 'student',
-        'student.rollNumber': userData.rollNumber
+      const existingStudent = await Student.findOne({
+        rollNumber: userData.rollNumber
       });
       if (existingStudent) {
         return res.status(400).json({
@@ -152,46 +241,74 @@ router.post('/register', async (req, res) => {
       }
     }
 
-    // Prepare user data based on role
-    const userFields = {
-      email: userData.email,
-      password: userData.password,
-      role: role,
-      status: 'pending' // Set status as pending for admin approval (except superadmin)
-    };
+    // For student registration, validate that the college has an active TPO
+    if (role === 'student' && userData.collegeName) {
+      const activeTPO = await TPO.findOne({
+        status: 'active',
+        instituteName: { 
+          $regex: `^${userData.collegeName.trim()}$`, 
+          $options: 'i' 
+        }
+      });
 
-    // Add role-specific data
+      if (!activeTPO) {
+        return res.status(400).json({
+          success: false,
+          message: 'No active TPO found for this college. Please contact your college administration to register a TPO first.',
+          code: 'NO_ACTIVE_TPO'
+        });
+      }
+    }
+
+    console.log('👤 Creating user with role:', role, 'email:', userData.email);
+
+    // Create new user in appropriate collection based on role
+    let user;
     switch (role) {
       case 'student':
-        userFields.student = {
+        user = new Student({
+          email: userData.email,
+          password: userData.password,
+          role: 'student',
+          status: 'pending',
+          isVerified: false,
           name: userData.name,
           rollNumber: userData.rollNumber,
           branch: userData.branch,
           graduationYear: userData.graduationYear,
           collegeName: userData.collegeName
-        };
+        });
         break;
       
       case 'company':
-        userFields.company = {
+        user = new Company({
+          email: userData.email,
+          password: userData.password,
+          role: 'company',
+          status: 'pending',
+          isVerified: false,
           companyName: userData.companyName,
           contactNumber: userData.contactNumber
-        };
+        });
         break;
       
       case 'tpo':
-        userFields.tpo = {
+        user = new TPO({
+          email: userData.email,
+          password: userData.password,
+          role: 'tpo',
+          status: 'pending',
+          isVerified: false,
           name: userData.name,
           instituteName: userData.instituteName,
           contactNumber: userData.contactNumber
-        };
+        });
         break;
+      
+      default:
+        // Fallback to User collection for other roles
+        user = new User(userFields);
     }
-
-    console.log('👤 Creating user with fields:', { email: userFields.email, role: userFields.role });
-
-    // Create new user
-    const user = new User(userFields);
 
     // Generate OTP and send verification email
     const otp = user.generateOTP();
@@ -315,12 +432,17 @@ router.post('/verify-otp', [
     user.emailVerificationOTP = undefined;
     await user.save();
 
+    // Generate token for verified user
+    const token = generateToken(user._id);
+    setTokenCookie(res, token);
+
     // Note: Status remains 'pending' until admin approval (except for superadmin)
     // Only email verification is completed here
 
     res.json({
       success: true,
       message: 'Email verified successfully! Your account is pending admin approval. You will be notified once approved.',
+      token,
       user: {
         id: user._id,
         email: user.email,
@@ -428,8 +550,25 @@ router.post('/login', [
 
     console.log('Login attempt for email:', email);
 
-    // Find user
-    const user = await User.findOne({ email });
+    // Find user in appropriate collection
+    let user = null;
+    
+    // Try to find user in each collection (same order as auth middleware)
+    user = await Student.findOne({ email });
+    if (!user) {
+      user = await Company.findOne({ email });
+      if (!user) {
+        user = await TPO.findOne({ email });
+        if (!user) {
+          user = await SuperAdmin.findOne({ email });
+          if (!user) {
+            // Check User collection for legacy users
+            user = await User.findOne({ email });
+          }
+        }
+      }
+    }
+    
     if (!user) {
       console.log('User not found for email:', email);
       return res.status(401).json({
@@ -438,12 +577,25 @@ router.post('/login', [
       });
     }
 
+    // Add role field to user object based on the collection (same as auth middleware)
+    if (user.constructor.modelName === 'Student') {
+      user.role = 'student';
+    } else if (user.constructor.modelName === 'Company') {
+      user.role = 'company';
+    } else if (user.constructor.modelName === 'TPO') {
+      user.role = 'tpo';
+    } else if (user.constructor.modelName === 'SuperAdmin') {
+      user.role = 'superadmin';
+    }
+    // For User collection, role is already set
+
     console.log('User found:', {
       id: user._id,
       email: user.email,
       role: user.role,
       status: user.status,
-      isVerified: user.isVerified
+      isVerified: user.isVerified,
+      collection: user.constructor.modelName
     });
 
     // Check password
@@ -461,8 +613,36 @@ router.post('/login', [
 
     // Check if user status is active (block pending and rejected users)
     // Superadmin users are exempt from status checks
-    if (user.role !== 'superadmin' && user.status !== 'active') {
-      if (user.status === 'pending') {
+    let userStatus = 'pending';
+    let isUserActive = false;
+    
+    if (user.constructor.modelName === 'Student') {
+      isUserActive = user.isActive;
+      userStatus = user.isActive ? 'active' : 'pending';
+    } else if (user.constructor.modelName === 'Company') {
+      isUserActive = user.isActive;
+      userStatus = user.isActive ? 'active' : 'pending';
+    } else if (user.constructor.modelName === 'TPO') {
+      userStatus = user.status;
+      isUserActive = user.status === 'active';
+    } else if (user.constructor.modelName === 'SuperAdmin') {
+      userStatus = user.status;
+      isUserActive = user.status === 'active';
+    } else {
+      // User collection
+      userStatus = user.status;
+      isUserActive = user.status === 'active';
+    }
+    
+    console.log('User status check:', {
+      collection: user.constructor.modelName,
+      role: user.role,
+      userStatus: userStatus,
+      isUserActive: isUserActive
+    });
+    
+    if (user.role !== 'superadmin' && !isUserActive) {
+      if (userStatus === 'pending') {
         let approvalMessage = 'Your registration is pending approval. Please wait for admin approval before logging in.';
         if (user.role === 'tpo') {
           approvalMessage = 'Your TPO account requires superadmin approval before activation. Please wait for approval.';
@@ -473,7 +653,7 @@ router.post('/login', [
           requiresApproval: true,
           userId: user._id
         });
-      } else if (user.status === 'rejected') {
+      } else if (userStatus === 'rejected') {
         return res.status(403).json({
           success: false,
           message: 'Your registration has been rejected. Please contact support for more information.',
@@ -502,6 +682,15 @@ router.post('/login', [
 
     console.log('Login successful for user:', email);
 
+    // Use the already calculated userStatus from above
+
+    console.log('Returning user data:', {
+      collection: user.constructor.modelName,
+      role: user.role,
+      status: userStatus,
+      isVerified: user.isVerified
+    });
+
     res.json({
       success: true,
       message: 'Login successful!',
@@ -510,7 +699,7 @@ router.post('/login', [
         id: user._id,
         email: user.email,
         role: user.role,
-        status: user.status,
+        status: userStatus,
         isVerified: user.isVerified,
         displayName: displayName,
         profilePicture: user.profilePicture
@@ -652,12 +841,28 @@ router.post('/logout', authenticateToken, (req, res) => {
 // @desc    Get current user
 // @access  Private
 router.get('/me', authenticateToken, (req, res) => {
+  // Get the correct status based on the collection
+  let userStatus = 'pending';
+  if (req.user.constructor.modelName === 'Student') {
+    userStatus = req.user.isActive ? 'active' : 'pending';
+  } else if (req.user.constructor.modelName === 'Company') {
+    userStatus = req.user.isActive ? 'active' : 'pending';
+  } else if (req.user.constructor.modelName === 'TPO') {
+    userStatus = req.user.status;
+  } else if (req.user.constructor.modelName === 'SuperAdmin') {
+    userStatus = req.user.status;
+  } else {
+    // User collection
+    userStatus = req.user.status;
+  }
+
   res.json({
     success: true,
     user: {
       id: req.user._id,
       email: req.user.email,
       role: req.user.role,
+      status: userStatus,
       isVerified: req.user.isVerified,
       displayName: req.user.getDisplayName(),
       profilePicture: req.user.profilePicture,

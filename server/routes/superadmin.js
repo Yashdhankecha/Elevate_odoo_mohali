@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
+const TPO = require('../models/TPO');
+const Company = require('../models/Company');
 const { authenticateToken } = require('../middleware/auth');
 
 // Middleware to check if user is superadmin
@@ -302,6 +304,123 @@ router.get('/system-analytics', authenticateToken, isSuperadmin, async (req, res
   } catch (error) {
     console.error('Error fetching system analytics:', error);
     res.status(500).json({ message: 'Failed to fetch system analytics' });
+  }
+});
+
+// Get all registered TPOs
+router.get('/registered-tpos', authenticateToken, isSuperadmin, async (req, res) => {
+  try {
+    const tpos = await TPO.find()
+      .select('-password -emailVerificationOTP -passwordResetToken')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    res.json(tpos);
+  } catch (error) {
+    console.error('Error fetching registered TPOs:', error);
+    res.status(500).json({ message: 'Failed to fetch registered TPOs' });
+  }
+});
+
+// Get all registered companies
+router.get('/registered-companies', authenticateToken, isSuperadmin, async (req, res) => {
+  try {
+    const companies = await Company.find()
+      .select('-password -emailVerificationOTP -passwordResetToken')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    res.json(companies);
+  } catch (error) {
+    console.error('Error fetching registered companies:', error);
+    res.status(500).json({ message: 'Failed to fetch registered companies' });
+  }
+});
+
+// Update status of TPO or Company
+router.put('/update-status/:id', authenticateToken, isSuperadmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, type } = req.body;
+
+    if (!['active', 'pending', 'rejected'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid status' });
+    }
+
+    let model;
+    if (type === 'tpo') {
+      model = TPO;
+    } else if (type === 'company') {
+      model = Company;
+    } else {
+      return res.status(400).json({ message: 'Invalid type' });
+    }
+
+    const updatedItem = await model.findByIdAndUpdate(
+      id,
+      { status: status },
+      { new: true }
+    ).select('-password -emailVerificationOTP -passwordResetToken');
+
+    if (!updatedItem) {
+      return res.status(404).json({ message: `${type} not found` });
+    }
+
+    res.json({ message: `${type} status updated successfully`, data: updatedItem });
+  } catch (error) {
+    console.error('Error updating status:', error);
+    res.status(500).json({ message: 'Failed to update status' });
+  }
+});
+
+// Get detailed statistics
+router.get('/management-stats', authenticateToken, isSuperadmin, async (req, res) => {
+  try {
+    const [tpoStats, companyStats] = await Promise.all([
+      TPO.aggregate([
+        {
+          $group: {
+            _id: '$status',
+            count: { $sum: 1 }
+          }
+        }
+      ]),
+      Company.aggregate([
+        {
+          $group: {
+            _id: '$status',
+            count: { $sum: 1 }
+          }
+        }
+      ])
+    ]);
+
+    const totalTpos = await TPO.countDocuments();
+    const totalCompanies = await Company.countDocuments();
+    const activeTpos = tpoStats.find(stat => stat._id === 'active')?.count || 0;
+    const activeCompanies = companyStats.find(stat => stat._id === 'active')?.count || 0;
+    const pendingTpos = tpoStats.find(stat => stat._id === 'pending')?.count || 0;
+    const pendingCompanies = companyStats.find(stat => stat._id === 'pending')?.count || 0;
+
+    const stats = {
+      tpos: {
+        total: totalTpos,
+        active: activeTpos,
+        pending: pendingTpos,
+        rejected: tpoStats.find(stat => stat._id === 'rejected')?.count || 0
+      },
+      companies: {
+        total: totalCompanies,
+        active: activeCompanies,
+        pending: pendingCompanies,
+        rejected: companyStats.find(stat => stat._id === 'rejected')?.count || 0
+      }
+    };
+
+    res.json(stats);
+  } catch (error) {
+    console.error('Error fetching management stats:', error);
+    res.status(500).json({ message: 'Failed to fetch management statistics' });
   }
 });
 

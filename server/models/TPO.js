@@ -159,6 +159,28 @@ tpoSchema.methods.isPasswordResetTokenExpired = function() {
   return this.passwordResetToken && this.passwordResetToken.expiresAt < new Date();
 };
 
+// Method to get display name
+tpoSchema.methods.getDisplayName = function() {
+  return this.name || 'TPO';
+};
+
+// Method to get role data
+tpoSchema.methods.getRoleData = function() {
+  return {
+    name: this.name,
+    instituteName: this.instituteName,
+    contactNumber: this.contactNumber,
+    designation: this.designation,
+    department: this.department,
+    instituteType: this.instituteType,
+    address: this.address,
+    totalStudents: this.totalStudents,
+    placedStudents: this.placedStudents,
+    averagePackage: this.averagePackage,
+    highestPackage: this.highestPackage
+  };
+};
+
 // Remove sensitive fields when converting to JSON
 tpoSchema.methods.toJSON = function() {
   const tpo = this.toObject();

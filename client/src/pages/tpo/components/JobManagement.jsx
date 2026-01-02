@@ -139,8 +139,8 @@ const JobManagement = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Job Management</h1>
-          <p className="text-gray-600">View and manage all job postings</p>
+          <h1 className="text-2xl font-bold text-gray-900">Jobs and Internships</h1>
+          <p className="text-gray-600">View and manage all job postings and internship opportunities</p>
         </div>
         <div className="flex space-x-3">
           <button
@@ -204,7 +204,7 @@ const JobManagement = () => {
               <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input
                 type="text"
-                placeholder="Search jobs..."
+                placeholder="Search jobs and internships..."
                 value={filters.search}
                 onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -297,7 +297,7 @@ const JobManagement = () => {
               ) : jobs.length === 0 ? (
                 <tr>
                   <td colSpan="7" className="px-6 py-4 text-center text-gray-500">
-                    No jobs found
+                    No jobs or internships found
                   </td>
                 </tr>
               ) : (

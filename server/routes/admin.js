@@ -173,27 +173,61 @@ router.get('/pending-registrations', authenticateToken, isSuperadmin, async (req
     const pendingTPOsFromCollection = await tposCollection.find({ 
       status: 'pending' 
     }).toArray();
+    
+    // Add role field to TPOs from tpos collection
+    pendingTPOsFromCollection.forEach(tpo => {
+      if (!tpo.role) {
+        tpo.role = 'tpo';
+      }
+    });
 
     // Get pending Companies from companies collection
     const companiesCollection = mongoose.connection.db.collection('companies');
     const pendingCompaniesFromCollection = await companiesCollection.find({ 
       status: 'pending' 
     }).toArray();
+    
+    // Add role field to companies from companies collection
+    pendingCompaniesFromCollection.forEach(company => {
+      if (!company.role) {
+        company.role = 'company';
+      }
+    });
 
     // Combine and format the results
     const allPendingUsers = [
       ...pendingUsers, 
       ...pendingTPOsFromCollection, 
       ...pendingCompaniesFromCollection
-    ].map(user => ({
-      id: user._id,
-      email: user.email,
-      role: user.role || 'tpo', // Default to tpo for backward compatibility
-      name: user.name || user.instituteName || user.companyName || 'User',
-      createdAt: user.createdAt,
-      status: 'pending',
-      instituteName: user.instituteName || user.companyName || 'N/A'
-    }));
+    ].map(user => {
+      // Determine the name based on role and collection
+      let name = 'User';
+      let instituteName = 'N/A';
+      
+      if (user.role === 'company') {
+        // For companies, use companyName from company field or direct field
+        name = user.company?.companyName || user.companyName || 'Company';
+        instituteName = user.company?.companyName || user.companyName || 'N/A';
+      } else if (user.role === 'tpo') {
+        // For TPOs, use name or instituteName
+        name = user.name || user.instituteName || 'TPO';
+        instituteName = user.instituteName || 'N/A';
+      } else {
+        // Fallback
+        name = user.name || user.instituteName || user.companyName || 'User';
+        instituteName = user.instituteName || user.companyName || 'N/A';
+      }
+      
+      return {
+        id: user._id,
+        email: user.email,
+        role: user.role || 'tpo', // Default to tpo for backward compatibility
+        name: name,
+        createdAt: user.createdAt,
+        status: 'pending',
+        instituteName: instituteName
+      };
+    });
 
     console.log(`Found ${allPendingUsers.length} pending users requiring verification`);
     res.json({ 

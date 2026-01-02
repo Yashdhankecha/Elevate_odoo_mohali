@@ -161,6 +161,25 @@ companySchema.methods.isPasswordResetTokenExpired = function() {
   return this.passwordResetToken && this.passwordResetToken.expiresAt < new Date();
 };
 
+// Method to get display name
+companySchema.methods.getDisplayName = function() {
+  return this.companyName || 'Company';
+};
+
+// Method to get role data
+companySchema.methods.getRoleData = function() {
+  return {
+    companyName: this.companyName,
+    contactNumber: this.contactNumber,
+    industry: this.industry,
+    companySize: this.companySize,
+    website: this.website,
+    address: this.address,
+    description: this.description,
+    jobPostings: this.jobPostings
+  };
+};
+
 // Remove sensitive fields when converting to JSON
 companySchema.methods.toJSON = function() {
   const company = this.toObject();

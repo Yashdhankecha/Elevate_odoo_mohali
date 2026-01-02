@@ -7,7 +7,7 @@ const JobApplication = require('./models/JobApplication');
 const Notification = require('./models/Notification');
 
 // Use the same MongoDB URI as the server
-const MONGODB_URI = 'mongodb+srv://tripod:karanharshyash@clustercgc.lb9dcwd.mongodb.net/?retryWrites=true&w=majority&appName=ClusterCGC';
+const MONGODB_URI = 'mongodb+srv://tripod:karanharshyash@clustercgc.lb9dcwd.mongodb.net/elevate_odoo_mohali?retryWrites=true&w=majority&appName=ClusterCGC';
 
 async function seedCloudDB() {
   try {

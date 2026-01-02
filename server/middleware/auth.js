@@ -1,5 +1,9 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const Student = require('../models/Student');
+const TPO = require('../models/TPO');
+const Company = require('../models/Company');
+const SuperAdmin = require('../models/SuperAdmin');
 
 // Middleware to verify JWT token
 const authenticateToken = async (req, res, next) => {
@@ -27,9 +31,25 @@ const authenticateToken = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     console.log('Token decoded, user ID:', decoded.userId);
     
-    // Find user by id
+    // Find user by id in the appropriate collection
     console.log('Finding user in database...');
-    const user = await User.findById(decoded.userId).select('-password');
+    let user = null;
+    
+    // Try to find user in each collection
+    user = await Student.findById(decoded.userId).select('-password');
+    if (!user) {
+      user = await Company.findById(decoded.userId).select('-password');
+      if (!user) {
+        user = await TPO.findById(decoded.userId).select('-password');
+        if (!user) {
+          user = await SuperAdmin.findById(decoded.userId).select('-password');
+          if (!user) {
+            // Check User collection for legacy users
+            user = await User.findById(decoded.userId).select('-password');
+          }
+        }
+      }
+    }
     
     if (!user) {
       console.log('User not found in database');
@@ -42,13 +62,41 @@ const authenticateToken = async (req, res, next) => {
 
     // Check if user status is active (block pending and rejected users)
     // Superadmin users are exempt from status checks
-    if (user.role !== 'superadmin' && user.status !== 'active') {
-      if (user.status === 'pending') {
+    let userStatus = 'pending';
+    let isUserActive = false;
+    
+    if (user.constructor.modelName === 'Student') {
+      isUserActive = user.isActive;
+      userStatus = user.isActive ? 'active' : 'pending';
+    } else if (user.constructor.modelName === 'Company') {
+      isUserActive = user.isActive;
+      userStatus = user.isActive ? 'active' : 'pending';
+    } else if (user.constructor.modelName === 'TPO') {
+      userStatus = user.status;
+      isUserActive = user.status === 'active';
+    } else if (user.constructor.modelName === 'SuperAdmin') {
+      userStatus = user.status;
+      isUserActive = user.status === 'active';
+    } else {
+      // User collection
+      userStatus = user.status;
+      isUserActive = user.status === 'active';
+    }
+    
+    console.log('Auth middleware status check:', {
+      collection: user.constructor.modelName,
+      role: user.role,
+      userStatus: userStatus,
+      isUserActive: isUserActive
+    });
+    
+    if (user.role !== 'superadmin' && !isUserActive) {
+      if (userStatus === 'pending') {
         return res.status(403).json({
           success: false,
           message: 'Your registration is pending approval. Please wait for admin approval.'
         });
-      } else if (user.status === 'rejected') {
+      } else if (userStatus === 'rejected') {
         return res.status(403).json({
           success: false,
           message: 'Your registration has been rejected. Please contact support for more information.'
@@ -65,6 +113,18 @@ const authenticateToken = async (req, res, next) => {
         message: 'Please verify your email before accessing this resource.'
       });
     }
+
+    // Add role field to user object based on the collection
+    if (user.constructor.modelName === 'Student') {
+      user.role = 'student';
+    } else if (user.constructor.modelName === 'Company') {
+      user.role = 'company';
+    } else if (user.constructor.modelName === 'TPO') {
+      user.role = 'tpo';
+    } else if (user.constructor.modelName === 'SuperAdmin') {
+      user.role = 'superadmin';
+    }
+    // For User collection, role is already set
 
     // Add user to request object
     req.user = user;

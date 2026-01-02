@@ -42,20 +42,35 @@ api.interceptors.response.use(
   (error) => {
     // Handle 401 Unauthorized errors
     if (error.response?.status === 401) {
-      // Check if user is not verified before logging out
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      if (user && !user.isVerified) {
-        // Don't log out, just redirect to not-verified page
-        window.location.href = '/not-verified';
-      } else {
-        localStorage.removeItem('token');
-        window.location.href = '/login';
+      // Only redirect if this is not a login attempt
+      // Check if the request was to login endpoint
+      const isLoginRequest = error.config?.url?.includes('/auth/login');
+      const isMeRequest = error.config?.url?.includes('/auth/me');
+      
+      if (!isLoginRequest) {
+        // Check if user is not verified before logging out
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        if (user && !user.isVerified) {
+          // Don't log out, just redirect to not-verified page
+          window.location.href = '/not-verified';
+        } else if (isMeRequest) {
+          // For /auth/me requests, let the AuthContext handle the error
+          // Don't automatically redirect here
+          console.log('401 error on /auth/me - letting AuthContext handle it');
+        } else {
+          // For other 401 errors, redirect to login
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          window.location.href = '/login';
+        }
       }
+      // For login requests, let the login component handle the error
     }
     
     // Handle 403 Forbidden errors
     if (error.response?.status === 403) {
       console.error('Access forbidden:', error.response.data);
+      // Don't automatically redirect on 403 errors, let components handle them
     }
     
     // Handle 500 Internal Server errors
@@ -134,6 +149,27 @@ export const logoutUser = async () => {
 export const getCurrentUser = async () => {
   try {
     const response = await api.get('/auth/me');
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// College and TPO search API functions
+export const getCollegesWithTPOs = async () => {
+  try {
+    const response = await api.get('/auth/colleges-with-tpos');
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const searchTPOs = async (collegeName) => {
+  try {
+    const response = await api.get('/auth/search-tpos', {
+      params: { collegeName }
+    });
     return response.data;
   } catch (error) {
     throw error;

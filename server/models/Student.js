@@ -377,6 +377,27 @@ studentSchema.methods.calculateProfileCompletion = function() {
   return this.profileCompletion;
 };
 
+// Method to get display name
+studentSchema.methods.getDisplayName = function() {
+  return this.name || 'Student';
+};
+
+// Method to get role data
+studentSchema.methods.getRoleData = function() {
+  return {
+    name: this.name,
+    rollNumber: this.rollNumber,
+    branch: this.branch,
+    graduationYear: this.graduationYear,
+    collegeName: this.collegeName,
+    cgpa: this.cgpa,
+    skills: this.skills,
+    resume: this.resume,
+    isPlaced: this.isPlaced,
+    profileCompletion: this.profileCompletion
+  };
+};
+
 // Remove sensitive fields when converting to JSON
 studentSchema.methods.toJSON = function() {
   const student = this.toObject();

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import DashboardOverview from './components/DashboardOverview';
+import Management from './components/Management';
 import TPOApproval from './components/TPOApproval';
 import CompanyApproval from './components/CompanyApproval';
 import axios from 'axios';
@@ -64,6 +65,8 @@ const SuperadminDashboard = () => {
     switch (activeSection) {
       case 'dashboard':
         return <DashboardOverview onNavigateToSection={handleNavigateToSection} />;
+      case 'management':
+        return <Management />;
       case 'tpo-approval':
         return <TPOApproval onApprovalProcessed={fetchPendingCounts} />;
       case 'company-approval':

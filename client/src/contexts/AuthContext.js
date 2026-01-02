@@ -31,7 +31,7 @@ export const AuthProvider = ({ children }) => {
 
   // Check if user is authenticated on app load
   useEffect(() => {
-    const checkAuth = async () => {
+    const checkAuth = async (retryCount = 0) => {
       if (token) {
         try {
           const response = await getCurrentUser();
@@ -49,8 +49,47 @@ export const AuthProvider = ({ children }) => {
           }
         } catch (error) {
           console.error('Auth check failed:', error);
-          localStorage.removeItem('token');
-          setToken(null);
+          
+          // Only remove token if it's a 401 (unauthorized) or 403 (forbidden) error
+          // This indicates the token is invalid or expired
+          if (error.response?.status === 401 || error.response?.status === 403) {
+            console.log('Token is invalid or expired, removing from storage');
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            setToken(null);
+            setUser(null);
+          } else {
+            // For other errors (network issues, server errors), keep the token
+            // and try to get user from localStorage as fallback
+            console.log('Non-auth error, keeping token and trying localStorage fallback');
+            const storedUser = localStorage.getItem('user');
+            if (storedUser) {
+              try {
+                const userData = JSON.parse(storedUser);
+                setUser(userData);
+              } catch (parseError) {
+                console.error('Failed to parse stored user data:', parseError);
+              }
+            }
+            
+            // Retry once for network errors (but not for auth errors)
+            if (retryCount === 0 && (!error.response || error.response.status >= 500)) {
+              console.log('Retrying auth check due to server error...');
+              setTimeout(() => checkAuth(1), 1000);
+              return; // Don't set loading to false yet
+            }
+          }
+        }
+      } else {
+        // No token, try to get user from localStorage as fallback
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+          try {
+            const userData = JSON.parse(storedUser);
+            setUser(userData);
+          } catch (parseError) {
+            console.error('Failed to parse stored user data:', parseError);
+          }
         }
       }
       setLoading(false);
@@ -158,12 +197,25 @@ export const AuthProvider = ({ children }) => {
       const { token: newToken, user: userData } = response;
       
       localStorage.setItem('token', newToken);
+      localStorage.setItem('user', JSON.stringify(userData));
       setToken(newToken);
       setUser(userData);
       
       toast.success('Account verified successfully!');
       
-      // Redirect to appropriate dashboard based on user role
+      // Check if user needs approval (Company and TPO users)
+      if ((userData.role === 'company' || userData.role === 'tpo') && userData.status === 'pending') {
+        navigate('/approval-pending', { 
+          state: { 
+            role: userData.role,
+            email: userData.email,
+            message: 'Your account is pending approval from super admin.' 
+          } 
+        });
+        return { success: true, requiresApproval: true };
+      }
+      
+      // For students and approved users, redirect to appropriate dashboard
       const dashboardRoute = getDashboardRoute(userData.role);
       navigate(dashboardRoute);
       

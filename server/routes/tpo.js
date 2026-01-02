@@ -3,6 +3,7 @@ const { body, validationResult } = require('express-validator');
 const { authenticateToken } = require('../middleware/auth');
 const { tpoInstituteAccess, verifyStudentInstitute, buildInstituteFilter, verifyBulkInstituteAccess } = require('../middleware/tpoInstituteAccess');
 const User = require('../models/User');
+const Student = require('../models/Student');
 const Company = require('../models/Company');
 const Job = require('../models/Job');
 const JobPosting = require('../models/JobPosting');
@@ -95,7 +96,7 @@ router.get('/dashboard-stats', authenticateToken, isTPO, tpoInstituteAccess, asy
         deadline: { $gte: new Date() },
         isActive: true
       })
-      .populate('company', 'companyName')
+      .populate('company', 'company')
       .sort({ deadline: 1 })
       .limit(5);
     } catch (error) {
@@ -296,31 +297,28 @@ router.post('/students', authenticateToken, isTPO, tpoInstituteAccess, [
       });
     }
 
-    // Create new student
-    const newStudent = new User({
+    // Create new student in Student collection
+    const newStudent = new Student({
       name,
       email,
       phoneNumber,
       role: 'student',
       status: 'active',
       isVerified: true,
-      student: {
-        name,
-        rollNumber,
-        branch,
-        cgpa: parseFloat(cgpa),
-        collegeName: req.tpoInstitute,
-        graduationYear: graduationYear || new Date().getFullYear(),
-        skills: skills ? skills.split(',').map(s => s.trim()).filter(s => s) : [],
-        isPlaced: isPlaced || false,
-        placementDetails: isPlaced ? {
-          company: companyName,
-          package: { amount: packageAmount ? parseFloat(packageAmount) : 0, currency: "INR", type: "CTC" },
-          role: jobTitle,
-          placementDate: new Date()
-        } : null,
-        phoneNumber
-      }
+      rollNumber,
+      branch,
+      cgpa: parseFloat(cgpa),
+      collegeName: req.tpoInstitute,
+      graduationYear: graduationYear || new Date().getFullYear(),
+      skills: skills ? skills.split(',').map(s => s.trim()).filter(s => s) : [],
+      isPlaced: isPlaced || false,
+      placementDetails: isPlaced ? {
+        company: companyName,
+        package: { amount: packageAmount ? parseFloat(packageAmount) : 0, currency: "INR", type: "CTC" },
+        role: jobTitle,
+        placementDate: new Date()
+      } : null,
+      phoneNumber
     });
 
     await newStudent.save();
@@ -429,14 +427,14 @@ router.get('/companies', authenticateToken, isTPO, async (req, res) => {
     
     if (search) {
       filter.$or = [
-        { 'company.companyName': { $regex: search, $options: 'i' } },
+        { 'company.company.companyName': { $regex: search, $options: 'i' } },
         { email: { $regex: search, $options: 'i' } }
       ];
     }
 
     const companies = await User.find(filter)
-      .select('_id company.companyName company.industry email')
-      .sort({ 'company.companyName': 1 });
+      .select('_id company email')
+      .sort({ 'company.company.companyName': 1 });
 
     res.json({
       success: true,
@@ -477,7 +475,7 @@ router.get('/internship-records', authenticateToken, isTPO, async (req, res) => 
     // Get students from TPO's institute
     const students = await User.find({ 
       role: 'student',
-      'student.instituteName': tpoUser.tpo.instituteName 
+      'student.collegeName': tpoUser.tpo.instituteName 
     });
 
     // Get internship applications
@@ -488,7 +486,7 @@ router.get('/internship-records', authenticateToken, isTPO, async (req, res) => 
     })
     .populate('student', 'name student.rollNo student.department')
     .populate('job', 'title company')
-    .populate('company', 'companyName');
+    .populate('company', 'company');
 
     res.json({
       success: true,
@@ -498,7 +496,7 @@ router.get('/internship-records', authenticateToken, isTPO, async (req, res) => 
           studentName: app.student.name,
           rollNo: app.student.student.rollNo,
           department: app.student.student.department,
-          company: app.company.companyName,
+          company: app.company.company?.companyName || 'Unknown Company',
           position: app.job.title,
           status: app.status,
           appliedDate: app.createdAt,
@@ -744,7 +742,7 @@ router.get('/students/:studentId/applications', authenticateToken, isTPO, verify
   try {
     const applications = await JobApplication.find({ student: req.params.studentId })
       .populate('jobPosting', 'title company deadline')
-      .populate('company', 'companyName')
+      .populate('company', 'company')
       .sort({ createdAt: -1 });
 
     res.json({
@@ -844,7 +842,7 @@ router.post('/notifications', authenticateToken, isTPO, [
     // Build recipient filter
     let recipientFilter = { 
       role: 'student',
-      'student.instituteName': tpoUser.tpo.instituteName 
+      'student.collegeName': tpoUser.tpo.instituteName 
     };
 
     if (req.body.department && req.body.department !== 'All') {
@@ -1077,7 +1075,7 @@ router.get('/placement-trends', authenticateToken, isTPO, async (req, res) => {
     // Get students from TPO's institute
     const students = await User.find({ 
       role: 'student',
-      'student.instituteName': tpoUser.tpo.instituteName 
+      'student.collegeName': tpoUser.tpo.instituteName 
     });
 
     // Get applications
@@ -1157,6 +1155,11 @@ router.post('/students/:studentId/verify', authenticateToken, isTPO, verifyStude
     }
     student.student.verifiedBy = req.user._id;
     student.student.verifiedAt = new Date();
+
+    // If verification is successful, also activate the account
+    if (verificationStatus === 'verified') {
+      student.status = 'active';
+    }
 
     await student.save();
 
@@ -1263,10 +1266,11 @@ router.put('/students/:id/approve', authenticateToken, isTPO, verifyStudentInsti
       });
     }
 
-    // Update student approval status
+    // Update student approval status and activate account
     student.approvalStatus = 'Approved';
     student.approvedAt = new Date();
     student.approvedBy = req.user._id;
+    student.status = 'active'; // Activate the student's account
     await student.save();
 
     // Create notification for student
@@ -1373,7 +1377,8 @@ router.put('/students/bulk-approve', authenticateToken, isTPO, tpoInstituteAcces
         $set: {
           approvalStatus: 'Approved',
           approvedAt: new Date(),
-          approvedBy: req.user._id
+          approvedBy: req.user._id,
+          status: 'active' // Activate the student accounts
         }
       }
     );
@@ -1402,16 +1407,28 @@ router.get('/internship-offers', authenticateToken, isTPO, tpoInstituteAccess, a
     const { page = 1, limit = 10, search, status } = req.query;
     const skip = (page - 1) * limit;
 
-    // Build filter query
+    // Get TPO's institute name
+    const tpoUser = await User.findById(req.user._id);
+    const tpoInstitute = tpoUser.tpo.instituteName;
+
+    // Build filter query - show internships created by this TPO or targeted to their college
     const filter = {
-      type: 'internship'
+      type: 'internship',
+      $or: [
+        { createdBy: req.user._id }, // Internships created by this TPO
+        { targetColleges: { $in: [tpoInstitute] } } // Internships targeted to TPO's college
+      ]
     };
 
     if (search) {
-      filter.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } },
-        { 'company.companyName': { $regex: search, $options: 'i' } }
+      filter.$and = [
+        {
+          $or: [
+            { title: { $regex: search, $options: 'i' } },
+            { description: { $regex: search, $options: 'i' } },
+            { 'company.companyName': { $regex: search, $options: 'i' } }
+          ]
+        }
       ];
     }
 
@@ -1457,12 +1474,35 @@ router.get('/internship-offers', authenticateToken, isTPO, tpoInstituteAccess, a
 // @access  Private (TPO only)
 router.post('/internship-offers', authenticateToken, isTPO, tpoInstituteAccess, async (req, res) => {
   try {
+    console.log('Creating internship offer with data:', req.body);
+    
+    // Validate required fields
+    const { title, description, company } = req.body;
+    if (!title || !description || !company) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields: title, description, and company are required'
+      });
+    }
+
+    // Get TPO's institute name for college targeting
+    const tpoUser = await User.findById(req.user._id);
+    if (!tpoUser || !tpoUser.tpo || !tpoUser.tpo.instituteName) {
+      return res.status(400).json({
+        success: false,
+        message: 'TPO profile not found or institute not configured'
+      });
+    }
+
     const internshipData = {
       ...req.body,
       type: 'internship',
       createdBy: req.user._id,
+      targetColleges: [tpoUser.tpo.instituteName], // Target TPO's college
       createdAt: new Date()
     };
+
+    console.log('Processed internship data:', internshipData);
 
     const internship = new JobPosting(internshipData);
     await internship.save();
@@ -1474,9 +1514,23 @@ router.post('/internship-offers', authenticateToken, isTPO, tpoInstituteAccess, 
     });
   } catch (error) {
     console.error('Error creating internship offer:', error);
+    console.error('Error details:', error.message);
+    console.error('Error stack:', error.stack);
+    
+    // Handle validation errors
+    if (error.name === 'ValidationError') {
+      const validationErrors = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({
+        success: false,
+        message: 'Validation error',
+        errors: validationErrors
+      });
+    }
+
     res.status(500).json({
       success: false,
-      message: 'Failed to create internship offer'
+      message: 'Failed to create internship offer',
+      error: error.message
     });
   }
 });
@@ -1631,7 +1685,8 @@ router.get('/interviews', authenticateToken, isTPO, tpoInstituteAccess, async (r
 
     // Get interviews
     const interviews = await Interview.find(filter)
-      .populate('company', 'company.companyName email')
+      .populate('company', 'company email')
+      .populate('candidateId', 'name email student.rollNumber student.branch')
       .sort({ date: -1, createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
@@ -1645,6 +1700,7 @@ router.get('/interviews', authenticateToken, isTPO, tpoInstituteAccess, async (r
         interviews: interviews.map(interview => ({
           _id: interview._id,
           candidate: interview.candidate,
+          candidateId: interview.candidateId,
           role: interview.role,
           date: interview.date,
           time: interview.time,
@@ -1723,6 +1779,7 @@ router.post('/interviews', authenticateToken, isTPO, [
     const newInterview = new Interview({
       company: company,
       candidate,
+      candidateId: req.body.candidateId, // Store student ID for notifications
       role,
       date: new Date(date),
       time,
@@ -1735,6 +1792,36 @@ router.post('/interviews', authenticateToken, isTPO, [
     });
 
     await newInterview.save();
+
+    // Send notification to the student if candidateId is provided
+    if (req.body.candidateId) {
+      try {
+        const Notification = require('../models/Notification');
+        const companyData = await Company.findById(company);
+        
+        const notification = new Notification({
+          recipient: req.body.candidateId,
+          type: 'interview_scheduled',
+          title: 'Interview Scheduled',
+          message: `Your interview for ${role} at ${companyData?.companyName || 'the company'} has been scheduled for ${new Date(date).toLocaleDateString()} at ${time}.`,
+          metadata: {
+            interviewId: newInterview._id,
+            interviewDate: date,
+            interviewTime: time,
+            role: role,
+            company: company,
+            location: location,
+            type: type
+          },
+          isRead: false
+        });
+
+        await notification.save();
+      } catch (notificationError) {
+        console.error('Failed to create notification:', notificationError);
+        // Don't fail the interview creation if notification fails
+      }
+    }
 
     res.status(201).json({
       success: true,
@@ -1764,7 +1851,7 @@ router.put('/interviews/:id', authenticateToken, isTPO, async (req, res) => {
       id,
       updateData,
       { new: true }
-    ).populate('company', 'company.companyName email');
+    ).populate('company', 'company email');
 
     if (!interview) {
       return res.status(404).json({
@@ -1846,7 +1933,7 @@ router.delete('/interviews/:id', authenticateToken, isTPO, async (req, res) => {
 router.get('/interviews/stats', authenticateToken, isTPO, tpoInstituteAccess, async (req, res) => {
   try {
     // Get all interviews
-    const interviews = await Interview.find({}).populate('company', 'company.companyName');
+    const interviews = await Interview.find({}).populate('company', 'company');
 
     // Calculate statistics
     const totalInterviews = interviews.length;
@@ -1992,10 +2079,12 @@ router.get('/jobs', authenticateToken, isTPO, tpoInstituteAccess, async (req, re
 
     // Get jobs
     const jobs = await JobPosting.find(filter)
-      .populate('company', 'company.companyName email')
+      .populate('company', 'company email')
       .sort({ postedAt: -1, createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
+
+    console.log('Raw jobs from database:', JSON.stringify(jobs, null, 2));
 
     // Get total count
     const totalJobs = await JobPosting.countDocuments(filter);
@@ -2038,6 +2127,8 @@ router.get('/jobs', authenticateToken, isTPO, tpoInstituteAccess, async (req, re
       })
     );
 
+    console.log('Processed jobs with applications:', JSON.stringify(jobsWithApplications, null, 2));
+
     res.json({
       success: true,
       data: {
@@ -2066,7 +2157,7 @@ router.get('/jobs', authenticateToken, isTPO, tpoInstituteAccess, async (req, re
 router.get('/jobs/stats', authenticateToken, isTPO, tpoInstituteAccess, async (req, res) => {
   try {
     // Get all jobs
-    const jobs = await JobPosting.find({}).populate('company', 'company.companyName');
+    const jobs = await JobPosting.find({}).populate('company', 'company');
 
     // Calculate statistics
     const totalJobs = jobs.length;

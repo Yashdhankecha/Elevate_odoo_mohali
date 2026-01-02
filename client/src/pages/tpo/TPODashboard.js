@@ -8,7 +8,6 @@ import DashboardOverview from './components/DashboardOverview';
 import StudentManagement from './components/StudentManagement';
 import InterviewManagement from './components/InterviewManagement';
 import JobManagement from './components/JobManagement';
-import InternshipRecords from './components/InternshipRecords';
 import ReportsAnalytics from './components/ReportsAnalytics';
 import ApprovalPending from './components/ApprovalPending';
 
@@ -48,8 +47,6 @@ const TPODashboard = () => {
         return <InterviewManagement />;
       case 'jobs':
         return <JobManagement />;
-      case 'internships':
-        return <InternshipRecords />;
       case 'reports':
         return <ReportsAnalytics />;
       default:

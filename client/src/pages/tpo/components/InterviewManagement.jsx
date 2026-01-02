@@ -24,6 +24,7 @@ const InterviewManagement = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingInterview, setEditingInterview] = useState(null);
   const [companies, setCompanies] = useState([]);
+  const [students, setStudents] = useState([]);
   const [filters, setFilters] = useState({
     search: '',
     status: 'All',
@@ -40,6 +41,7 @@ const InterviewManagement = () => {
   // Form state
   const [formData, setFormData] = useState({
     candidate: '',
+    candidateId: '',
     role: '',
     date: '',
     time: '',
@@ -55,6 +57,7 @@ const InterviewManagement = () => {
     fetchInterviews();
     fetchStats();
     fetchCompanies();
+    fetchStudents();
   }, [filters, pagination.currentPage]);
 
   const fetchInterviews = async () => {
@@ -98,6 +101,15 @@ const InterviewManagement = () => {
     }
   };
 
+  const fetchStudents = async () => {
+    try {
+      const response = await tpoApi.getStudents({ limit: 1000 }); // Get all students for dropdown
+      setStudents(response.students || []);
+    } catch (error) {
+      console.error('Error fetching students:', error);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -105,8 +117,34 @@ const InterviewManagement = () => {
         await tpoApi.updateInterview(editingInterview._id, formData);
         toast.success('Interview updated successfully');
       } else {
-        await tpoApi.createInterview(formData);
-        toast.success('Interview scheduled successfully');
+        // Create interview
+        const interviewResponse = await tpoApi.createInterview(formData);
+        
+        // Send notification to the student
+        if (formData.candidateId) {
+          try {
+            await tpoApi.createNotification({
+              recipient: formData.candidateId,
+              type: 'interview_scheduled',
+              title: 'Interview Scheduled',
+              message: `Your interview for ${formData.role} at ${companies.find(c => c._id === formData.company)?.companyName || 'the company'} has been scheduled for ${new Date(formData.date).toLocaleDateString()} at ${formData.time}.`,
+              interviewId: interviewResponse.data?.interview?._id,
+              metadata: {
+                interviewDate: formData.date,
+                interviewTime: formData.time,
+                role: formData.role,
+                company: formData.company,
+                location: formData.location,
+                type: formData.type
+              }
+            });
+          } catch (notificationError) {
+            console.error('Failed to send notification:', notificationError);
+            // Don't fail the interview creation if notification fails
+          }
+        }
+        
+        toast.success('Interview scheduled successfully and notification sent to student');
       }
       setShowForm(false);
       setEditingInterview(null);
@@ -121,6 +159,7 @@ const InterviewManagement = () => {
     setEditingInterview(interview);
     setFormData({
       candidate: interview.candidate,
+      candidateId: interview.candidateId || '',
       role: interview.role,
       date: interview.date.split('T')[0],
       time: interview.time,
@@ -149,6 +188,7 @@ const InterviewManagement = () => {
   const resetForm = () => {
     setFormData({
       candidate: '',
+      candidateId: '',
       role: '',
       date: '',
       time: '',
@@ -361,14 +401,35 @@ const InterviewManagement = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Candidate Name</label>
-                  <input
-                    type="text"
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Select Student</label>
+                  <select
                     required
-                    value={formData.candidate}
-                    onChange={(e) => setFormData(prev => ({ ...prev, candidate: e.target.value }))}
+                    value={formData.candidateId}
+                    onChange={(e) => {
+                      const selectedStudent = students.find(s => s._id === e.target.value);
+                      setFormData(prev => ({ 
+                        ...prev, 
+                        candidateId: e.target.value,
+                        candidate: selectedStudent ? selectedStudent.name : ''
+                      }));
+                    }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
+                    disabled={students.length === 0}
+                  >
+                    <option value="">
+                      {students.length === 0 ? 'No students available' : 'Select a student'}
+                    </option>
+                    {students.map(student => (
+                      <option key={student._id} value={student._id}>
+                        {student.name} - {student.student?.rollNumber || 'N/A'} ({student.student?.branch || 'N/A'})
+                      </option>
+                    ))}
+                  </select>
+                  {students.length === 0 && (
+                    <p className="text-sm text-gray-500 mt-1">
+                      No students are registered under your institute. Please contact the administrator.
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>

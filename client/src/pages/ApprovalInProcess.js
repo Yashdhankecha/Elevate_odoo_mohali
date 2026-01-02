@@ -8,6 +8,67 @@ const ApprovalInProcess = () => {
   const [userRole, setUserRole] = useState('');
   const [userEmail, setUserEmail] = useState('');
 
+  const checkStatus = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+
+      const response = await fetch('/api/auth/me', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const user = data.user;
+        
+        // If user is now active, redirect to appropriate dashboard
+        if (user.status === 'active') {
+          let dashboardRoute = '/profile';
+          switch (user.role) {
+            case 'student':
+              dashboardRoute = '/student-dashboard';
+              break;
+            case 'company':
+              dashboardRoute = '/company-dashboard';
+              break;
+            case 'tpo':
+              dashboardRoute = '/tpo-dashboard';
+              break;
+            case 'superadmin':
+              dashboardRoute = '/superadmin-dashboard';
+              break;
+          }
+          navigate(dashboardRoute);
+          return;
+        }
+        
+        // Update local state with current user info
+        setUserRole(user.role);
+        setUserEmail(user.email);
+        localStorage.setItem('user', JSON.stringify(user));
+      } else {
+        // If token is invalid, redirect to login
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        navigate('/login');
+      }
+    } catch (error) {
+      console.error('Error checking status:', error);
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    navigate('/login');
+  };
+
   useEffect(() => {
     // Get user info from location state or localStorage
     const roleFromState = location.state?.role;
@@ -24,20 +85,21 @@ const ApprovalInProcess = () => {
         setUserEmail(user.email);
       }
     }
-  }, [location]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    navigate('/login');
-  };
+    // Check status immediately when component mounts
+    checkStatus();
+  }, [location]);
 
   const getRoleDisplayName = () => {
     switch (userRole) {
+      case 'student':
+        return 'Student';
       case 'tpo':
         return 'TPO (Training & Placement Officer)';
       case 'company':
         return 'Company HR';
+      case 'superadmin':
+        return 'Super Admin';
       default:
         return userRole?.toUpperCase() || 'User';
     }
@@ -45,6 +107,8 @@ const ApprovalInProcess = () => {
 
   const getApprovalMessage = () => {
     switch (userRole) {
+      case 'student':
+        return 'Your student account registration is currently under review by our administrators. Once approved, you will have access to the student dashboard to build your profile and apply for jobs.';
       case 'tpo':
         return 'Your TPO account registration is currently under review by our super administrators. Once approved, you will have access to the TPO dashboard to manage student placements and job postings.';
       case 'company':
@@ -56,6 +120,15 @@ const ApprovalInProcess = () => {
 
   const getExpectedFeatures = () => {
     switch (userRole) {
+      case 'student':
+        return [
+          'Build and manage your professional profile',
+          'Apply for jobs and internships',
+          'Access practice sessions and skill development',
+          'Track your application status',
+          'Connect with AI Career Coach',
+          'View placement history and statistics'
+        ];
       case 'tpo':
         return [
           'Manage student profiles and placements',
@@ -149,7 +222,7 @@ const ApprovalInProcess = () => {
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-4">
           <button
-            onClick={() => window.location.reload()}
+            onClick={checkStatus}
             className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg font-medium transition-colors duration-200"
           >
             Check Status

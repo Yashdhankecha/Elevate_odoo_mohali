@@ -27,9 +27,23 @@ const ensureStudent = async (req, res, next) => {
 router.get('/dashboard', authenticateToken, ensureStudent, async (req, res) => {
   try {
     const studentId = req.user._id;
+    let studentData = null;
 
-    // Get student data
-    const student = await User.findById(studentId).select('student');
+    // Check if user is from Student collection (new structure) or User collection (legacy)
+    if (req.user.constructor.modelName === 'Student') {
+      // User is from Student collection - data is directly available
+      studentData = req.user;
+    } else {
+      // User is from User collection - get nested student data
+      const user = await User.findById(studentId).select('student');
+      if (!user || !user.student) {
+        return res.status(404).json({
+          success: false,
+          message: 'Student profile not found'
+        });
+      }
+      studentData = user.student;
+    }
     
     // Get application statistics
     const applications = await JobApplication.find({ student: studentId });
@@ -56,7 +70,7 @@ router.get('/dashboard', authenticateToken, ensureStudent, async (req, res) => {
     // Get recent activities
     const recentApplications = await JobApplication.find({ student: studentId })
       .populate('jobPosting', 'title')
-      .populate('company', 'company.companyName')
+      .populate('company', 'company')
       .sort({ appliedDate: -1 })
       .limit(5);
 
@@ -71,21 +85,21 @@ router.get('/dashboard', authenticateToken, ensureStudent, async (req, res) => {
       interviewDate: { $gte: new Date() }
     })
     .populate('jobPosting', 'title')
-    .populate('company', 'company.companyName')
+    .populate('company', 'company')
     .sort({ interviewDate: 1 })
     .limit(3);
 
     res.json({
       success: true,
       data: {
-        student: student.student,
+        student: studentData,
         stats: {
           applicationsSubmitted: applicationStats.total,
           practiceSessions: practiceStats.total,
           skillsMastered,
           averageTestScore: practiceStats.averageScore,
           interviewsScheduled: upcomingInterviews.length,
-          profileCompletion: student.student.profileCompletion || 0
+          profileCompletion: studentData?.profileCompletion || 0
         },
         recentActivities: [
           ...recentApplications.map(app => ({
@@ -177,7 +191,7 @@ router.get('/jobs', authenticateToken, ensureStudent, async (req, res) => {
     sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
 
     const jobs = await JobPosting.find(query)
-      .populate('company', 'company.companyName company.industry company.logo')
+      .populate('company', 'company email')
       .sort(sort)
       .limit(limit * 1)
       .skip((page - 1) * limit);
@@ -329,7 +343,7 @@ router.get('/applications', authenticateToken, ensureStudent, async (req, res) =
 
     const applications = await JobApplication.find(query)
       .populate('jobPosting', 'title category package location type')
-      .populate('company', 'company.companyName company.industry')
+      .populate('company', 'company email')
       .sort({ appliedDate: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit);
@@ -428,7 +442,7 @@ router.put('/applications/:applicationId', authenticateToken, ensureStudent, asy
       updateData,
       { new: true }
     ).populate('jobPosting', 'title')
-     .populate('company', 'company.companyName');
+     .populate('company', 'company');
 
     res.json({
       success: true,
@@ -676,7 +690,7 @@ router.get('/placement-history', authenticateToken, ensureStudent, async (req, r
     // Get all applications with detailed information
     const applications = await JobApplication.find({ student: studentId })
       .populate('jobPosting', 'title category package location type')
-      .populate('company', 'company.companyName company.industry')
+      .populate('company', 'company email')
       .sort({ appliedDate: -1 });
 
     // Calculate placement statistics
@@ -926,7 +940,7 @@ router.get('/notifications', authenticateToken, ensureStudent, async (req, res) 
     // Get recent applications for notifications
     const recentApplications = await JobApplication.find({ student: studentId })
       .populate('jobPosting', 'title company')
-      .populate('company', 'company.companyName')
+      .populate('company', 'company')
       .sort({ appliedDate: -1 })
       .limit(5);
 
@@ -937,7 +951,7 @@ router.get('/notifications', authenticateToken, ensureStudent, async (req, res) 
       interviewDate: { $gte: new Date() }
     })
     .populate('jobPosting', 'title')
-    .populate('company', 'company.companyName')
+    .populate('company', 'company')
     .sort({ interviewDate: 1 })
     .limit(3);
 
@@ -1200,8 +1214,15 @@ router.get('/ai-coach', authenticateToken, ensureStudent, async (req, res) => {
     }
 
     // Resume optimization suggestion
-    const student = await User.findById(studentId).select('student');
-    if (student.student.profileCompletion < 80) {
+    let studentProfileCompletion = 0;
+    if (req.user.constructor.modelName === 'Student') {
+      studentProfileCompletion = req.user.profileCompletion || 0;
+    } else {
+      const user = await User.findById(studentId).select('student');
+      studentProfileCompletion = user?.student?.profileCompletion || 0;
+    }
+    
+    if (studentProfileCompletion < 80) {
       aiInsights.push({
         title: 'Resume Optimization',
         description: 'Your resume could be improved by adding more quantifiable achievements',
@@ -1359,10 +1380,11 @@ router.put('/profile/:studentId/approve', authenticateToken, async (req, res) =>
       });
     }
 
-    // Update student approval status
+    // Update student approval status and activate account
     student.approvalStatus = 'Approved';
     student.approvedAt = new Date();
     student.approvedBy = req.user._id;
+    student.status = 'active'; // Activate the student's account
     await student.save();
 
     // Create notification for student
@@ -1459,18 +1481,36 @@ router.get('/internship-offers', authenticateToken, ensureStudent, async (req, r
     const { page = 1, limit = 12, search, category, location, type } = req.query;
     const skip = (page - 1) * limit;
 
+    // Get student's college name for filtering
+    const studentUser = await User.findById(req.user._id);
+    if (!studentUser || !studentUser.student || !studentUser.student.collegeName) {
+      return res.status(400).json({
+        success: false,
+        message: 'Student profile not found or college not configured'
+      });
+    }
+
     // Build filter query
     const filter = {
       type: 'internship',
       isActive: true,
-      deadline: { $gte: new Date() } // Only show active internships
+      deadline: { $gte: new Date() }, // Only show active internships
+      $or: [
+        { targetColleges: { $in: [studentUser.student.collegeName] } }, // College-specific internships
+        { targetColleges: { $exists: false } }, // Legacy internships without college targeting
+        { targetColleges: { $size: 0 } } // Internships with empty target colleges (global)
+      ]
     };
 
     if (search) {
-      filter.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } },
-        { 'company.companyName': { $regex: search, $options: 'i' } }
+      filter.$and = [
+        {
+          $or: [
+            { title: { $regex: search, $options: 'i' } },
+            { description: { $regex: search, $options: 'i' } },
+            { 'company.company.companyName': { $regex: search, $options: 'i' } }
+          ]
+        }
       ];
     }
 
@@ -1488,7 +1528,7 @@ router.get('/internship-offers', authenticateToken, ensureStudent, async (req, r
 
     // Get internships with pagination
     const internships = await JobPosting.find(filter)
-      .populate('company', 'companyName email')
+      .populate('company', 'company email')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
@@ -1634,7 +1674,7 @@ router.get('/internship-applications', authenticateToken, ensureStudent, async (
       'jobPosting.type': 'internship'
     })
     .populate('jobPosting', 'title company location deadline')
-    .populate('company', 'companyName')
+    .populate('company', 'company')
     .sort({ appliedDate: -1 });
 
     res.json({

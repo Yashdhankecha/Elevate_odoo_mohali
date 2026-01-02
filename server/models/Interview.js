@@ -11,6 +11,11 @@ const interviewSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  candidateId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: false // Optional for backward compatibility
+  },
   role: {
     type: String,
     required: true,

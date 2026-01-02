@@ -31,8 +31,7 @@ const Sidebar = ({ activeSection, setActiveSection, isCollapsed }) => {
     { id: 'dashboard', label: 'Dashboard', icon: FaHome, color: 'text-blue-600' },
     { id: 'students', label: 'Students', icon: FaUsers, color: 'text-green-600' },
     { id: 'interviews', label: 'Interviews', icon: FaCalendarAlt, color: 'text-purple-600' },
-    { id: 'jobs', label: 'Jobs', icon: FaBriefcase, color: 'text-indigo-600' },
-    { id: 'internships', label: 'Internships', icon: FaCalendarAlt, color: 'text-pink-600' },
+    { id: 'jobs', label: 'Jobs and Internships', icon: FaBriefcase, color: 'text-indigo-600' },
     { id: 'reports', label: 'Reports & Analytics', icon: FaChartBar, color: 'text-red-600' }
   ];
 

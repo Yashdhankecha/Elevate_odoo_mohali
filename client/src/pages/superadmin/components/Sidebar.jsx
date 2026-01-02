@@ -14,8 +14,9 @@ const Sidebar = ({ activeSection, setActiveSection, isCollapsed, pendingTPOs = 0
 
   const navigationItems = [
     { id: 'dashboard', label: 'Dashboard', icon: FaHome, color: 'text-blue-600' },
-    { id: 'tpo-approval', label: 'TPO Management', icon: FaShieldAlt, color: 'text-orange-600' },
-    { id: 'company-approval', label: 'Company Management', icon: FaBuilding, color: 'text-purple-600' }
+    { id: 'management', label: 'Management', icon: FaUserShield, color: 'text-green-600' },
+    { id: 'tpo-approval', label: 'TPO Approval', icon: FaShieldAlt, color: 'text-orange-600' },
+    { id: 'company-approval', label: 'Company Approval', icon: FaBuilding, color: 'text-purple-600' }
   ];
 
   const handleLogout = async () => {
