@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { HiLockClosed, HiEye, HiEyeOff, HiArrowRight, HiCheckCircle } from 'react-icons/hi';
+import { Lock, Eye, EyeOff, CheckCircle, Loader2, ArrowLeft } from 'lucide-react';
 
 const ResetPassword = () => {
   const [formData, setFormData] = useState({
@@ -18,7 +18,6 @@ const ResetPassword = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  // Get token from URL query parameters
   useEffect(() => {
     const tokenParam = searchParams.get('token');
     if (!tokenParam) {
@@ -34,7 +33,6 @@ const ResetPassword = () => {
       ...prev,
       [name]: value
     }));
-    // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -64,53 +62,98 @@ const ResetPassword = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
     if (!validateForm()) return;
 
     setLoading(true);
     try {
       const result = await resetPassword(token, formData.password);
       if (result.success) {
-        // Password reset successful, user will be redirected by auth context
+        // Password reset successful
+        navigate('/login');
       }
     } catch (error) {
       console.error('Password reset error:', error);
+      setErrors({ general: 'Failed to reset password. Please try again.' });
     } finally {
       setLoading(false);
     }
   };
 
   if (!token) {
-    return null; // Will redirect in useEffect
+    return null;
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        {/* Header */}
-        <div className="text-center">
-          <div className="mx-auto h-12 w-12 bg-primary-600 rounded-lg flex items-center justify-center">
-            <HiLockClosed className="h-8 w-8 text-white" />
-          </div>
-          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-            Reset your password
-          </h2>
-          <p className="mt-2 text-sm text-gray-600">
-            Enter your new password below
-          </p>
+    <div className="min-h-screen flex bg-white font-sans">
+      {/* Left Panel - Branding */}
+      <div className="hidden lg:flex lg:w-1/2 bg-slate-900 relative overflow-hidden flex-col justify-between text-white p-12">
+        <div className="absolute inset-0 z-0">
+          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+          <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
         </div>
 
-        {/* Reset Password Form */}
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="space-y-4">
-            {/* New Password Field */}
+        <div className="relative z-10 w-full">
+          <Link to="/login" className="inline-flex items-center text-slate-400 hover:text-white mb-8 transition-colors">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Login
+          </Link>
+        </div>
+
+        <div className="relative z-10 max-w-lg mb-auto mt-20">
+          <div className="mb-8">
+            <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-2xl mb-6 shadow-indigo-500/20">
+              <span className="text-3xl font-bold text-white">E</span>
+            </div>
+            <h1 className="text-4xl font-bold mb-4 tracking-tight">Secure Your Account</h1>
+            <p className="text-lg text-slate-300 leading-relaxed">
+              Create a strong new password to keep your profile and career data safe.
+            </p>
+          </div>
+        </div>
+
+        {/* Trust Indicators */}
+        <div className="relative z-10 w-full pt-8 border-t border-slate-800">
+          <div className="flex items-center justify-between text-sm text-slate-400 font-medium">
+            <div className="flex items-center gap-2">
+              <span>End-to-end Encryption</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Right Panel - Form */}
+      <div className="flex-1 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-20 xl:px-24 bg-white relative">
+        <div className="mx-auto w-full max-w-sm lg:w-96">
+          <div className="mb-10">
+            <div className="lg:hidden flex justify-center mb-6">
+              <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                <span className="text-2xl font-bold text-white">E</span>
+              </div>
+            </div>
+            <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Reset password</h2>
+            <p className="mt-2 text-sm text-slate-600">
+              Please enter your new password below.
+            </p>
+          </div>
+
+          {errors.general && (
+            <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-100 flex items-start gap-3">
+              <div className="mt-0.5">
+                <div className="w-2 h-2 rounded-full bg-red-500"></div>
+              </div>
+              <p className="text-sm text-red-600 font-medium">{errors.general}</p>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="password" className="form-label">
+              <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-1.5">
                 New Password
               </label>
-              <div className="relative">
+              <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <HiLockClosed className="h-5 w-5 text-gray-400" />
+                  <Lock className="h-5 w-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
                 </div>
                 <input
                   id="password"
@@ -118,10 +161,13 @@ const ResetPassword = () => {
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="new-password"
                   required
-                  className={`input-field pl-10 pr-10 ${errors.password ? 'border-red-500 focus:ring-red-500' : ''}`}
-                  placeholder="Enter your new password"
                   value={formData.password}
                   onChange={handleChange}
+                  className={`block w-full pl-10 pr-10 py-3 border rounded-xl leading-5 bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-offset-0 transition-all duration-200 sm:text-sm ${errors.password
+                    ? 'border-red-300 text-red-900 placeholder-red-300 focus:ring-red-500 focus:border-red-500'
+                    : 'border-slate-200 hover:border-slate-300 focus:ring-indigo-500 focus:border-indigo-500'
+                    }`}
+                  placeholder="••••••••"
                 />
                 <button
                   type="button"
@@ -129,28 +175,25 @@ const ResetPassword = () => {
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
-                    <HiEyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                    <EyeOff className="h-5 w-5 text-slate-400 hover:text-slate-600 cursor-pointer" />
                   ) : (
-                    <HiEye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                    <Eye className="h-5 w-5 text-slate-400 hover:text-slate-600 cursor-pointer" />
                   )}
                 </button>
               </div>
-              {errors.password && (
-                <p className="mt-1 text-sm text-red-600">{errors.password}</p>
-              )}
-              <p className="mt-1 text-xs text-gray-500">
-                Password must be at least 6 characters long
+              {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
+              <p className="mt-2 text-xs text-slate-500">
+                Minimum 6 characters
               </p>
             </div>
 
-            {/* Confirm Password Field */}
             <div>
-              <label htmlFor="confirmPassword" className="form-label">
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-700 mb-1.5">
                 Confirm New Password
               </label>
-              <div className="relative">
+              <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <HiLockClosed className="h-5 w-5 text-gray-400" />
+                  <Lock className="h-5 w-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
                 </div>
                 <input
                   id="confirmPassword"
@@ -158,10 +201,13 @@ const ResetPassword = () => {
                   type={showConfirmPassword ? 'text' : 'password'}
                   autoComplete="new-password"
                   required
-                  className={`input-field pl-10 pr-10 ${errors.confirmPassword ? 'border-red-500 focus:ring-red-500' : ''}`}
-                  placeholder="Confirm your new password"
                   value={formData.confirmPassword}
                   onChange={handleChange}
+                  className={`block w-full pl-10 pr-10 py-3 border rounded-xl leading-5 bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-offset-0 transition-all duration-200 sm:text-sm ${errors.confirmPassword
+                    ? 'border-red-300 text-red-900 placeholder-red-300 focus:ring-red-500 focus:border-red-500'
+                    : 'border-slate-200 hover:border-slate-300 focus:ring-indigo-500 focus:border-indigo-500'
+                    }`}
+                  placeholder="••••••••"
                 />
                 <button
                   type="button"
@@ -169,80 +215,33 @@ const ResetPassword = () => {
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 >
                   {showConfirmPassword ? (
-                    <HiEyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                    <EyeOff className="h-5 w-5 text-slate-400 hover:text-slate-600 cursor-pointer" />
                   ) : (
-                    <HiEye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                    <Eye className="h-5 w-5 text-slate-400 hover:text-slate-600 cursor-pointer" />
                   )}
                 </button>
               </div>
-              {errors.confirmPassword && (
-                <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
-              )}
+              {errors.confirmPassword && <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>}
             </div>
-          </div>
 
-          {/* Submit Button */}
-          <div>
             <button
               type="submit"
               disabled={loading}
-              className="btn-primary w-full flex justify-center items-center py-3 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex justify-center items-center py-3.5 px-4 border border-transparent rounded-xl shadow-lg shadow-indigo-500/20 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed transform hover:-translate-y-0.5 active:translate-y-0"
             >
               {loading ? (
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                <>
+                  <Loader2 className="animate-spin -ml-1 mr-2 h-4 w-4" />
+                  Updating...
+                </>
               ) : (
                 <>
-                  <HiCheckCircle className="w-5 h-5 mr-2" />
+                  <CheckCircle className="mr-2 h-4 w-4" />
                   Reset Password
-                  <HiArrowRight className="ml-2 h-5 w-5" />
                 </>
               )}
             </button>
-          </div>
-        </form>
-
-        {/* Footer */}
-        <div className="text-center space-y-4">
-          <p className="text-sm text-gray-600">
-            Remember your password?{' '}
-            <Link
-              to="/login"
-              className="font-medium text-primary-600 hover:text-primary-500"
-            >
-              Sign in here
-            </Link>
-          </p>
-          <p className="text-sm text-gray-600">
-            Don't have an account?{' '}
-            <Link
-              to="/register"
-              className="font-medium text-primary-600 hover:text-primary-500"
-            >
-              Sign up here
-            </Link>
-          </p>
-        </div>
-
-        {/* Security Notice */}
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-yellow-800">
-                Security Notice
-              </h3>
-              <div className="mt-2 text-sm text-yellow-700">
-                <p>
-                  This password reset link will expire in 1 hour for security reasons. 
-                  If you need more time, you can request a new reset link.
-                </p>
-              </div>
-            </div>
-          </div>
+          </form>
         </div>
       </div>
     </div>

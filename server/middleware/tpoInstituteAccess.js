@@ -1,19 +1,53 @@
 const User = require('../models/User');
+const TPO = require('../models/TPO');
+const Student = require('../models/Student');
 
 // Middleware to ensure TPO can only access their institute's data
 const tpoInstituteAccess = async (req, res, next) => {
   try {
     // Get TPO's institute from user document
-    const tpoUser = await User.findById(req.user._id);
-    if (!tpoUser || !tpoUser.tpo || !tpoUser.tpo.instituteName) {
+    // If req.user is already populated and is a TPO, use it
+    let tpoUser = req.user;
+
+    // If not fully populated or we need to be sure, fetch from TPO collection
+    if (!tpoUser || tpoUser.constructor.modelName !== 'TPO') {
+      tpoUser = await TPO.findById(req.user._id);
+    }
+
+    if (!tpoUser) {
+      // Fallback to User collection - legacy support
+      const user = await User.findById(req.user._id);
+      if (user && user.role === 'tpo') {
+        tpoUser = user;
+      }
+    }
+
+    // Check if valid TPO user found
+    if (!tpoUser) {
       return res.status(404).json({
         success: false,
-        message: 'TPO profile not found or institute not configured'
+        message: 'TPO profile not found'
+      });
+    }
+
+    // Get institute name based on model structure
+    let instituteName = null;
+    if (tpoUser.constructor.modelName === 'TPO') {
+      instituteName = tpoUser.instituteName;
+    } else if (tpoUser.tpo) {
+      // Legacy User model structure
+      instituteName = tpoUser.tpo.instituteName;
+    }
+
+    if (!instituteName) {
+      return res.status(400).json({
+        success: false,
+        message: 'Institute not configured for this TPO'
       });
     }
 
     // Add TPO's institute name to request for use in routes
-    req.tpoInstitute = tpoUser.tpo.instituteName;
+    req.tpoInstitute = instituteName;
     next();
   } catch (error) {
     console.error('Error in TPO institute access middleware:', error);
@@ -29,17 +63,32 @@ const verifyStudentInstitute = async (req, res, next) => {
   try {
     // Check for both 'id' and 'studentId' parameters to handle different route patterns
     const studentId = req.params.id || req.params.studentId;
-    
+
     if (!studentId) {
       return res.status(400).json({
         success: false,
         message: 'Student ID is required'
       });
     }
-    
-    // Get TPO's institute
-    const tpoUser = await User.findById(req.user._id);
-    if (!tpoUser || !tpoUser.tpo || !tpoUser.tpo.instituteName) {
+
+    // Get TPO's institute (already set by previous middleware usually, but let's be safe)
+    let instituteName = req.tpoInstitute;
+    if (!instituteName) {
+      let tpoUser = req.user;
+      if (!tpoUser || tpoUser.constructor.modelName !== 'TPO') {
+        tpoUser = await TPO.findById(req.user._id);
+      }
+
+      if (tpoUser && tpoUser.constructor.modelName === 'TPO') {
+        instituteName = tpoUser.instituteName;
+      } else {
+        // Legacy
+        const user = await User.findById(req.user._id);
+        if (user && user.tpo) instituteName = user.tpo.instituteName;
+      }
+    }
+
+    if (!instituteName) {
       return res.status(404).json({
         success: false,
         message: 'TPO profile not found'
@@ -47,15 +96,30 @@ const verifyStudentInstitute = async (req, res, next) => {
     }
 
     // Get student and verify institute
-    const student = await User.findById(studentId);
-    if (!student || student.role !== 'student') {
+    // Try Student collection first
+    let student = await Student.findById(studentId);
+
+    // Fallback to User collection
+    if (!student) {
+      student = await User.findById(studentId);
+    }
+
+    if (!student) {
       return res.status(404).json({
         success: false,
         message: 'Student not found'
       });
     }
 
-    if (student.student?.collegeName !== tpoUser.tpo.instituteName) {
+    // Check institute match
+    let studentCollege = null;
+    if (student.constructor.modelName === 'Student') {
+      studentCollege = student.collegeName;
+    } else if (student.student) {
+      studentCollege = student.student.collegeName;
+    }
+
+    if (studentCollege !== instituteName) {
       return res.status(403).json({
         success: false,
         message: 'Access denied. You can only access students from your institute.'
@@ -76,21 +140,20 @@ const verifyStudentInstitute = async (req, res, next) => {
 // Helper function to build institute filter
 const buildInstituteFilter = (tpoInstitute, additionalFilters = {}) => {
   return {
-    role: 'student',
-    'student.collegeName': tpoInstitute,
+    collegeName: tpoInstitute,
     ...additionalFilters
   };
 };
 
 // Helper function to verify institute access for bulk operations
 const verifyBulkInstituteAccess = async (studentIds, tpoInstitute) => {
-  const students = await User.find({
-    _id: { $in: studentIds },
-    role: 'student'
+  // Try Student collection
+  const students = await Student.find({
+    _id: { $in: studentIds }
   });
 
   const unauthorizedStudents = students.filter(
-    student => student.student?.collegeName !== tpoInstitute
+    student => student.collegeName !== tpoInstitute
   );
 
   if (unauthorizedStudents.length > 0) {

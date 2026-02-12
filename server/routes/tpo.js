@@ -31,11 +31,11 @@ router.get('/dashboard-stats', authenticateToken, isTPO, tpoInstituteAccess, asy
   try {
     // Get TPO's institute name
     const tpoInstitute = req.tpoInstitute || 'Chandigarh University';
-    
+
     // Get students from TPO's institute
-    const students = await User.find({ 
-      role: 'student',
-      'student.collegeName': tpoInstitute 
+    // Get students from TPO's institute
+    const students = await Student.find({
+      collegeName: tpoInstitute
     });
 
     // Get companies that have posted jobs
@@ -61,21 +61,20 @@ router.get('/dashboard-stats', authenticateToken, isTPO, tpoInstituteAccess, asy
 
     // Calculate statistics
     const totalStudents = students.length;
-    const placedStudents = students.filter(student => student.student?.placementInfo?.isPlaced).length;
+    const placedStudents = students.filter(student => student.isPlaced).length;
     const activeCompanies = companies.length;
     const totalApplications = applications.length;
     const totalOffers = applications.filter(app => app.status === 'accepted').length;
-    
+
     // Calculate average package
-    const placedStudentsWithPackage = students.filter(student => 
-      student.student?.placementInfo?.isPlaced && student.student?.placementInfo?.placementPackage
+    // Calculate average package
+    const placedStudentsWithPackage = students.filter(student =>
+      student.isPlaced && student.placementDetails?.package?.amount
     );
-    const averagePackage = placedStudentsWithPackage.length > 0 
+    const averagePackage = placedStudentsWithPackage.length > 0
       ? placedStudentsWithPackage.reduce((sum, student) => {
-          const packageStr = student.student.placementInfo.placementPackage;
-          const packageNum = parseFloat(packageStr.replace(/[^\d.]/g, '')) || 0;
-          return sum + packageNum;
-        }, 0) / placedStudentsWithPackage.length
+        return sum + (student.placementDetails.package.amount || 0);
+      }, 0) / placedStudentsWithPackage.length
       : 0;
 
     // Calculate placement rate
@@ -85,9 +84,9 @@ router.get('/dashboard-stats', authenticateToken, isTPO, tpoInstituteAccess, asy
     const recentActivities = await Notification.find({
       recipient: req.user._id
     })
-    .sort({ createdAt: -1 })
-    .limit(10)
-    .populate('sender', 'name email');
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .populate('sender', 'name email');
 
     // Get upcoming placement drives (job postings with future dates)
     let upcomingDrives = [];
@@ -96,9 +95,9 @@ router.get('/dashboard-stats', authenticateToken, isTPO, tpoInstituteAccess, asy
         deadline: { $gte: new Date() },
         isActive: true
       })
-      .populate('company', 'company')
-      .sort({ deadline: 1 })
-      .limit(5);
+        .populate('company', 'company')
+        .sort({ deadline: 1 })
+        .limit(5);
     } catch (error) {
       console.log('No upcoming drives found or error in query:', error.message);
       upcomingDrives = [];
@@ -148,69 +147,69 @@ router.get('/dashboard-stats', authenticateToken, isTPO, tpoInstituteAccess, asy
 // @access  Private (TPO only)
 router.get('/students', authenticateToken, isTPO, tpoInstituteAccess, async (req, res) => {
   try {
-    const { 
-      search, 
-      department, 
-      status, 
-      minCGPA, 
+    const {
+      search,
+      department,
+      status,
+      minCGPA,
       maxCGPA,
-      page = 1, 
-      limit = 10 
+      page = 1,
+      limit = 10
     } = req.query;
 
-    // Build filter using helper function
+    // Build filter using helper function (already builds { collegeName: ... })
     const filter = buildInstituteFilter(req.tpoInstitute);
 
     if (search) {
       filter.$or = [
         { name: { $regex: search, $options: 'i' } },
-        { 'student.rollNumber': { $regex: search, $options: 'i' } },
+        { rollNumber: { $regex: search, $options: 'i' } },
         { email: { $regex: search, $options: 'i' } }
       ];
     }
 
     if (department && department !== 'All') {
-      filter['student.branch'] = department;
+      filter.branch = department;
     }
 
     if (status && status !== 'All') {
       if (status === 'Placed') {
-        filter['student.placementInfo.isPlaced'] = true;
+        filter.isPlaced = true;
       } else if (status === 'Not Placed') {
-        filter['student.placementInfo.isPlaced'] = false;
+        filter.isPlaced = false;
       }
     }
 
     if (minCGPA) {
-      filter['student.cgpa'] = { $gte: parseFloat(minCGPA) };
+      filter.cgpa = { $gte: parseFloat(minCGPA) };
     }
 
     if (maxCGPA) {
-      filter['student.cgpa'] = { 
-        ...filter['student.cgpa'], 
-        $lte: parseFloat(maxCGPA) 
+      filter.cgpa = {
+        ...filter.cgpa,
+        $lte: parseFloat(maxCGPA)
       };
     }
 
     // Calculate pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    // Get students
-    const students = await User.find(filter)
+    // Get students from Student model
+    const students = await Student.find(filter)
       .select('-password -emailVerificationOTP -passwordResetToken')
-      .sort({ 'student.cgpa': -1, name: 1 })
+      .sort({ cgpa: -1, name: 1 })
       .skip(skip)
       .limit(parseInt(limit));
 
     // Get total count
-    const totalStudents = await User.countDocuments(filter);
+    const totalStudents = await Student.countDocuments(filter);
 
     // Get application counts for each student
     const studentsWithApplications = await Promise.all(
       students.map(async (student) => {
         const applications = await JobApplication.find({ student: student._id });
         const acceptedApplications = applications.filter(app => app.status === 'offer_received');
-        
+
         return {
           ...student.toObject(),
           applications: applications.length,
@@ -276,8 +275,12 @@ router.post('/students', authenticateToken, isTPO, tpoInstituteAccess, [
       jobTitle
     } = req.body;
 
-    // Check if email already exists
-    const existingUser = await User.findOne({ email });
+    // Check if email already exists in any collection
+    let existingUser = await Student.findOne({ email });
+    if (!existingUser) existingUser = await Company.findOne({ email });
+    if (!existingUser) existingUser = await TPO.findOne({ email });
+    if (!existingUser) existingUser = await User.findOne({ email });
+
     if (existingUser) {
       return res.status(400).json({
         success: false,
@@ -286,9 +289,9 @@ router.post('/students', authenticateToken, isTPO, tpoInstituteAccess, [
     }
 
     // Check if roll number already exists in the institute
-    const existingRollNo = await User.findOne({
-      'student.rollNumber': rollNumber,
-      'student.collegeName': req.tpoInstitute
+    const existingRollNo = await Student.findOne({
+      rollNumber: rollNumber,
+      collegeName: req.tpoInstitute
     });
     if (existingRollNo) {
       return res.status(400).json({
@@ -331,7 +334,9 @@ router.post('/students', authenticateToken, isTPO, tpoInstituteAccess, [
           _id: newStudent._id,
           name: newStudent.name,
           email: newStudent.email,
-          student: newStudent.student
+          rollNumber: newStudent.rollNumber,
+          branch: newStudent.branch,
+          collegeName: newStudent.collegeName
         }
       }
     });
@@ -354,19 +359,29 @@ router.put('/students/:id', authenticateToken, isTPO, verifyStudentInstitute, as
     const student = req.student; // Already verified by middleware
 
     // Update student data
+    // Update student data
     if (updateData.name) student.name = updateData.name;
     if (updateData.email) student.email = updateData.email;
-    if (updateData.phoneNumber) student.student.phoneNumber = updateData.phoneNumber;
-    
-    if (updateData.student) {
-      if (updateData.student.rollNumber) student.student.rollNumber = updateData.student.rollNumber;
-      if (updateData.student.branch) student.student.branch = updateData.student.branch;
-      if (updateData.student.cgpa) student.student.cgpa = parseFloat(updateData.student.cgpa);
-      if (updateData.student.graduationYear) student.student.graduationYear = updateData.student.graduationYear;
-      if (updateData.student.skills) student.student.skills = updateData.student.skills;
-      if (updateData.student.isPlaced !== undefined) student.student.isPlaced = updateData.student.isPlaced;
-      if (updateData.student.placementDetails) student.student.placementDetails = updateData.student.placementDetails;
-    }
+    if (updateData.phoneNumber) student.phoneNumber = updateData.phoneNumber;
+
+    // Check if we are updating helper object or flat properties
+    if (updateData.rollNumber) student.rollNumber = updateData.rollNumber;
+    else if (updateData.student && updateData.student.rollNumber) student.rollNumber = updateData.student.rollNumber;
+
+    if (updateData.branch) student.branch = updateData.branch;
+    else if (updateData.student && updateData.student.branch) student.branch = updateData.student.branch;
+
+    if (updateData.cgpa) student.cgpa = parseFloat(updateData.cgpa);
+    else if (updateData.student && updateData.student.cgpa) student.cgpa = parseFloat(updateData.student.cgpa);
+
+    if (updateData.graduationYear) student.graduationYear = updateData.graduationYear;
+    else if (updateData.student && updateData.student.graduationYear) student.graduationYear = updateData.student.graduationYear;
+
+    if (updateData.skills) student.skills = updateData.skills;
+    else if (updateData.student && updateData.student.skills) student.skills = updateData.student.skills;
+
+    if (updateData.isPlaced !== undefined) student.isPlaced = updateData.isPlaced;
+    else if (updateData.student && updateData.student.isPlaced !== undefined) student.isPlaced = updateData.student.isPlaced;
 
     await student.save();
 
@@ -374,12 +389,7 @@ router.put('/students/:id', authenticateToken, isTPO, verifyStudentInstitute, as
       success: true,
       message: 'Student updated successfully',
       data: {
-        student: {
-          _id: student._id,
-          name: student.name,
-          email: student.email,
-          student: student.student
-        }
+        student: student
       }
     });
   } catch (error) {
@@ -400,7 +410,7 @@ router.delete('/students/:id', authenticateToken, isTPO, verifyStudentInstitute,
     const student = req.student; // Already verified by middleware
 
     // Delete student
-    await User.findByIdAndDelete(id);
+    await Student.findByIdAndDelete(id);
 
     res.json({
       success: true,
@@ -421,27 +431,28 @@ router.delete('/students/:id', authenticateToken, isTPO, verifyStudentInstitute,
 router.get('/companies', authenticateToken, isTPO, async (req, res) => {
   try {
     const { search } = req.query;
-    
+
     // Build filter
-    const filter = { role: 'company' };
-    
+    const filter = { status: 'active' }; // Only show active companies? or all?
+    // User logic was { role: 'company' }
+
     if (search) {
       filter.$or = [
-        { 'company.company.companyName': { $regex: search, $options: 'i' } },
+        { companyName: { $regex: search, $options: 'i' } },
         { email: { $regex: search, $options: 'i' } }
       ];
     }
 
-    const companies = await User.find(filter)
-      .select('_id company email')
-      .sort({ 'company.company.companyName': 1 });
+    const companies = await Company.find(filter)
+      .select('_id companyName industry email')
+      .sort({ companyName: 1 });
 
     res.json({
       success: true,
       companies: companies.map(company => ({
         _id: company._id,
-        companyName: company.company?.companyName,
-        industry: company.company?.industry,
+        companyName: company.companyName,
+        industry: company.industry,
         email: company.email
       }))
     });
@@ -464,18 +475,13 @@ router.get('/companies', authenticateToken, isTPO, async (req, res) => {
 router.get('/internship-records', authenticateToken, isTPO, async (req, res) => {
   try {
     // Get TPO's institute from user document
-    const tpoUser = await User.findById(req.user._id);
-    if (!tpoUser || !tpoUser.tpo) {
-      return res.status(404).json({
-        success: false,
-        message: 'TPO profile not found'
-      });
-    }
+    // Get TPO's institute from user document
+    const tpoUser = req.user; // Already populated and verified in middleware, but ensuring TPO Access ran
+    const tpoInstitute = req.tpoInstitute || (tpoUser.tpo ? tpoUser.tpo.instituteName : tpoUser.instituteName);
 
     // Get students from TPO's institute
-    const students = await User.find({ 
-      role: 'student',
-      'student.collegeName': tpoUser.tpo.instituteName 
+    const students = await Student.find({
+      collegeName: tpoInstitute
     });
 
     // Get internship applications
@@ -484,9 +490,9 @@ router.get('/internship-records', authenticateToken, isTPO, async (req, res) => 
       student: { $in: studentIds },
       'job.type': 'internship'
     })
-    .populate('student', 'name student.rollNo student.department')
-    .populate('job', 'title company')
-    .populate('company', 'company');
+      .populate('student', 'name student.rollNo student.department')
+      .populate('job', 'title company')
+      .populate('company', 'company');
 
     res.json({
       success: true,
@@ -494,9 +500,9 @@ router.get('/internship-records', authenticateToken, isTPO, async (req, res) => 
         internshipRecords: internshipApplications.map(app => ({
           id: app._id,
           studentName: app.student.name,
-          rollNo: app.student.student.rollNo,
-          department: app.student.student.department,
-          company: app.company.company?.companyName || 'Unknown Company',
+          rollNo: app.student.rollNumber,
+          department: app.student.branch,
+          company: app.company.company?.companyName || app.company.companyName || 'Unknown Company',
           position: app.job.title,
           status: app.status,
           appliedDate: app.createdAt,
@@ -520,18 +526,13 @@ router.get('/internship-records', authenticateToken, isTPO, async (req, res) => 
 router.get('/reports-analytics', authenticateToken, isTPO, async (req, res) => {
   try {
     // Get TPO's institute from user document
-    const tpoUser = await User.findById(req.user._id);
-    if (!tpoUser || !tpoUser.tpo) {
-      return res.status(404).json({
-        success: false,
-        message: 'TPO profile not found'
-      });
-    }
+    // Get TPO's institute from user document
+    const tpoUser = req.user;
+    const tpoInstitute = req.tpoInstitute || (tpoUser.tpo ? tpoUser.tpo.instituteName : tpoUser.instituteName);
 
     // Get students from TPO's institute
-    const students = await User.find({ 
-      role: 'student',
-      'student.collegeName': tpoUser.tpo.instituteName 
+    const students = await Student.find({
+      collegeName: tpoInstitute
     });
 
     // Get applications
@@ -542,18 +543,18 @@ router.get('/reports-analytics', authenticateToken, isTPO, async (req, res) => {
 
     // Calculate analytics
     const totalStudents = students.length;
-    const placedStudents = students.filter(student => student.student?.placementInfo?.isPlaced).length;
+    const placedStudents = students.filter(student => student.isPlaced).length;
     const placementRate = totalStudents > 0 ? (placedStudents / totalStudents) * 100 : 0;
 
     // Department-wise statistics
     const departmentStats = {};
     students.forEach(student => {
-      const dept = student.student?.branch || 'Unknown';
+      const dept = student.branch || 'Unknown';
       if (!departmentStats[dept]) {
         departmentStats[dept] = { total: 0, placed: 0 };
       }
       departmentStats[dept].total++;
-      if (student.student?.placementInfo?.isPlaced) {
+      if (student.isPlaced) {
         departmentStats[dept].placed++;
       }
     });
@@ -577,8 +578,8 @@ router.get('/reports-analytics', authenticateToken, isTPO, async (req, res) => {
     for (let i = 11; i >= 0; i--) {
       const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
       const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-      
-      const monthlyPlacements = applications.filter(app => 
+
+      const monthlyPlacements = applications.filter(app =>
         app.status === 'offer_received' &&
         app.updatedAt >= date &&
         app.updatedAt <= monthEnd
@@ -644,22 +645,29 @@ router.put('/profile', authenticateToken, isTPO, [
       });
     }
 
-    const tpoUser = await User.findById(req.user._id);
-    if (!tpoUser || !tpoUser.tpo) {
-      return res.status(404).json({
-        success: false,
-        message: 'TPO profile not found'
-      });
-    }
+    // Update TPO profile
+    const tpoUser = req.user;
+
+    // Check if we need to fetch fresh (e.g. if authentication middleware didn't fully populate)
+    // But req.user is usually populated. 
+    // If it's the User model (fallback), findById might be needed if req.user is stale?
+    // No, req.user is set per request.
 
     // Update fields
     const updateFields = ['name', 'contactNumber', 'designation', 'department', 'address'];
     updateFields.forEach(field => {
       if (req.body[field] !== undefined) {
-        if (field === 'name' || field === 'contactNumber') {
+        // Direct update for TPO model, nested for legacy User
+        if (tpoUser.constructor.modelName === 'TPO') {
           tpoUser[field] = req.body[field];
         } else {
-          tpoUser.tpo[field] = req.body[field];
+          // Legacy User model
+          if (field === 'name' || field === 'contactNumber') {
+            tpoUser[field] = req.body[field];
+          } else {
+            if (!tpoUser.tpo) tpoUser.tpo = {};
+            tpoUser.tpo[field] = req.body[field];
+          }
         }
       }
     });
@@ -704,18 +712,18 @@ router.put('/students/:studentId/placement', authenticateToken, isTPO, verifyStu
 
     // Update student placement information
     if (req.body.isPlaced !== undefined) {
-      student.student.isPlaced = req.body.isPlaced;
+      student.isPlaced = req.body.isPlaced;
     }
     if (req.body.package !== undefined || req.body.companyName !== undefined || req.body.jobTitle !== undefined) {
-      student.student.placementDetails = {
-        company: req.body.companyName || student.student.placementDetails?.company,
-        package: { 
-          amount: req.body.package || student.student.placementDetails?.package?.amount || 0, 
-          currency: "INR", 
-          type: "CTC" 
+      student.placementDetails = {
+        company: req.body.companyName || student.placementDetails?.company,
+        package: {
+          amount: req.body.package || student.placementDetails?.package?.amount || 0,
+          currency: "INR",
+          type: "CTC"
         },
-        role: req.body.jobTitle || student.student.placementDetails?.role,
-        placementDate: req.body.placementDate ? new Date(req.body.placementDate) : student.student.placementDetails?.placementDate || new Date()
+        role: req.body.jobTitle || student.placementDetails?.role,
+        placementDate: req.body.placementDate ? new Date(req.body.placementDate) : student.placementDetails?.placementDate || new Date()
       };
     }
 
@@ -840,9 +848,9 @@ router.post('/notifications', authenticateToken, isTPO, [
     }
 
     // Build recipient filter
-    let recipientFilter = { 
+    let recipientFilter = {
       role: 'student',
-      'student.collegeName': tpoUser.tpo.instituteName 
+      'student.collegeName': tpoUser.tpo.instituteName
     };
 
     if (req.body.department && req.body.department !== 'All') {
@@ -890,9 +898,9 @@ router.post('/notifications', authenticateToken, isTPO, [
 router.get('/export/students', authenticateToken, isTPO, tpoInstituteAccess, async (req, res) => {
   try {
     // Get students from TPO's institute
-    const students = await User.find({ 
+    const students = await User.find({
       role: 'student',
-      'student.collegeName': req.tpoInstitute 
+      'student.collegeName': req.tpoInstitute
     }).select('-password -emailVerificationOTP -passwordResetToken');
 
     // Get application counts for each student
@@ -900,7 +908,7 @@ router.get('/export/students', authenticateToken, isTPO, tpoInstituteAccess, asy
       students.map(async (student) => {
         const applications = await JobApplication.find({ student: student._id });
         const acceptedApplications = applications.filter(app => app.status === 'accepted');
-        
+
         return {
           name: student.name,
           email: student.email,
@@ -925,7 +933,7 @@ router.get('/export/students', authenticateToken, isTPO, tpoInstituteAccess, asy
         exportDate: new Date().toISOString(),
         totalStudents: studentsWithApplications.length,
         placedStudents: studentsWithApplications.filter(s => s.isPlaced).length,
-        placementRate: studentsWithApplications.length > 0 
+        placementRate: studentsWithApplications.length > 0
           ? (studentsWithApplications.filter(s => s.isPlaced).length / studentsWithApplications.length * 100).toFixed(2)
           : 0
       }
@@ -1014,10 +1022,10 @@ router.get('/activity-feed', authenticateToken, isTPO, async (req, res) => {
     const activities = await Notification.find({
       recipient: req.user._id
     })
-    .sort({ createdAt: -1 })
-    .limit(parseInt(limit))
-    .skip((parseInt(page) - 1) * parseInt(limit))
-    .populate('sender', 'name email');
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit))
+      .skip((parseInt(page) - 1) * parseInt(limit))
+      .populate('sender', 'name email');
 
     const totalActivities = await Notification.countDocuments({
       recipient: req.user._id
@@ -1073,9 +1081,9 @@ router.get('/placement-trends', authenticateToken, isTPO, async (req, res) => {
     }
 
     // Get students from TPO's institute
-    const students = await User.find({ 
+    const students = await User.find({
       role: 'student',
-      'student.collegeName': tpoUser.tpo.instituteName 
+      'student.collegeName': tpoUser.tpo.instituteName
     });
 
     // Get applications
@@ -1087,18 +1095,18 @@ router.get('/placement-trends', authenticateToken, isTPO, async (req, res) => {
     // Calculate trends for the specified period
     const trends = [];
     const currentDate = new Date();
-    
+
     for (let i = parseInt(period) - 1; i >= 0; i--) {
       const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
       const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-      
-      const monthlyApplications = applications.filter(app => 
+
+      const monthlyApplications = applications.filter(app =>
         app.createdAt >= date && app.createdAt <= monthEnd
       );
-      
-      const monthlyPlacements = applications.filter(app => 
+
+      const monthlyPlacements = applications.filter(app =>
         app.status === 'accepted' &&
-        app.updatedAt >= date && 
+        app.updatedAt >= date &&
         app.updatedAt <= monthEnd
       );
 
@@ -1106,7 +1114,7 @@ router.get('/placement-trends', authenticateToken, isTPO, async (req, res) => {
         month: date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
         applications: monthlyApplications.length,
         placements: monthlyPlacements.length,
-        successRate: monthlyApplications.length > 0 
+        successRate: monthlyApplications.length > 0
           ? (monthlyPlacements.length / monthlyApplications.length * 100).toFixed(1)
           : 0
       });
@@ -1204,7 +1212,7 @@ router.get('/students/verification-status', authenticateToken, isTPO, tpoInstitu
 
     // Build filter
     const filter = buildInstituteFilter(req.tpoInstitute);
-    
+
     if (status && status !== 'All') {
       filter['student.verificationStatus'] = status;
     }
@@ -1258,7 +1266,8 @@ router.get('/students/verification-status', authenticateToken, isTPO, tpoInstitu
 // @access  Private (TPO only)
 router.put('/students/:id/approve', authenticateToken, isTPO, verifyStudentInstitute, async (req, res) => {
   try {
-    const student = await User.findById(req.params.id);
+    // req.student is already set by verifyStudentInstitute middleware
+    const student = req.student || await Student.findById(req.params.id) || await User.findById(req.params.id);
     if (!student) {
       return res.status(404).json({
         success: false,
@@ -1266,11 +1275,17 @@ router.put('/students/:id/approve', authenticateToken, isTPO, verifyStudentInsti
       });
     }
 
-    // Update student approval status and activate account
-    student.approvalStatus = 'Approved';
-    student.approvedAt = new Date();
-    student.approvedBy = req.user._id;
-    student.status = 'active'; // Activate the student's account
+    // Update student approval status based on collection
+    if (student.constructor.modelName === 'Student') {
+      student.verificationStatus = 'verified';
+      student.verifiedAt = new Date();
+      student.verifiedBy = req.user._id;
+    } else {
+      student.approvalStatus = 'Approved';
+      student.approvedAt = new Date();
+      student.approvedBy = req.user._id;
+      student.status = 'active';
+    }
     await student.save();
 
     // Create notification for student
@@ -1278,7 +1293,7 @@ router.put('/students/:id/approve', authenticateToken, isTPO, verifyStudentInsti
       recipient: student._id,
       sender: req.user._id,
       title: 'Profile Approved',
-      message: 'Your profile has been approved by the TPO.',
+      message: 'Your profile has been approved by the TPO. You can now access your dashboard.',
       type: 'achievement'
     });
     await notification.save();
@@ -1303,7 +1318,8 @@ router.put('/students/:id/approve', authenticateToken, isTPO, verifyStudentInsti
 router.put('/students/:id/reject', authenticateToken, isTPO, verifyStudentInstitute, async (req, res) => {
   try {
     const { reason } = req.body;
-    const student = await User.findById(req.params.id);
+    // req.student is already set by verifyStudentInstitute middleware
+    const student = req.student || await Student.findById(req.params.id) || await User.findById(req.params.id);
     if (!student) {
       return res.status(404).json({
         success: false,
@@ -1311,11 +1327,16 @@ router.put('/students/:id/reject', authenticateToken, isTPO, verifyStudentInstit
       });
     }
 
-    // Update student approval status
-    student.approvalStatus = 'Rejected';
-    student.rejectedAt = new Date();
-    student.rejectedBy = req.user._id;
-    student.rejectionReason = reason;
+    // Update student rejection status based on collection
+    if (student.constructor.modelName === 'Student') {
+      student.verificationStatus = 'rejected';
+      student.verificationNotes = reason || 'No reason provided';
+    } else {
+      student.approvalStatus = 'Rejected';
+      student.rejectedAt = new Date();
+      student.rejectedBy = req.user._id;
+      student.rejectionReason = reason || 'No reason provided';
+    }
     await student.save();
 
     // Create notification for student
@@ -1323,7 +1344,7 @@ router.put('/students/:id/reject', authenticateToken, isTPO, verifyStudentInstit
       recipient: student._id,
       sender: req.user._id,
       title: 'Profile Rejected',
-      message: `Your profile has been rejected. Reason: ${reason}`,
+      message: `Your profile has been rejected. Reason: ${reason || 'No reason provided'}`,
       type: 'admin'
     });
     await notification.save();
@@ -1348,7 +1369,7 @@ router.put('/students/:id/reject', authenticateToken, isTPO, verifyStudentInstit
 router.put('/students/bulk-approve', authenticateToken, isTPO, tpoInstituteAccess, async (req, res) => {
   try {
     const { studentIds } = req.body;
-    
+
     if (!studentIds || !Array.isArray(studentIds)) {
       return res.status(400).json({
         success: false,
@@ -1366,19 +1387,17 @@ router.put('/students/bulk-approve', authenticateToken, isTPO, tpoInstituteAcces
       });
     }
 
-    // Update all students
-    const result = await User.updateMany(
+    // Update students in Student collection
+    const result = await Student.updateMany(
       {
         _id: { $in: studentIds },
-        role: 'student',
-        'student.collegeName': req.tpoInstitute
+        collegeName: req.tpoInstitute
       },
       {
         $set: {
-          approvalStatus: 'Approved',
-          approvedAt: new Date(),
-          approvedBy: req.user._id,
-          status: 'active' // Activate the student accounts
+          verificationStatus: 'verified',
+          verifiedAt: new Date(),
+          verifiedBy: req.user._id
         }
       }
     );
@@ -1475,7 +1494,7 @@ router.get('/internship-offers', authenticateToken, isTPO, tpoInstituteAccess, a
 router.post('/internship-offers', authenticateToken, isTPO, tpoInstituteAccess, async (req, res) => {
   try {
     console.log('Creating internship offer with data:', req.body);
-    
+
     // Validate required fields
     const { title, description, company } = req.body;
     if (!title || !description || !company) {
@@ -1516,7 +1535,7 @@ router.post('/internship-offers', authenticateToken, isTPO, tpoInstituteAccess, 
     console.error('Error creating internship offer:', error);
     console.error('Error details:', error.message);
     console.error('Error stack:', error.stack);
-    
+
     // Handle validation errors
     if (error.name === 'ValidationError') {
       const validationErrors = Object.values(error.errors).map(err => err.message);
@@ -1612,9 +1631,9 @@ router.get('/internship-offers/:id/applications', authenticateToken, isTPO, tpoI
     const applications = await JobApplication.find({
       jobPosting: id
     })
-    .populate('student', 'name email student.rollNo student.department')
-    .populate('company', 'companyName')
-    .sort({ appliedDate: -1 });
+      .populate('student', 'name email student.rollNo student.department')
+      .populate('company', 'companyName')
+      .sort({ appliedDate: -1 });
 
     res.json({
       success: true,
@@ -1645,14 +1664,14 @@ router.get('/internship-offers/:id/applications', authenticateToken, isTPO, tpoI
 // @access  Private (TPO only)
 router.get('/interviews', authenticateToken, isTPO, tpoInstituteAccess, async (req, res) => {
   try {
-    const { 
-      search, 
-      status, 
-      type, 
-      dateFrom, 
+    const {
+      search,
+      status,
+      type,
+      dateFrom,
       dateTo,
-      page = 1, 
-      limit = 10 
+      page = 1,
+      limit = 10
     } = req.query;
 
     // Build filter
@@ -1798,7 +1817,7 @@ router.post('/interviews', authenticateToken, isTPO, [
       try {
         const Notification = require('../models/Notification');
         const companyData = await Company.findById(company);
-        
+
         const notification = new Notification({
           recipient: req.body.candidateId,
           type: 'interview_scheduled',
@@ -1981,8 +2000,8 @@ router.get('/interviews/stats', authenticateToken, isTPO, tpoInstituteAccess, as
     for (let i = 5; i >= 0; i--) {
       const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
       const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-      
-      const monthlyInterviews = interviews.filter(interview => 
+
+      const monthlyInterviews = interviews.filter(interview =>
         interview.date >= date && interview.date <= monthEnd
       ).length;
 
@@ -2036,13 +2055,13 @@ router.get('/interviews/stats', authenticateToken, isTPO, tpoInstituteAccess, as
 // @access  Private (TPO only)
 router.get('/jobs', authenticateToken, isTPO, tpoInstituteAccess, async (req, res) => {
   try {
-    const { 
-      search, 
-      status, 
-      type, 
+    const {
+      search,
+      status,
+      type,
       category,
-      page = 1, 
-      limit = 10 
+      page = 1,
+      limit = 10
     } = req.query;
 
     // Build filter
@@ -2094,7 +2113,7 @@ router.get('/jobs', authenticateToken, isTPO, tpoInstituteAccess, async (req, re
       jobs.map(async (job) => {
         const applications = await JobApplication.find({ jobPosting: job._id });
         const acceptedApplications = applications.filter(app => app.status === 'offer_received');
-        
+
         return {
           _id: job._id,
           title: job.title,
@@ -2201,8 +2220,8 @@ router.get('/jobs/stats', authenticateToken, isTPO, tpoInstituteAccess, async (r
     for (let i = 5; i >= 0; i--) {
       const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
       const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-      
-      const monthlyJobs = jobs.filter(job => 
+
+      const monthlyJobs = jobs.filter(job =>
         job.postedAt >= date && job.postedAt <= monthEnd
       ).length;
 

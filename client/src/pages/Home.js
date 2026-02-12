@@ -1,284 +1,292 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-    Rocket,
+    Briefcase,
     Users,
-    Building,
+    Building2,
     TrendingUp,
-    Award,
     ArrowRight,
-    Monitor,
-    UserCheck,
-    FileText
+    LayoutDashboard,
+    FileSpreadsheet,
+    ShieldCheck,
+    Bell,
+    CheckCircle2,
+    Sparkles,
+    Globe,
+    Zap
 } from 'lucide-react';
 
 const Home = () => {
-    const [isVisible, setIsVisible] = useState(false);
+    const [scrolled, setScrolled] = useState(false);
 
     useEffect(() => {
-        setIsVisible(true);
+        const handleScroll = () => setScrolled(window.scrollY > 20);
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
     return (
-        <div className="min-h-screen bg-slate-50 overscroll-none overflow-x-hidden">
-            {/* Hero Section */}
-            <div className="relative overflow-hidden bg-white">
-                <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 to-blue-50 z-0"></div>
-                <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 rounded-full bg-blue-100 opacity-50 blur-3xl"></div>
-                <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 rounded-full bg-indigo-100 opacity-50 blur-3xl"></div>
+        <div className="min-h-screen bg-white font-sans text-slate-900 selection:bg-indigo-100 selection:text-indigo-900">
 
-                <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-24 md:pt-32 md:pb-32">
-                    <div className="text-center max-w-4xl mx-auto">
-                        <div className={`transition-all duration-1000 transform ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-                            <span className="inline-block py-1 px-3 rounded-full bg-blue-100 text-blue-700 text-sm font-semibold mb-6 tracking-wide uppercase">
-                                Next Gen Placement Tracking
-                            </span>
-                            <h1 className="text-5xl md:text-7xl font-extrabold text-slate-900 leading-tight mb-8">
-                                Elevate Your Career <br className="hidden md:block" />
-                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
-                                    To New Heights
-                                </span>
-                            </h1>
-                            <p className="text-xl md:text-2xl text-slate-600 mb-10 max-w-2xl mx-auto leading-relaxed">
-                                Connect with top companies, track your applications, and streamline your placement journey with CGC Mohali's premier placement portal.
-                            </p>
-
-                            <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-4">
-                                <Link to="/signup" className="w-full sm:w-auto px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 flex items-center justify-center">
-                                    Get Started Now
-                                    <ArrowRight className="ml-2 w-5 h-5" />
-                                </Link>
-                                <Link to="/login" className="w-full sm:w-auto px-8 py-4 bg-white hover:bg-gray-50 text-slate-800 font-bold border border-slate-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-center">
-                                    Login
-                                </Link>
-                            </div>
-                        </div>
-
-                        {/* Hero Image/Mockup Placeholder */}
-                        <div className={`mt-20 relative mx-auto max-w-5xl transition-all duration-1000 delay-300 transform ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'}`}>
-                            <div className="relative rounded-2xl overflow-hidden shadow-2xl border-4 border-white bg-slate-900 aspect-[16/9] group">
-                                <div className="absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-900 z-0"></div>
-                                {/* Decorative UI Elements simulating dashboard */}
-                                <div className="relative z-10 p-4 md:p-8 h-full flex flex-col">
-                                    <div className="flex items-center space-x-2 mb-6">
-                                        <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                                        <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
-                                        <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                                    </div>
-                                    <div className="flex-1 grid grid-cols-12 gap-6">
-                                        {/* Sidebar */}
-                                        <div className="hidden md:block col-span-2 bg-slate-800/50 rounded-lg h-full animate-pulse"></div>
-                                        {/* Main Content */}
-                                        <div className="col-span-12 md:col-span-10 flex flex-col space-y-6">
-                                            <div className="h-32 bg-gradient-to-r from-blue-500/20 to-indigo-500/20 rounded-xl border border-white/10 p-6 flex items-center justify-between">
-                                                <div className="space-y-2">
-                                                    <div className="h-4 w-32 bg-white/20 rounded"></div>
-                                                    <div className="h-8 w-48 bg-white/30 rounded"></div>
-                                                </div>
-                                                <div className="h-12 w-12 rounded-full bg-blue-500/30"></div>
-                                            </div>
-                                            <div className="grid grid-cols-3 gap-6">
-                                                <div className="h-40 bg-white/5 rounded-xl border border-white/10"></div>
-                                                <div className="h-40 bg-white/5 rounded-xl border border-white/10"></div>
-                                                <div className="h-40 bg-white/5 rounded-xl border border-white/10"></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Overlay on Hover */}
-                                <div className="absolute inset-0 bg-blue-900/0 group-hover:bg-blue-900/10 transition-colors duration-500"></div>
-                            </div>
-                        </div>
+            {/* HERO SECTION */}
+            <div className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
+                {/* Background Decor */}
+                <div className="absolute inset-0 z-0">
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-7xl mx-auto">
+                        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-50 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob"></div>
+                        <div className="absolute top-20 left-0 w-[500px] h-[500px] bg-blue-50 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob animation-delay-2000"></div>
                     </div>
+                    {/* Grid Pattern */}
+                    <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+                    <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-white to-transparent"></div>
                 </div>
-            </div>
 
-            {/* Stats Section */}
-            <div className="bg-white py-12 border-b border-gray-100">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-                        {[
-                            { label: 'Total Placements', value: '2.5k+', icon: <Users className="w-6 h-6 text-blue-600" /> },
-                            { label: 'Average Package', value: '8 LPA', icon: <TrendingUp className="w-6 h-6 text-green-600" /> },
-                            { label: 'Partner Companies', value: '500+', icon: <Building className="w-6 h-6 text-indigo-600" /> },
-                            { label: 'Success Rate', value: '94%', icon: <Award className="w-6 h-6 text-yellow-600" /> },
-                        ].map((stat, idx) => (
-                            <div key={idx} className="flex flex-col items-center justify-center p-4 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors duration-300">
-                                <div className="mb-3 p-3 bg-white rounded-full shadow-sm">
-                                    {stat.icon}
-                                </div>
-                                <div className="text-3xl font-bold text-slate-900 mb-1">{stat.value}</div>
-                                <div className="text-sm text-slate-500 font-medium uppercase tracking-wide">{stat.label}</div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </div>
-
-            {/* Features Section */}
-            <div className="py-24 bg-slate-50">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="text-center mb-16">
-                        <h2 className="text-base text-blue-600 font-semibold tracking-wide uppercase">Why Choose Elevate?</h2>
-                        <p className="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">
-                            Everything you need to succeed
-                        </p>
-                        <p className="mt-4 max-w-2xl text-xl text-gray-500 mx-auto">
-                            Our platform offers comprehensive tools designed to streamline the entire recruitment lifecycle.
-                        </p>
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-600 text-xs font-semibold uppercase tracking-wider mb-8 animate-fade-in-up">
+                        <Sparkles className="w-3 h-3" />
+                        <span>Reimagining Placements</span>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-                        {[
-                            {
-                                title: 'Live Tracking',
-                                desc: 'Real-time updates on your application status, interview schedules, and results.',
-                                icon: <Monitor className="w-8 h-8 text-white" />,
-                                color: 'bg-blue-500'
-                            },
-                            {
-                                title: 'Resume Builder',
-                                desc: 'Create professional, ATS-friendly resumes with our built-in dynamic resume builder tool.',
-                                icon: <FileText className="w-8 h-8 text-white" />,
-                                color: 'bg-indigo-500'
-                            },
-                            {
-                                title: 'Company Insights',
-                                desc: 'Detailed profiles of visiting companies, including updated eligibility criteria and hiring trends.',
-                                icon: <Building className="w-8 h-8 text-white" />,
-                                color: 'bg-purple-500'
-                            }
-                        ].map((feature, idx) => (
-                            <div key={idx} className="bg-white rounded-2xl p-8 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 group">
-                                <div className={`${feature.color} w-16 h-16 rounded-2xl flex items-center justify-center mb-6 shadow-lg transform group-hover:-translate-y-2 transition-transform duration-300`}>
-                                    {feature.icon}
-                                </div>
-                                <h3 className="text-xl font-bold text-gray-900 mb-4">{feature.title}</h3>
-                                <p className="text-gray-600 leading-relaxed mb-4">{feature.desc}</p>
-                                <Link to="/signup" className="inline-flex items-center text-blue-600 font-semibold hover:text-blue-800 transition-colors">
-                                    Learn more <ArrowRight className="ml-1 w-4 h-4" />
-                                </Link>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </div>
+                    <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-8 leading-tight animate-fade-in-up animation-delay-100">
+                        The Operating System for <br className="hidden md:block" />
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-blue-600">
+                            Campus Placements
+                        </span>
+                    </h1>
 
-            {/* User Types Section */}
-            <div className="py-24 bg-white">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
-                        <div>
-                            <h2 className="text-3xl font-extrabold text-gray-900 sm:text-4xl mb-6">
-                                Tailored for every stakeholder
-                            </h2>
-                            <p className="text-lg text-gray-600 mb-8">
-                                Whether you're a student aspiring for a dream job, a company looking for top talent, or a TPO managing the process, Elevate has you covered.
-                            </p>
-
-                            <div className="space-y-6">
-                                {[
-                                    { title: 'For Students', desc: 'One-click apply, personalized dashboard, and skill assessment tools.' },
-                                    { title: 'For Recruiters', desc: 'Efficient candidate filtering, interview scheduling, and offer management.' },
-                                    { title: 'For TPOs', desc: 'Comprehensive analytics, batch management, and automated notifications.' }
-                                ].map((item, idx) => (
-                                    <div key={idx} className="flex">
-                                        <div className="flex-shrink-0">
-                                            <div className="flex items-center justify-center h-12 w-12 rounded-md bg-blue-100 text-blue-600">
-                                                <UserCheck className="w-6 h-6" />
-                                            </div>
-                                        </div>
-                                        <div className="ml-4">
-                                            <h4 className="text-lg leading-6 font-medium text-gray-900">{item.title}</h4>
-                                            <p className="mt-2 text-base text-gray-500">{item.desc}</p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="relative">
-                            <div className="absolute inset-0 bg-blue-50 rounded-3xl transform rotate-3"></div>
-                            <div className="relative bg-white border border-gray-100 rounded-3xl shadow-xl p-8">
-                                <div className="bg-slate-50 rounded-xl p-6 mb-6 border border-slate-100">
-                                    <div className="flex items-center space-x-4 mb-4">
-                                        <div className="h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold">JD</div>
-                                        <div>
-                                            <div className="font-bold text-slate-800">John Doe</div>
-                                            <div className="text-sm text-slate-500">Student • Batch 2024</div>
-                                        </div>
-                                        <span className="ml-auto px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full uppercase">Placed</span>
-                                    </div>
-                                    <div className="h-2 w-full bg-gray-200 rounded mb-2">
-                                        <div className="h-2 bg-blue-500 w-3/4 rounded"></div>
-                                    </div>
-                                    <div className="flex justify-between text-xs text-gray-500">
-                                        <span>Profile Completion</span>
-                                        <span>75%</span>
-                                    </div>
-                                </div>
-
-                                <div className="bg-slate-50 rounded-xl p-6 border border-slate-100">
-                                    <div className="flex justify-between items-center mb-4">
-                                        <span className="font-bold text-slate-700">Recent Applications</span>
-                                        <span className="text-blue-600 text-sm font-semibold">View All</span>
-                                    </div>
-                                    <div className="space-y-3">
-                                        {[1, 2, 3].map((i) => (
-                                            <div key={i} className="flex items-center p-3 bg-white rounded-lg shadow-sm">
-                                                <div className="h-8 w-8 bg-gray-100 rounded mr-3"></div>
-                                                <div className="flex-1">
-                                                    <div className="h-3 w-24 bg-gray-200 rounded mb-1"></div>
-                                                    <div className="h-2 w-16 bg-gray-100 rounded"></div>
-                                                </div>
-                                                <div className="h-6 w-16 bg-blue-50 rounded"></div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* CTA Section */}
-            <div className="bg-blue-700">
-                <div className="max-w-2xl mx-auto text-center py-16 px-4 sm:py-20 sm:px-6 lg:px-8">
-                    <h2 className="text-3xl font-extrabold text-white sm:text-4xl">
-                        <span className="block">Ready to dive in?</span>
-                        <span className="block text-blue-200">Start your journey today.</span>
-                    </h2>
-                    <p className="mt-4 text-lg leading-6 text-blue-100">
-                        Join thousands of students and top companies on the most advanced placement platform in the region.
+                    <p className="max-w-2xl mx-auto text-xl text-slate-600 mb-10 leading-relaxed animate-fade-in-up animation-delay-200">
+                        Streamline your entire placement drive. Connect students, colleges, and top-tier companies on a single, unified platform designed for success.
                     </p>
-                    <Link
-                        to="/signup"
-                        className="mt-8 w-full inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-blue-600 bg-white hover:bg-blue-50 sm:w-auto transition-colors"
-                    >
-                        Sign up for free
-                    </Link>
+
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-in-up animation-delay-300">
+                        <Link
+                            to="/signup"
+                            className="w-full sm:w-auto px-8 py-4 bg-slate-900 text-white rounded-xl font-semibold text-lg hover:bg-slate-800 transition-all hover:-translate-y-1 shadow-xl shadow-slate-200 flex items-center justify-center gap-2"
+                        >
+                            Get Started Free
+                            <ArrowRight className="w-5 h-5" />
+                        </Link>
+                        <Link
+                            to="/login"
+                            className="w-full sm:w-auto px-8 py-4 bg-white text-slate-700 border border-slate-200 rounded-xl font-semibold text-lg hover:bg-slate-50 transition-all hover:border-slate-300 flex items-center justify-center"
+                        >
+                            View Demo
+                        </Link>
+                    </div>
+
+                    {/* Dashboard Preview Mockup */}
+                    <div className="mt-20 relative max-w-5xl mx-auto animate-fade-in-up animation-delay-500">
+                        <div className="relative rounded-2xl border border-slate-200 bg-white/50 backdrop-blur-xl p-2 shadow-2xl shadow-indigo-500/10">
+                            <div className="absolute inset-x-0 -top-20 h-20 bg-gradient-to-b from-transparent to-white/20"></div>
+                            <div className="rounded-xl overflow-hidden bg-slate-50 border border-slate-200 aspect-[16/9] relative">
+                                {/* Abstract Dashboard UI Representation */}
+                                <div className="absolute inset-0 flex">
+                                    {/* Sidebar */}
+                                    <div className="w-64 border-r border-slate-200 bg-white p-4 hidden md:block">
+                                        <div className="h-8 w-8 bg-indigo-600 rounded-lg mb-8"></div>
+                                        <div className="space-y-3">
+                                            {[1, 2, 3, 4, 5].map(i => (
+                                                <div key={i} className="h-8 w-full bg-slate-100 rounded-lg"></div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    {/* Main Content */}
+                                    <div className="flex-1 bg-slate-50 p-6">
+                                        <div className="flex justify-between items-center mb-6">
+                                            <div className="h-8 w-32 bg-white rounded-lg border border-slate-200"></div>
+                                            <div className="flex gap-2">
+                                                <div className="h-8 w-8 bg-white rounded-lg border border-slate-200"></div>
+                                                <div className="h-8 w-8 bg-indigo-600 rounded-lg"></div>
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-3 gap-6 mb-6">
+                                            {[1, 2, 3].map(i => (
+                                                <div key={i} className="h-32 bg-white rounded-xl border border-slate-200 p-4">
+                                                    <div className="h-10 w-10 bg-indigo-50 rounded-lg mb-2"></div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <div className="h-64 bg-white rounded-xl border border-slate-200"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            {/* Footer */}
-            <footer className="bg-white border-t border-gray-200">
-                <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-                    <div className="flex flex-col md:flex-row justify-between items-center">
-                        <div className="flex items-center space-x-2 mb-4 md:mb-0">
-                            <Rocket className="h-6 w-6 text-blue-600" />
-                            <span className="text-xl font-bold text-gray-900">Elevate</span>
+            {/* LOGO CLOUD */}
+            <div className="py-10 border-y border-slate-100 bg-slate-50/50">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                    <p className="text-sm font-semibold text-slate-500 uppercase tracking-widest mb-6">Trusted by leading institutions</p>
+                    <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16 opacity-50 grayscale hover:grayscale-0 transition-all duration-500">
+                        {/* Placeholder Company Logos - Using text for simplicity, replace with SVGs */}
+                        <span className="text-xl font-bold font-serif">ACME Corp</span>
+                        <span className="text-xl font-bold font-mono">GlobalTech</span>
+                        <span className="text-xl font-bold">InfiniteLoop</span>
+                        <span className="text-xl font-bold italic">Horizon</span>
+                        <span className="text-xl font-bold font-serif">Vertex</span>
+                    </div>
+                </div>
+            </div>
+
+            {/* BENTO GRID FEATURES */}
+            <div className="py-24 bg-white relative">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="text-center max-w-3xl mx-auto mb-20">
+                        <h2 className="text-3xl md:text-5xl font-bold text-slate-900 mb-6">
+                            Everything you need to <br />
+                            <span className="text-indigo-600">manage placements</span>
+                        </h2>
+                        <p className="text-lg text-slate-600">
+                            A powerful suite of tools built to handle every aspect of the recruitment lifecycle, from application to offer letter.
+                        </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {/* Feature 1 - Large */}
+                        <div className="md:col-span-2 bg-slate-50 border border-slate-200 rounded-3xl p-8 lg:p-10 hover:border-indigo-200 transition-colors group relative overflow-hidden">
+                            <div className="relative z-10">
+                                <div className="w-12 h-12 bg-white border border-slate-200 rounded-xl flex items-center justify-center mb-6 shadow-sm group-hover:scale-110 transition-transform">
+                                    <LayoutDashboard className="w-6 h-6 text-indigo-600" />
+                                </div>
+                                <h3 className="text-2xl font-bold text-slate-900 mb-3">Centralized Command Center</h3>
+                                <p className="text-slate-600 max-w-md">Track every application, interview schedule, and offer status from a single, intuitive dashboard. No more spreadsheets.</p>
+                            </div>
+                            <div className="absolute right-0 bottom-0 w-1/2 h-full opacity-10 bg-[radial-gradient(#4f46e5_1px,transparent_1px)] [background-size:16px_16px]"></div>
                         </div>
-                        <div className="flex space-x-6 text-gray-500 hover:text-gray-900 cursor-pointer">
-                            <span>About</span>
-                            <span>Features</span>
-                            <span>Contact</span>
-                            <span>Privacy</span>
-                            <span>Terms</span>
+
+                        {/* Feature 2 */}
+                        <div className="bg-slate-900 text-white rounded-3xl p-8 lg:p-10 flex flex-col justify-between group">
+                            <div>
+                                <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center mb-6 backdrop-blur-sm">
+                                    <Zap className="w-6 h-6 text-yellow-400" />
+                                </div>
+                                <h3 className="text-2xl font-bold mb-3">Instant Updates</h3>
+                                <p className="text-slate-300">Real-time notifications for students and TPOs. Never miss an opportunity.</p>
+                            </div>
+                            <div className="mt-8 flex items-center gap-2 text-sm font-medium text-slate-400 group-hover:text-white transition-colors">
+                                Learn more <ArrowRight className="w-4 h-4" />
+                            </div>
                         </div>
-                        <div className="mt-4 md:mt-0 text-gray-400 text-sm">
-                            &copy; 2024 Elevate, CGC Mohali. All rights reserved.
+
+                        {/* Feature 3 */}
+                        <div className="bg-white border border-slate-200 rounded-3xl p-8 lg:p-10 hover:shadow-xl hover:shadow-indigo-500/5 transition-all group">
+                            <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center mb-6">
+                                <FileSpreadsheet className="w-6 h-6 text-indigo-600" />
+                            </div>
+                            <h3 className="text-xl font-bold text-slate-900 mb-3">Automated Resume Parsing</h3>
+                            <p className="text-slate-600">AI-driven resume analysis to match the right candidates with the right roles instantly.</p>
+                        </div>
+
+                        {/* Feature 4 */}
+                        <div className="bg-white border border-slate-200 rounded-3xl p-8 lg:p-10 hover:shadow-xl hover:shadow-indigo-500/5 transition-all group">
+                            <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center mb-6">
+                                <ShieldCheck className="w-6 h-6 text-green-600" />
+                            </div>
+                            <h3 className="text-xl font-bold text-slate-900 mb-3">Verified Profiles</h3>
+                            <p className="text-slate-600">Ensuring authenticity with verified student and company profiles for a secure network.</p>
+                        </div>
+
+                        {/* Feature 5 */}
+                        <div className="bg-gradient-to-br from-indigo-600 to-blue-600 text-white rounded-3xl p-8 lg:p-10 hover:shadow-xl hover:shadow-indigo-500/20 transition-all group">
+                            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mb-6 backdrop-blur-md">
+                                <Globe className="w-6 h-6 text-white" />
+                            </div>
+                            <h3 className="text-xl font-bold mb-3">Campus Wide Network</h3>
+                            <p className="text-indigo-100">Connect seamlessly across departments and campuses for unified placement drives.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* METRICS / STATS */}
+            <div className="py-24 bg-slate-50 border-y border-slate-200">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-8 lg:gap-12">
+                        {[
+                            { label: 'Active Students', value: '10k+', icon: Users },
+                            { label: 'Partner Companies', value: '500+', icon: Building2 },
+                            { label: 'Successful Hires', value: '85%', icon: CheckCircle2 },
+                            { label: 'Avg Package (LPA)', value: '12', icon: TrendingUp },
+                        ].map((stat, idx) => (
+                            <div key={idx} className="text-center">
+                                <div className="flex justify-center mb-4 text-indigo-600">
+                                    <stat.icon className="w-8 h-8" />
+                                </div>
+                                <div className="text-4xl lg:text-5xl font-bold text-slate-900 mb-2 tracking-tight">{stat.value}</div>
+                                <div className="text-slate-500 font-medium uppercase tracking-wider text-sm">{stat.label}</div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            {/* CTA SECTION */}
+            <div className="py-24 bg-white">
+                <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                    <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6">
+                        Ready to transform specific <br />
+                        <span className="text-indigo-600">campus placements?</span>
+                    </h2>
+                    <p className="text-xl text-slate-600 mb-10 max-w-2xl mx-auto">
+                        Join the platform that is redefining how colleges and companies connect. Start your journey with Elevate today.
+                    </p>
+                    <div className="flex flex-col sm:flex-row justify-center gap-4">
+                        <Link to="/signup" className="px-8 py-4 bg-indigo-600 text-white rounded-xl font-bold text-lg hover:bg-indigo-700 transition-all hover:-translate-y-1 shadow-lg shadow-indigo-200">
+                            Get Started Now
+                        </Link>
+                        <Link to="/contact" className="px-8 py-4 bg-white text-slate-700 border border-slate-200 rounded-xl font-bold text-lg hover:bg-slate-50 transition-colors">
+                            Contact Sales
+                        </Link>
+                    </div>
+                </div>
+            </div>
+
+            {/* FOOTER */}
+            <footer className="bg-slate-900 text-slate-400 py-16">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-12 border-b border-slate-800 pb-12">
+                        <div className="md:col-span-5">
+                            <Link to="/" className="inline-flex items-center gap-2 mb-6 text-white text-xl font-bold">
+                                <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">🚀</div>
+                                Elevate
+                            </Link>
+                            <p className="text-slate-400 leading-relaxed max-w-md">
+                                The complete placement solution for modern educational institutions. Bridging the gap between talent and opportunity.
+                            </p>
+                        </div>
+                        <div className="md:col-span-2">
+                            <h4 className="text-white font-bold mb-4">Product</h4>
+                            <ul className="space-y-3">
+                                <li><Link to="#" className="hover:text-indigo-400 transition-colors">Features</Link></li>
+                                <li><Link to="#" className="hover:text-indigo-400 transition-colors">Solutions</Link></li>
+                                <li><Link to="#" className="hover:text-indigo-400 transition-colors">Pricing</Link></li>
+                            </ul>
+                        </div>
+                        <div className="md:col-span-2">
+                            <h4 className="text-white font-bold mb-4">Company</h4>
+                            <ul className="space-y-3">
+                                <li><Link to="#" className="hover:text-indigo-400 transition-colors">About</Link></li>
+                                <li><Link to="#" className="hover:text-indigo-400 transition-colors">Blog</Link></li>
+                                <li><Link to="#" className="hover:text-indigo-400 transition-colors">Careers</Link></li>
+                            </ul>
+                        </div>
+                        <div className="md:col-span-3">
+                            <h4 className="text-white font-bold mb-4">Legal</h4>
+                            <ul className="space-y-3">
+                                <li><Link to="#" className="hover:text-indigo-400 transition-colors">Privacy Policy</Link></li>
+                                <li><Link to="#" className="hover:text-indigo-400 transition-colors">Terms of Service</Link></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div className="pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+                        <p>&copy; {new Date().getFullYear()} Elevate Inc. All rights reserved.</p>
+                        <div className="flex gap-6">
+                            {/* Social Icons Placeholder */}
+                            <div className="w-6 h-6 bg-slate-800 rounded hover:bg-indigo-600 transition-colors cursor-pointer"></div>
+                            <div className="w-6 h-6 bg-slate-800 rounded hover:bg-indigo-600 transition-colors cursor-pointer"></div>
+                            <div className="w-6 h-6 bg-slate-800 rounded hover:bg-indigo-600 transition-colors cursor-pointer"></div>
                         </div>
                     </div>
                 </div>

@@ -1,10 +1,10 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { 
-  getCurrentUser, 
-  loginUser, 
-  logoutUser, 
+import {
+  getCurrentUser,
+  loginUser,
+  logoutUser,
   verifyOTP as verifyOTPApi,
   forgotPassword as forgotPasswordApi,
   resetPassword as resetPasswordApi,
@@ -36,20 +36,35 @@ export const AuthProvider = ({ children }) => {
         try {
           const response = await getCurrentUser();
           setUser(response.user);
-          
-          // Check if user is not verified and redirect to not-verified page
+
+          // Check if user is not verified (email) and redirect to not-verified page
           if (response.user && !response.user.isVerified) {
-            navigate('/not-verified', { 
-              state: { 
+            navigate('/not-verified', {
+              state: {
                 email: response.user.email,
                 role: response.user.role,
-                message: 'Please verify your email address to access your dashboard.' 
-              } 
+                type: 'email',
+                message: 'Please verify your email address to access your dashboard.'
+              }
+            });
+          }
+          // Check if student is pending TPO approval
+          else if (response.user && response.user.role === 'student' && response.user.verificationStatus && response.user.verificationStatus !== 'verified') {
+            navigate('/not-verified', {
+              state: {
+                email: response.user.email,
+                role: response.user.role,
+                type: 'tpo_approval',
+                verificationStatus: response.user.verificationStatus,
+                message: response.user.verificationStatus === 'rejected'
+                  ? 'Your profile has been rejected by the TPO. Please contact your college administration.'
+                  : 'Your profile is pending approval from your TPO. Please wait for verification.'
+              }
             });
           }
         } catch (error) {
           console.error('Auth check failed:', error);
-          
+
           // Only remove token if it's a 401 (unauthorized) or 403 (forbidden) error
           // This indicates the token is invalid or expired
           if (error.response?.status === 401 || error.response?.status === 403) {
@@ -71,7 +86,7 @@ export const AuthProvider = ({ children }) => {
                 console.error('Failed to parse stored user data:', parseError);
               }
             }
-            
+
             // Retry once for network errors (but not for auth errors)
             if (retryCount === 0 && (!error.response || error.response.status >= 500)) {
               console.log('Retrying auth check due to server error...');
@@ -119,72 +134,89 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await loginUser({ email, password });
       const { token: newToken, user: userData } = response;
-      
+
       localStorage.setItem('token', newToken);
       localStorage.setItem('user', JSON.stringify(userData));
       setToken(newToken);
       setUser(userData);
-      
+
       toast.success('Login successful!');
-      
-      // Check if user is not verified
+
+      // Check if user is not verified (email)
       if (!userData.isVerified) {
-        navigate('/not-verified', { 
-          state: { 
+        navigate('/not-verified', {
+          state: {
             email: userData.email,
             role: userData.role,
-            message: 'Please verify your email address to access your dashboard.' 
-          } 
+            type: 'email',
+            message: 'Please verify your email address to access your dashboard.'
+          }
         });
         return { success: true, requiresVerification: true };
       }
-      
-      // Check if TPO or Company user is pending approval
-      if ((userData.role === 'tpo' || userData.role === 'company') && userData.status === 'pending') {
-        navigate('/approval-pending', { 
-          state: { 
-            role: userData.role,
+
+      // Check if student is pending TPO approval
+      if (userData.role === 'student' && userData.verificationStatus && userData.verificationStatus !== 'verified') {
+        navigate('/not-verified', {
+          state: {
             email: userData.email,
-            message: 'Your account is pending approval from super admin.' 
-          } 
+            role: userData.role,
+            type: 'tpo_approval',
+            verificationStatus: userData.verificationStatus,
+            message: userData.verificationStatus === 'rejected'
+              ? 'Your profile has been rejected by the TPO. Please contact your college administration.'
+              : 'Your profile is pending approval from your TPO. Please wait for verification.'
+          }
         });
         return { success: true, requiresApproval: true };
       }
-      
+
+      // Check if TPO or Company user is pending approval
+      if ((userData.role === 'tpo' || userData.role === 'company') && userData.status === 'pending') {
+        navigate('/approval-pending', {
+          state: {
+            role: userData.role,
+            email: userData.email,
+            message: 'Your account is pending approval from super admin.'
+          }
+        });
+        return { success: true, requiresApproval: true };
+      }
+
       // Redirect to appropriate dashboard based on user role
       const dashboardRoute = getDashboardRoute(userData.role);
       navigate(dashboardRoute);
-      
+
       return { success: true };
     } catch (error) {
       const message = error.response?.data?.message || 'Login failed';
-      
+
       // Check if account requires verification
       if (error.response?.data?.requiresVerification) {
-        return { 
-          success: false, 
-          requiresVerification: true, 
+        return {
+          success: false,
+          requiresVerification: true,
           userId: error.response.data.userId,
-          message 
+          message
         };
       }
-      
+
       // Check if account requires approval (for TPO/Company)
       if (error.response?.data?.requiresApproval) {
-        navigate('/approval-pending', { 
-          state: { 
+        navigate('/approval-pending', {
+          state: {
             role: error.response.data.role || 'user',
             email: email,
-            message: message 
-          } 
+            message: message
+          }
         });
-        return { 
-          success: false, 
-          requiresApproval: true, 
-          message 
+        return {
+          success: false,
+          requiresApproval: true,
+          message
         };
       }
-      
+
       toast.error(message);
       return { success: false, message };
     }
@@ -195,30 +227,44 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await verifyOTPApi(userId, otp);
       const { token: newToken, user: userData } = response;
-      
+
       localStorage.setItem('token', newToken);
       localStorage.setItem('user', JSON.stringify(userData));
       setToken(newToken);
       setUser(userData);
-      
+
       toast.success('Account verified successfully!');
-      
+
       // Check if user needs approval (Company and TPO users)
       if ((userData.role === 'company' || userData.role === 'tpo') && userData.status === 'pending') {
-        navigate('/approval-pending', { 
-          state: { 
+        navigate('/approval-pending', {
+          state: {
             role: userData.role,
             email: userData.email,
-            message: 'Your account is pending approval from super admin.' 
-          } 
+            message: 'Your account is pending approval from super admin.'
+          }
         });
         return { success: true, requiresApproval: true };
       }
-      
+
+      // Check if student needs TPO approval
+      if (userData.role === 'student' && userData.verificationStatus && userData.verificationStatus !== 'verified') {
+        navigate('/not-verified', {
+          state: {
+            email: userData.email,
+            role: userData.role,
+            type: 'tpo_approval',
+            verificationStatus: userData.verificationStatus,
+            message: 'Your profile is pending approval from your TPO. Please wait for verification.'
+          }
+        });
+        return { success: true, requiresApproval: true };
+      }
+
       // For students and approved users, redirect to appropriate dashboard
       const dashboardRoute = getDashboardRoute(userData.role);
       navigate(dashboardRoute);
-      
+
       return { success: true };
     } catch (error) {
       const message = error.response?.data?.message || 'OTP verification failed';
@@ -273,7 +319,7 @@ export const AuthProvider = ({ children }) => {
   const updateProfile = async (profileData) => {
     try {
       const response = await updateUserProfileApi(profileData);
-      
+
       if (response.success) {
         // Update local state with the response from server
         const updatedUser = { ...user, ...response.user };
@@ -296,7 +342,7 @@ export const AuthProvider = ({ children }) => {
   const changePassword = async (currentPassword, newPassword) => {
     try {
       const response = await changePasswordApi(currentPassword, newPassword);
-      
+
       if (response.success) {
         toast.success(response.message || 'Password changed successfully!');
         return { success: true };

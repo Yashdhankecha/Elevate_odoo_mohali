@@ -70,7 +70,7 @@ const getValidationRules = (role) => {
           .notEmpty()
           .withMessage('College Name is required')
       ];
-    
+
     case 'company':
       return [
         ...baseRules,
@@ -81,7 +81,7 @@ const getValidationRules = (role) => {
           .matches(/^[+]?[\d\s\-\(\)]+$/)
           .withMessage('Please enter a valid contact number')
       ];
-    
+
     case 'tpo':
       return [
         ...baseRules,
@@ -95,7 +95,7 @@ const getValidationRules = (role) => {
           .matches(/^[+]?[\d\s\-\(\)]+$/)
           .withMessage('Please enter a valid contact number')
       ];
-    
+
     default:
       return baseRules;
   }
@@ -106,16 +106,15 @@ const getValidationRules = (role) => {
 // @access  Public
 router.get('/colleges-with-tpos', async (req, res) => {
   try {
-    const colleges = await User.find({
-      role: 'tpo',
+    const colleges = await TPO.find({
       status: 'active'
-    }).select('tpo.instituteName tpo.name email tpo.contactNumber');
+    }).select('instituteName name email contactNumber');
 
-    const collegeList = colleges.map(user => ({
-      instituteName: user.tpo.instituteName,
-      tpoName: user.tpo.name,
-      tpoEmail: user.email,
-      tpoContact: user.tpo.contactNumber
+    const collegeList = colleges.map(tpo => ({
+      instituteName: tpo.instituteName,
+      tpoName: tpo.name,
+      tpoEmail: tpo.email,
+      tpoContact: tpo.contactNumber
     }));
 
     res.json({
@@ -137,7 +136,7 @@ router.get('/colleges-with-tpos', async (req, res) => {
 router.get('/search-tpos', async (req, res) => {
   try {
     const { collegeName } = req.query;
-    
+
     if (!collegeName || collegeName.trim().length < 2) {
       return res.json({
         success: true,
@@ -145,20 +144,19 @@ router.get('/search-tpos', async (req, res) => {
       });
     }
 
-    const tpos = await User.find({
-      role: 'tpo',
+    const tpos = await TPO.find({
       status: 'active',
-      'tpo.instituteName': { 
-        $regex: collegeName.trim(), 
-        $options: 'i' 
+      'instituteName': {
+        $regex: collegeName.trim(),
+        $options: 'i'
       }
-    }).select('tpo.instituteName tpo.name email tpo.contactNumber');
+    }).select('instituteName name email contactNumber');
 
-    const tpoList = tpos.map(user => ({
-      instituteName: user.tpo.instituteName,
-      tpoName: user.tpo.name,
-      tpoEmail: user.email,
-      tpoContact: user.tpo.contactNumber
+    const tpoList = tpos.map(tpo => ({
+      instituteName: tpo.instituteName,
+      tpoName: tpo.name,
+      tpoEmail: tpo.email,
+      tpoContact: tpo.contactNumber
     }));
 
     res.json({
@@ -220,7 +218,7 @@ router.post('/register', async (req, res) => {
     if (!existingUser) {
       existingUser = await User.findOne({ email: userData.email });
     }
-    
+
     if (existingUser) {
       return res.status(400).json({
         success: false,
@@ -245,9 +243,9 @@ router.post('/register', async (req, res) => {
     if (role === 'student' && userData.collegeName) {
       const activeTPO = await TPO.findOne({
         status: 'active',
-        instituteName: { 
-          $regex: `^${userData.collegeName.trim()}$`, 
-          $options: 'i' 
+        instituteName: {
+          $regex: `^${userData.collegeName.trim()}$`,
+          $options: 'i'
         }
       });
 
@@ -279,7 +277,7 @@ router.post('/register', async (req, res) => {
           collegeName: userData.collegeName
         });
         break;
-      
+
       case 'company':
         user = new Company({
           email: userData.email,
@@ -291,7 +289,7 @@ router.post('/register', async (req, res) => {
           contactNumber: userData.contactNumber
         });
         break;
-      
+
       case 'tpo':
         user = new TPO({
           email: userData.email,
@@ -304,10 +302,12 @@ router.post('/register', async (req, res) => {
           contactNumber: userData.contactNumber
         });
         break;
-      
+
       default:
-        // Fallback to User collection for other roles
-        user = new User(userFields);
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid role'
+        });
     }
 
     // Generate OTP and send verification email
@@ -321,13 +321,17 @@ router.post('/register', async (req, res) => {
     // Send OTP email
     console.log('📧 Attempting to send OTP email...');
     const emailSent = await sendOTPEmail(userData.email, user.getDisplayName(), otp);
-    
+
     if (!emailSent) {
       console.log('❌ Email failed, but continuing in development mode');
       // In development mode, we continue even if email fails
       if (process.env.NODE_ENV === 'production') {
         // If email fails in production, delete the user
-        await User.findByIdAndDelete(user._id);
+        // If email fails in production, delete the user
+        if (role === 'student') await Student.findByIdAndDelete(user._id);
+        else if (role === 'company') await Company.findByIdAndDelete(user._id);
+        else if (role === 'tpo') await TPO.findByIdAndDelete(user._id);
+
         return res.status(500).json({
           success: false,
           message: 'Failed to send verification email. Please try again.'
@@ -355,10 +359,10 @@ router.post('/register', async (req, res) => {
 
   } catch (error) {
     console.error('❌ Registration error:', error);
-    
+
     // Provide more specific error messages
     let errorMessage = 'Server error. Please try again.';
-    
+
     if (error.name === 'ValidationError') {
       errorMessage = 'Validation error: ' + Object.values(error.errors).map(e => e.message).join(', ');
     } else if (error.name === 'MongoError' && error.code === 11000) {
@@ -366,7 +370,7 @@ router.post('/register', async (req, res) => {
     } else if (error.name === 'CastError') {
       errorMessage = 'Invalid data format. Please check your input.';
     }
-    
+
     res.status(500).json({
       success: false,
       message: errorMessage,
@@ -395,7 +399,22 @@ router.post('/verify-otp', [
     const { userId, otp } = req.body;
 
     // Find user
-    const user = await User.findById(userId);
+    // Find user in all collections
+    let user = await Student.findById(userId);
+    if (!user) {
+      user = await Company.findById(userId);
+    }
+    if (!user) {
+      user = await TPO.findById(userId);
+    }
+    if (!user) {
+      user = await SuperAdmin.findById(userId);
+    }
+    // Legacy fallback
+    if (!user) {
+      user = await User.findById(userId);
+    }
+
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -481,7 +500,21 @@ router.post('/resend-verification', [
     const { email } = req.body;
 
     // Find user
-    const user = await User.findOne({ email });
+    // Find user in all collections
+    let user = await Student.findOne({ email });
+    if (!user) {
+      user = await Company.findOne({ email });
+    }
+    if (!user) {
+      user = await TPO.findOne({ email });
+    }
+    if (!user) {
+      user = await SuperAdmin.findOne({ email });
+    }
+    if (!user) {
+      user = await User.findOne({ email });
+    }
+
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -503,7 +536,7 @@ router.post('/resend-verification', [
 
     // Send OTP email
     const emailSent = await sendOTPEmail(user.email, user.getDisplayName(), otp);
-    
+
     if (!emailSent) {
       console.log('❌ Email failed, but continuing in development mode');
       // In development mode, we continue even if email fails
@@ -552,7 +585,7 @@ router.post('/login', [
 
     // Find user in appropriate collection
     let user = null;
-    
+
     // Try to find user in each collection (same order as auth middleware)
     user = await Student.findOne({ email });
     if (!user) {
@@ -568,7 +601,7 @@ router.post('/login', [
         }
       }
     }
-    
+
     if (!user) {
       console.log('User not found for email:', email);
       return res.status(401).json({
@@ -602,7 +635,7 @@ router.post('/login', [
     console.log('Comparing password...');
     const isPasswordValid = await user.comparePassword(password);
     console.log('Password comparison result:', isPasswordValid);
-    
+
     if (!isPasswordValid) {
       console.log('Invalid password for user:', email);
       return res.status(401).json({
@@ -615,7 +648,7 @@ router.post('/login', [
     // Superadmin users are exempt from status checks
     let userStatus = 'pending';
     let isUserActive = false;
-    
+
     if (user.constructor.modelName === 'Student') {
       isUserActive = user.isActive;
       userStatus = user.isActive ? 'active' : 'pending';
@@ -633,14 +666,14 @@ router.post('/login', [
       userStatus = user.status;
       isUserActive = user.status === 'active';
     }
-    
+
     console.log('User status check:', {
       collection: user.constructor.modelName,
       role: user.role,
       userStatus: userStatus,
       isUserActive: isUserActive
     });
-    
+
     if (user.role !== 'superadmin' && !isUserActive) {
       if (userStatus === 'pending') {
         let approvalMessage = 'Your registration is pending approval. Please wait for admin approval before logging in.';
@@ -701,6 +734,7 @@ router.post('/login', [
         role: user.role,
         status: userStatus,
         isVerified: user.isVerified,
+        verificationStatus: user.verificationStatus || null,
         displayName: displayName,
         profilePicture: user.profilePicture
       }
@@ -735,7 +769,22 @@ router.post('/forgot-password', [
     const { email } = req.body;
 
     // Find user
-    const user = await User.findOne({ email });
+    // Find user in all collections
+    let user = await Student.findOne({ email });
+    if (!user) {
+      user = await Company.findOne({ email });
+    }
+    if (!user) {
+      user = await TPO.findOne({ email });
+    }
+    if (!user) {
+      user = await SuperAdmin.findOne({ email });
+    }
+    // Legacy support
+    if (!user) {
+      user = await User.findOne({ email });
+    }
+
     if (!user) {
       // Don't reveal if email exists or not
       return res.json({
@@ -750,7 +799,7 @@ router.post('/forgot-password', [
 
     // Send password reset email
     const emailSent = await sendPasswordResetEmail(email, user.getDisplayName(), resetToken);
-    
+
     if (!emailSent) {
       // In development mode, we continue even if email fails
       if (process.env.NODE_ENV === 'production') {
@@ -795,10 +844,40 @@ router.post('/reset-password', [
     const { token, password } = req.body;
 
     // Find user with valid reset token
-    const user = await User.findOne({
+    // Find user with valid reset token in all collections
+    let user = await Student.findOne({
       'passwordResetToken.token': token,
       'passwordResetToken.expiresAt': { $gt: new Date() }
     });
+
+    if (!user) {
+      user = await Company.findOne({
+        'passwordResetToken.token': token,
+        'passwordResetToken.expiresAt': { $gt: new Date() }
+      });
+    }
+
+    if (!user) {
+      user = await TPO.findOne({
+        'passwordResetToken.token': token,
+        'passwordResetToken.expiresAt': { $gt: new Date() }
+      });
+    }
+
+    if (!user) {
+      user = await SuperAdmin.findOne({
+        'passwordResetToken.token': token,
+        'passwordResetToken.expiresAt': { $gt: new Date() }
+      });
+    }
+
+    if (!user) {
+      user = await User.findOne({
+        'passwordResetToken.token': token,
+        'passwordResetToken.expiresAt': { $gt: new Date() }
+      });
+    }
+
 
     if (!user) {
       return res.status(400).json({
@@ -864,6 +943,7 @@ router.get('/me', authenticateToken, (req, res) => {
       role: req.user.role,
       status: userStatus,
       isVerified: req.user.isVerified,
+      verificationStatus: req.user.verificationStatus || null,
       displayName: req.user.getDisplayName(),
       profilePicture: req.user.profilePicture,
       roleData: req.user.getRoleData()

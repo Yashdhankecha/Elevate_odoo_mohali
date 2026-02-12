@@ -1,6 +1,10 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
+const Student = require('../models/Student');
+const TPO = require('../models/TPO');
+const Company = require('../models/Company');
+const SuperAdmin = require('../models/SuperAdmin');
 const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
@@ -25,11 +29,11 @@ router.get('/students', authenticateToken, async (req, res) => {
     }
 
     // Get query parameters for filtering
-    const { 
-      branch, 
-      graduationYear, 
-      isPlaced, 
-      minCGPA, 
+    const {
+      branch,
+      graduationYear,
+      isPlaced,
+      minCGPA,
       maxCGPA,
       skills,
       page = 1,
@@ -37,55 +41,55 @@ router.get('/students', authenticateToken, async (req, res) => {
     } = req.query;
 
     // Build filter object
-    const filter = { role: 'student' };
-    
-    if (branch) filter['student.branch'] = branch;
-    if (graduationYear) filter['student.graduationYear'] = parseInt(graduationYear);
-    if (isPlaced !== undefined) filter['student.isPlaced'] = isPlaced === 'true';
-    if (minCGPA) filter['student.cgpa'] = { $gte: parseFloat(minCGPA) };
-    if (maxCGPA) filter['student.cgpa'] = { ...filter['student.cgpa'], $lte: parseFloat(maxCGPA) };
+    const filter = {};
+
+    if (branch) filter.branch = branch;
+    if (graduationYear) filter.graduationYear = parseInt(graduationYear);
+    if (isPlaced !== undefined) filter.isPlaced = isPlaced === 'true';
+    if (minCGPA) filter.cgpa = { $gte: parseFloat(minCGPA) };
+    if (maxCGPA) filter.cgpa = { ...filter.cgpa, $lte: parseFloat(maxCGPA) };
     if (skills) {
       const skillArray = skills.split(',').map(s => s.trim());
-      filter['student.skills.name'] = { $in: skillArray };
+      filter['skills.name'] = { $in: skillArray };
     }
 
     // Calculate pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    
+
     // Get students with pagination
-    const students = await User.find(filter)
+    // Use Student model directly instead of User model with filter
+    const students = await Student.find(filter)
       .select('-password -emailVerificationOTP -passwordResetToken')
-      .sort({ 'student.cgpa': -1, 'student.name': 1 })
+      .sort({ cgpa: -1, name: 1 })
       .skip(skip)
       .limit(parseInt(limit));
 
     // Get total count for pagination
-    const totalStudents = await User.countDocuments(filter);
+    const totalStudents = await Student.countDocuments(filter);
     const totalPages = Math.ceil(totalStudents / parseInt(limit));
 
     // Calculate statistics
-    const stats = await User.aggregate([
-      { $match: { role: 'student' } },
+    // Calculate statistics using Student model
+    const stats = await Student.aggregate([
       {
         $group: {
           _id: null,
           totalStudents: { $sum: 1 },
-          placedStudents: { $sum: { $cond: ['$student.isPlaced', 1, 0] } },
-          avgCGPA: { $avg: '$student.cgpa' },
-          avgProfileCompletion: { $avg: '$student.profileCompletion' }
+          placedStudents: { $sum: { $cond: ['$isPlaced', 1, 0] } },
+          avgCGPA: { $avg: '$cgpa' },
+          avgProfileCompletion: { $avg: '$profileCompletion' }
         }
       }
     ]);
 
-    // Branch-wise statistics
-    const branchStats = await User.aggregate([
-      { $match: { role: 'student' } },
+    // Branch-wise statistics using Student model
+    const branchStats = await Student.aggregate([
       {
         $group: {
-          _id: '$student.branch',
+          _id: '$branch',
           count: { $sum: 1 },
-          placedCount: { $sum: { $cond: ['$student.isPlaced', 1, 0] } },
-          avgCGPA: { $avg: '$student.cgpa' }
+          placedCount: { $sum: { $cond: ['$isPlaced', 1, 0] } },
+          avgCGPA: { $avg: '$cgpa' }
         }
       },
       { $sort: { count: -1 } }
@@ -136,7 +140,7 @@ router.get('/students/:id', authenticateToken, async (req, res) => {
       });
     }
 
-    const student = await User.findOne({ _id: id, role: 'student' })
+    const student = await Student.findOne({ _id: id })
       .select('-password -emailVerificationOTP -passwordResetToken');
 
     if (!student) {
@@ -446,18 +450,18 @@ router.get('/alerts', authenticateToken, async (req, res) => {
     const alerts = [];
 
     // Check for upcoming interviews
-    const upcomingInterviews = applications.filter(app => 
-      app.status === 'Interview Scheduled' && 
-      app.interviewRounds && 
-      app.interviewRounds.some(round => 
-        round.status === 'Scheduled' && 
+    const upcomingInterviews = applications.filter(app =>
+      app.status === 'Interview Scheduled' &&
+      app.interviewRounds &&
+      app.interviewRounds.some(round =>
+        round.status === 'Scheduled' &&
         new Date(round.date) > new Date()
       )
     );
 
     upcomingInterviews.forEach(app => {
-      const nextInterview = app.interviewRounds.find(round => 
-        round.status === 'Scheduled' && 
+      const nextInterview = app.interviewRounds.find(round =>
+        round.status === 'Scheduled' &&
         new Date(round.date) > new Date()
       );
       if (nextInterview) {
@@ -554,7 +558,7 @@ router.get('/performance-analytics', authenticateToken, async (req, res) => {
     // Calculate success rates
     const totalApplications = applications.length;
     const selectedApplications = applications.filter(app => app.status === 'Selected').length;
-    const interviewApplications = applications.filter(app => 
+    const interviewApplications = applications.filter(app =>
       ['Shortlisted', 'Interview Scheduled', 'Interview Completed', 'Selected'].includes(app.status)
     ).length;
 
@@ -693,12 +697,17 @@ router.get('/profile', authenticateToken, async (req, res) => {
   try {
 
     console.log('Get profile request for user:', req.user._id);
-    const user = await User.findById(req.user._id).select('-password');
-    console.log('Found user:', user);
+
+    // User is already attached to req by authenticateToken middleware
+    // and it's from the correct collection
+    const user = req.user;
+
+    // Only fetch if strictly necessary, but req.user is already populated
+    console.log('Found user:', user._id);
 
     res.json({
       success: true,
-      user: req.user
+      user: user
     });
   } catch (error) {
     console.error('Get profile error:', error);
@@ -718,25 +727,31 @@ router.put('/profile', authenticateToken, async (req, res) => {
     console.log('Request body:', JSON.stringify(req.body, null, 2));
     console.log('User ID:', req.user._id);
     console.log('User email:', req.user.email);
-    
-    const { 
-      name, 
-      email, 
-      phone, 
-      designation, 
-      department, 
-      profilePicture, 
-      bio, 
-      location, 
-      linkedin, 
-      github 
+
+    const {
+      name,
+      email,
+      phone,
+      designation,
+      department,
+      profilePicture,
+      bio,
+      location,
+      linkedin,
+      github
     } = req.body;
-    
+
     const updateFields = {};
 
     // Check if email is being updated and if it's unique
     if (email && email !== req.user.email) {
-      const existingUser = await User.findOne({ email });
+      // Check all collections for email uniqueness
+      let existingUser = await Student.findOne({ email });
+      if (!existingUser) existingUser = await Company.findOne({ email });
+      if (!existingUser) existingUser = await TPO.findOne({ email });
+      if (!existingUser) existingUser = await SuperAdmin.findOne({ email });
+      if (!existingUser) existingUser = await User.findOne({ email });
+
       if (existingUser) {
         return res.status(400).json({
           success: false,
@@ -770,11 +785,30 @@ router.put('/profile', authenticateToken, async (req, res) => {
 
     // Update user profile
     console.log('Executing database update...');
-    const updatedUser = await User.findByIdAndUpdate(
+    // Update user profile in the correct collection
+    console.log('Executing database update...');
+    let updatedUser = null;
+    let Model = null;
+
+    if (req.user.constructor.modelName === 'Student') Model = Student;
+    else if (req.user.constructor.modelName === 'Company') Model = Company;
+    else if (req.user.constructor.modelName === 'TPO') Model = TPO;
+    else if (req.user.constructor.modelName === 'SuperAdmin') Model = SuperAdmin;
+    else Model = User; // Fallback
+
+    updatedUser = await Model.findByIdAndUpdate(
       req.user._id,
       updateFields,
       { new: true }
     ).select('-password');
+
+    // Attach role manually if using specific models
+    if (updatedUser && Model !== User) {
+      if (Model === Student) updatedUser.role = 'student';
+      if (Model === Company) updatedUser.role = 'company';
+      if (Model === TPO) updatedUser.role = 'tpo';
+      if (Model === SuperAdmin) updatedUser.role = 'superadmin';
+    }
 
     console.log('Database update completed');
     console.log('Updated user data:', JSON.stringify(updatedUser, null, 2));
@@ -812,7 +846,7 @@ router.put('/change-password', authenticateToken, async (req, res) => {
 
     // Find user with password
     const user = await User.findById(req.user._id).select('+password');
-    
+
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -863,7 +897,7 @@ router.delete('/delete-account', authenticateToken, async (req, res) => {
 
     // Find user with password
     const user = await User.findById(req.user._id).select('+password');
-    
+
     if (!user) {
       return res.status(404).json({
         success: false,

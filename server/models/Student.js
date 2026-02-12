@@ -23,7 +23,7 @@ const studentSchema = new mongoose.Schema({
     required: [true, 'Password is required'],
     minlength: [6, 'Password must be at least 6 characters long']
   },
-  
+
   // Academic Information
   rollNumber: {
     type: String,
@@ -35,7 +35,7 @@ const studentSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Branch is required'],
     trim: true,
-    enum: ['Computer Science', 'Information Technology', 'Electronics & Communication', 'Mechanical Engineering', 'Civil Engineering', 'Electrical Engineering', 'Chemical Engineering', 'Biotechnology', 'Aerospace Engineering', 'Other']
+    enum: ['CSE', 'IT', 'ECE', 'ME', 'CE', 'EE', 'AI&DS', 'Other']
   },
   graduationYear: {
     type: Number,
@@ -54,7 +54,7 @@ const studentSchema = new mongoose.Schema({
     max: 8,
     default: 6
   },
-  
+
   // Academic Performance
   cgpa: {
     type: Number,
@@ -76,7 +76,7 @@ const studentSchema = new mongoose.Schema({
     default: 0,
     min: 0
   },
-  
+
   // Personal Information
   dateOfBirth: {
     type: Date
@@ -100,7 +100,7 @@ const studentSchema = new mongoose.Schema({
     },
     zipCode: String
   },
-  
+
   // Skills and Certifications
   skills: [{
     name: String,
@@ -123,7 +123,7 @@ const studentSchema = new mongoose.Schema({
       enum: ['Basic', 'Conversational', 'Fluent', 'Native']
     }
   }],
-  
+
   // Resume and Portfolio
   resume: {
     type: String,
@@ -132,7 +132,7 @@ const studentSchema = new mongoose.Schema({
   portfolioUrl: String,
   githubUrl: String,
   linkedinUrl: String,
-  
+
   // Placement Information
   isPlaced: {
     type: Boolean,
@@ -156,7 +156,7 @@ const studentSchema = new mongoose.Schema({
     placementDate: Date,
     offerLetterUrl: String
   },
-  
+
   // Application Tracking
   applications: [{
     jobId: String,
@@ -183,7 +183,7 @@ const studentSchema = new mongoose.Schema({
     }],
     notes: String
   }],
-  
+
   // Internship Experience
   internships: [{
     company: String,
@@ -196,7 +196,7 @@ const studentSchema = new mongoose.Schema({
     description: String,
     certificateUrl: String
   }],
-  
+
   // Projects
   projects: [{
     title: String,
@@ -209,7 +209,7 @@ const studentSchema = new mongoose.Schema({
       endDate: Date
     }
   }],
-  
+
   // Achievements and Activities
   achievements: [{
     title: String,
@@ -218,7 +218,7 @@ const studentSchema = new mongoose.Schema({
     certificateUrl: String
   }],
   extracurricularActivities: [String],
-  
+
   // Preferences
   preferredLocations: [String],
   preferredCompanies: [String],
@@ -234,7 +234,7 @@ const studentSchema = new mongoose.Schema({
     type: String,
     enum: ['On-site', 'Remote', 'Hybrid', 'Any']
   },
-  
+
   // System Fields
   isVerified: {
     type: Boolean,
@@ -293,9 +293,9 @@ const studentSchema = new mongoose.Schema({
 });
 
 // Hash password before saving
-studentSchema.pre('save', async function(next) {
+studentSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
-  
+
   try {
     const salt = await bcrypt.genSalt(12);
     this.password = await bcrypt.hash(this.password, salt);
@@ -306,12 +306,12 @@ studentSchema.pre('save', async function(next) {
 });
 
 // Method to compare password
-studentSchema.methods.comparePassword = async function(candidatePassword) {
+studentSchema.methods.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
 // Method to generate OTP
-studentSchema.methods.generateOTP = function() {
+studentSchema.methods.generateOTP = function () {
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
   this.emailVerificationOTP = {
     code: otp,
@@ -321,7 +321,7 @@ studentSchema.methods.generateOTP = function() {
 };
 
 // Method to generate password reset token
-studentSchema.methods.generatePasswordResetToken = function() {
+studentSchema.methods.generatePasswordResetToken = function () {
   const token = require('crypto').randomBytes(32).toString('hex');
   this.passwordResetToken = {
     token: token,
@@ -331,59 +331,59 @@ studentSchema.methods.generatePasswordResetToken = function() {
 };
 
 // Method to check if OTP is expired
-studentSchema.methods.isOTPExpired = function() {
+studentSchema.methods.isOTPExpired = function () {
   return this.emailVerificationOTP && this.emailVerificationOTP.expiresAt < new Date();
 };
 
 // Method to check if password reset token is expired
-studentSchema.methods.isPasswordResetTokenExpired = function() {
+studentSchema.methods.isPasswordResetTokenExpired = function () {
   return this.passwordResetToken && this.passwordResetToken.expiresAt < new Date();
 };
 
 // Method to calculate profile completion percentage
-studentSchema.methods.calculateProfileCompletion = function() {
+studentSchema.methods.calculateProfileCompletion = function () {
   let completed = 0;
   let total = 0;
-  
+
   // Basic info (25%)
   if (this.name) completed += 1;
   if (this.email) completed += 1;
   if (this.phoneNumber) completed += 1;
   if (this.address?.city) completed += 1;
   total += 4;
-  
+
   // Academic info (25%)
   if (this.rollNumber) completed += 1;
   if (this.branch) completed += 1;
   if (this.graduationYear) completed += 1;
   if (this.collegeName) completed += 1;
   total += 4;
-  
+
   // Skills and resume (25%)
   if (this.skills && this.skills.length > 0) completed += 1;
   if (this.resume) completed += 1;
   if (this.projects && this.projects.length > 0) completed += 1;
   if (this.certifications && this.certifications.length > 0) completed += 1;
   total += 4;
-  
+
   // Preferences (25%)
   if (this.preferredLocations && this.preferredLocations.length > 0) completed += 1;
   if (this.expectedPackage?.min) completed += 1;
   if (this.workMode) completed += 1;
   if (this.profilePicture) completed += 1;
   total += 4;
-  
+
   this.profileCompletion = Math.round((completed / total) * 100);
   return this.profileCompletion;
 };
 
 // Method to get display name
-studentSchema.methods.getDisplayName = function() {
+studentSchema.methods.getDisplayName = function () {
   return this.name || 'Student';
 };
 
 // Method to get role data
-studentSchema.methods.getRoleData = function() {
+studentSchema.methods.getRoleData = function () {
   return {
     name: this.name,
     rollNumber: this.rollNumber,
@@ -399,7 +399,7 @@ studentSchema.methods.getRoleData = function() {
 };
 
 // Remove sensitive fields when converting to JSON
-studentSchema.methods.toJSON = function() {
+studentSchema.methods.toJSON = function () {
   const student = this.toObject();
   delete student.password;
   delete student.emailVerificationOTP;

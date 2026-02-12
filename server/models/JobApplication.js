@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const jobApplicationSchema = new mongoose.Schema({
   student: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: 'Student',
     required: true
   },
   jobPosting: {
@@ -13,7 +13,7 @@ const jobApplicationSchema = new mongoose.Schema({
   },
   company: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: 'Company',
     required: true
   },
   status: {
