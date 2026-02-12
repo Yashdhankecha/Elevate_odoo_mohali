@@ -1,127 +1,161 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useNotifications } from '../../../contexts/NotificationContext';
+import { getUserDisplayName, getUserInitials } from '../../../utils/helpers';
 import { 
-  Search, 
-  Bell, 
-  User, 
-  Settings, 
-  LogOut,
-  Menu,
-  ChevronDown,
-  ShieldAlert,
-  SearchIcon,
-  Globe
-} from 'lucide-react';
+  FaUser, 
+  FaCog, 
+  FaSignOutAlt,
+  FaShieldAlt,
+  FaBars
+} from 'react-icons/fa';
 
-const TopNavbar = ({ toggleSidebar, sidebarCollapsed }) => {
+const TopNavbar = ({ toggleSidebar }) => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+
   const { user, logout } = useAuth();
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const navigate = useNavigate();
-  const profileRef = useRef();
+
+  // Refs for closing on outside click
+  const notificationRef = useRef(null);
+  const profileRef = useRef(null);
+
+  const handleProfile = () => {
+    setIsProfileOpen(false);
+    navigate('/profile');
+  };
 
   const handleLogout = async () => {
     setIsProfileOpen(false);
     await logout();
-    navigate('/login');
   };
 
+  const handleNotificationClick = (notification) => {
+    // Mark notification as read
+    if (!notification.isRead) {
+      markAsRead([notification._id]);
+    }
+    
+    // Navigate to the notification link if available
+    if (notification.actionLink) {
+      navigate(notification.actionLink);
+    }
+    
+    setShowNotifications(false);
+  };
+
+  const handleMarkAllRead = async () => {
+    await markAllAsRead();
+  };
+
+  const formatTime = (timeString) => {
+    const time = new Date(timeString);
+    const now = new Date();
+    const diffInMinutes = Math.floor((now - time) / (1000 * 60));
+    
+    if (diffInMinutes < 1) return 'Just now';
+    if (diffInMinutes < 60) return `${diffInMinutes} min ago`;
+    
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) return `${diffInHours} hour${diffInHours === 1 ? '' : 's'} ago`;
+    
+    const diffInDays = Math.floor(diffInHours / 24);
+    return `${diffInDays} day${diffInDays === 1 ? '' : 's'} ago`;
+  };
+
+  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+        setShowNotifications(false);
+      }
       if (profileRef.current && !profileRef.current.contains(event.target)) {
         setIsProfileOpen(false);
       }
     };
+
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, []);
 
   return (
-    <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-gray-100 shadow-sm">
-      <div className="px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Left: Mobile Menu & Breadcrumb */}
-          <div className="flex items-center gap-4">
+    <div className="bg-white shadow-sm border-b border-gray-200 h-16 fixed top-0 right-0 left-64 z-40">
+      <div className="flex items-center justify-between h-full px-6">
+        {/* Left Section */}
+        <div className="flex items-center space-x-4">
+          <button
+            onClick={toggleSidebar}
+            className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+          >
+            <FaBars className="text-gray-600" />
+          </button>
+        </div>
+
+        {/* Right Section */}
+        <div className="flex items-center space-x-4">
+
+
+          {/* Profile Dropdown */}
+          <div className="relative" ref={profileRef}>
             <button
-              onClick={toggleSidebar}
-              className="lg:hidden w-10 h-10 flex items-center justify-center rounded-xl bg-gray-50 text-gray-600 hover:bg-slate-50 hover:text-slate-900 transition-all"
+              onClick={() => setIsProfileOpen(!isProfileOpen)}
+              className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 transition-colors"
             >
-              <Menu size={18} />
-            </button>
-            
-            <div className="hidden lg:flex items-center gap-2">
-               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">System Command</span>
-               <span className="text-slate-200">/</span>
-               <span className="text-sm font-bold text-slate-900">Root Access</span>
-            </div>
-          </div>
-
-          {/* Center: Search */}
-          <div className="hidden md:flex flex-1 max-w-xl mx-8">
-            <div className="relative w-full group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-slate-900 transition-colors" size={14} />
-              <input
-                type="text"
-                placeholder="Global system search: institutions, users, logs..."
-                className="w-full pl-11 pr-4 py-2 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white transition-all duration-300"
-              />
-            </div>
-          </div>
-
-          {/* Right: Actions */}
-          <div className="flex items-center gap-3">
-            {/* System Status */}
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg border border-emerald-100">
-               <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
-               <span className="text-[10px] font-black uppercase tracking-widest">Core Online</span>
-            </div>
-
-            {/* Notifications */}
-            <button className="relative w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 text-slate-600 hover:bg-slate-100 transition-all">
-              <Bell size={16} />
-              <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-rose-500 rounded-full border border-white"></span>
+              <div className="w-8 h-8 bg-gradient-to-r from-red-500 to-orange-500 rounded-full flex items-center justify-center">
+                {user?.profilePicture ? (
+                  <img 
+                    src={user.profilePicture} 
+                    alt={getUserDisplayName(user)}
+                    className="w-8 h-8 rounded-full object-cover"
+                  />
+                ) : (
+                  <span className="text-white text-xs font-medium">
+                    {getUserInitials(user?.name)}
+                  </span>
+                )}
+              </div>
+              <div className="hidden md:block text-left">
+                <p className="text-sm font-medium text-gray-800">{getUserDisplayName(user)}</p>
+                <p className="text-xs text-gray-500">Super Administrator</p>
+              </div>
             </button>
 
-            {/* Profile */}
-            <div className="relative" ref={profileRef}>
-              <button
-                onClick={() => setIsProfileOpen(!isProfileOpen)}
-                className="flex items-center gap-3 pl-1 pr-3 py-1 rounded-xl hover:bg-slate-50 transition-all"
-              >
-                <div className="w-9 h-9 bg-slate-900 rounded-xl flex items-center justify-center shadow-lg shadow-slate-200">
-                  <User size={14} className="text-white" />
+            {/* Profile Dropdown Menu */}
+            {isProfileOpen && (
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                <div className="px-4 py-2 border-b border-gray-100">
+                  <p className="text-sm font-medium text-gray-800">{getUserDisplayName(user)}</p>
+                  <p className="text-xs text-gray-500">{user?.email || 'admin@elevate.com'}</p>
                 </div>
-                <div className="hidden sm:block text-left">
-                  <p className="text-sm font-bold text-slate-900 leading-tight">Root Administrator</p>
-                  <p className="text-[10px] text-slate-500 font-medium tracking-tight">System Master</p>
-                </div>
-                <ChevronDown size={14} className={`hidden sm:block text-slate-400 transition-transform ${isProfileOpen ? 'rotate-180' : ''}`} />
-              </button>
-
-              {isProfileOpen && (
-                <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden animate-fade-in">
-                  <div className="p-4 bg-slate-50 border-b border-slate-100">
-                    <p className="text-sm font-bold text-slate-900">System Root</p>
-                    <p className="text-xs text-slate-500 mt-0.5">superadmin@elevate.system</p>
-                  </div>
-                  
-                  <div className="p-2">
-                    <button onClick={() => navigate('/superadmin/settings')} className="w-full text-left px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 rounded-xl flex items-center gap-3 transition-all">
-                      <Settings size={14} />
-                      System Config
-                    </button>
-                    <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50 rounded-xl flex items-center gap-3 transition-all mt-1">
-                      <LogOut size={14} />
-                      Zero Session
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+                
+                <button 
+                  onClick={handleProfile}
+                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
+                >
+                  <FaUser className="text-gray-500" />
+                  <span>Profile</span>
+                </button>
+                
+                <div className="border-t border-gray-100 my-1"></div>
+                
+                <button 
+                  onClick={handleLogout}
+                  className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
+                >
+                  <FaSignOutAlt className="text-red-500" />
+                  <span>Logout</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
-    </nav>
+    </div>
   );
 };
 

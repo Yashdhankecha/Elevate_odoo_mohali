@@ -1,122 +1,161 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { 
+  FaChartBar, 
+  FaBriefcase, 
+  FaUsers, 
+  FaCalendarAlt, 
+  FaFileAlt, 
+  FaCog,
+  FaBars,
+  FaUser,
+  FaSignOutAlt,
+  FaBuilding
+} from 'react-icons/fa';
 import { useAuth } from '../../../contexts/AuthContext';
 import { getUserDisplayName, getUserInitials } from '../../../utils/helpers';
-import { 
-  LayoutDashboard, 
-  Users, 
-  FileText, 
-  Settings, 
-  LogOut,
-  User,
-  Building,
-  Briefcase,
-  ChevronLeft,
-  ChevronRight,
-  PlusCircle,
-  BarChart3
-} from 'lucide-react';
 
-const Sidebar = ({ activeSection, setActiveSection, isCollapsed, setSidebarCollapsed }) => {
+const Sidebar = ({ activeSection, setActiveSection, isCollapsed }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const profileRef = useRef();
 
   const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, gradient: 'from-blue-500 to-cyan-500' },
-    { id: 'applications', label: 'Applications', icon: Users, gradient: 'from-purple-500 to-pink-500' },
-    { id: 'jobs', label: 'Job Management', icon: Briefcase, gradient: 'from-emerald-500 to-teal-500' },
-    { id: 'reports', label: 'Analytics', icon: BarChart3, gradient: 'from-amber-500 to-orange-500' },
+    { id: 'dashboard', label: 'Dashboard', icon: FaChartBar },
+    //{ id: 'jobs', label: 'Job Management', icon: FaBriefcase },
+    { id: 'applications', label: 'Applications', icon: FaUsers },
+   // { id: 'interviews', label: 'Interviews', icon: FaCalendarAlt },
+    { id: 'reports', label: 'Reports', icon: FaFileAlt },
+
   ];
 
-  const handleLogout = async () => {
-    await logout();
-    navigate('/login');
+  const handleProfile = () => {
+    setIsProfileOpen(false);
+    navigate('/profile');
   };
 
+  const handleLogout = async () => {
+    setIsProfileOpen(false);
+    await logout();
+  };
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (profileRef.current && !profileRef.current.contains(event.target)) {
+        setIsProfileOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   return (
-    <aside className={`
-      fixed left-0 top-0 h-screen bg-white border-r border-gray-100 shadow-xl z-40 transition-all duration-500 ease-in-out
-      ${isCollapsed ? 'w-20' : 'w-72'}
-      hidden lg:flex flex-col
-    `}>
-      {/* Header */}
-      <div className={`flex items-center justify-between p-6 border-b border-gray-50 ${isCollapsed ? 'px-4' : ''}`}>
+    <div className={`fixed left-0 top-0 h-full bg-white shadow-lg transition-all duration-300 z-40 flex flex-col ${
+      isCollapsed ? 'w-16' : 'w-64'
+    }`}>
+      {/* Logo/Brand */}
+      <div className="flex items-center justify-between p-4 border-b border-gray-200">
         {!isCollapsed && (
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-200/50">
-              <Building className="text-white w-5 h-5" />
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+              <FaBuilding className="w-5 h-5 text-white" />
             </div>
-            <div>
-              <h1 className="text-xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
-                Elevate
-              </h1>
-              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Company</p>
-            </div>
+            <span className="font-semibold text-gray-800">Company Portal</span>
           </div>
         )}
-        
-        <button
-          onClick={() => setSidebarCollapsed(!isCollapsed)}
-          className={`w-8 h-8 flex items-center justify-center rounded-lg bg-gray-50 text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition-all ${isCollapsed ? 'mx-auto' : ''}`}
-        >
-          {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
-        </button>
+        {isCollapsed && (
+          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mx-auto">
+            <FaBuilding className="w-5 h-5 text-white" />
+          </div>
+        )}
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-1">
-        {menuItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = activeSection === item.id;
-          
-          return (
-            <button
-              key={item.id}
-              onClick={() => setActiveSection(item.id)}
-              className={`
-                w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all duration-300 group
-                ${isActive 
-                  ? 'bg-gradient-to-r ' + item.gradient + ' text-white shadow-lg shadow-blue-200/50' 
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                }
-                ${isCollapsed ? 'justify-center px-2' : ''}
-              `}
-              title={isCollapsed ? item.label : ''}
-            >
-              <div className={`
-                w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors
-                ${isActive ? 'bg-white/20' : 'bg-gray-100 group-hover:bg-gray-200'}
-              `}>
-                <Icon size={16} className={isActive ? 'text-white' : 'text-gray-600 group-hover:text-gray-900'} />
-              </div>
-              {!isCollapsed && <span className="flex-1 text-left truncate">{item.label}</span>}
-            </button>
-          );
-        })}
+      {/* Navigation Menu */}
+      <nav className="flex-1 p-4">
+        <ul className="space-y-2">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeSection === item.id;
+            
+            return (
+              <li key={item.id}>
+                <button
+                  onClick={() => setActiveSection(item.id)}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                    isActive
+                      ? 'bg-blue-100 text-blue-700 border-r-2 border-blue-700'
+                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-800'
+                  }`}
+                >
+                  <Icon className={`w-5 h-5 ${isActive ? 'text-blue-700' : 'text-gray-500'}`} />
+                  {!isCollapsed && (
+                    <span className="font-medium">{item.label}</span>
+                  )}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
       </nav>
 
-      {/* Footer */}
-      <div className={`p-4 border-t border-gray-50 space-y-1 ${isCollapsed ? 'px-2' : ''}`}>
-        <button 
-          onClick={() => navigate('/profile')}
-          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm text-gray-600 hover:bg-gray-50 transition-all ${isCollapsed ? 'justify-center px-2' : ''}`}
-        >
-          <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-             <User size={14} className="text-gray-600" />
-          </div>
-          {!isCollapsed && <span className="flex-1 text-left">Profile</span>}
-        </button>
-        <button 
-          onClick={handleLogout}
-          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm text-red-600 hover:bg-red-50 transition-all ${isCollapsed ? 'justify-center px-2' : ''}`}
-        >
-          <div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center flex-shrink-0">
-             <LogOut size={14} className="text-red-600" />
-          </div>
-          {!isCollapsed && <span className="flex-1 text-left">Sign Out</span>}
-        </button>
+      {/* Bottom Section - Profile */}
+      <div className="border-t border-gray-200 p-4">
+        {/* Profile Section */}
+        <div className="relative" ref={profileRef}>
+          <button
+            onClick={() => setIsProfileOpen(!isProfileOpen)}
+            className="w-full flex items-center space-x-3 px-3 py-3 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+              <span className="text-white text-xs font-medium">
+                {getUserInitials(getUserDisplayName(user))}
+              </span>
+            </div>
+            {!isCollapsed && (
+              <div className="flex-1 text-left">
+                <p className="text-sm font-medium text-gray-800">
+                  {getUserDisplayName(user)}
+                </p>
+                <p className="text-xs text-gray-500">Company</p>
+              </div>
+            )}
+          </button>
+
+          {/* Profile Dropdown Menu */}
+          {isProfileOpen && (
+            <div className="absolute bottom-full left-0 mb-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+              <div className="px-4 py-2 border-b border-gray-100">
+                <p className="text-sm font-medium text-gray-800">{getUserDisplayName(user)}</p>
+                <p className="text-xs text-gray-500">{user?.email || 'user@example.com'}</p>
+              </div>
+              
+              <button 
+                onClick={handleProfile}
+                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
+              >
+                <FaUser className="text-gray-500" />
+                <span>Profile</span>
+              </button>
+              
+              <div className="border-t border-gray-100 my-1"></div>
+              
+              <button 
+                onClick={handleLogout}
+                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
+              >
+                <FaSignOutAlt className="text-red-500" />
+                <span>Sign Out</span>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
-    </aside>
+    </div>
   );
 };
 

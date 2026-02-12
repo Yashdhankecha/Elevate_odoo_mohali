@@ -1,32 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Eye, 
-  CheckCircle2,
-  XCircle,
-  Clock,
-  GraduationCap,
-  Users,
-  X,
-  Mail,
-  Phone,
-  Briefcase,
-  ThumbsUp,
-  ThumbsDown,
-  FileText,
-  Filter,
-  Search,
-  Check,
-  MoreVertical,
-  ChevronRight,
-  ShieldCheck,
-  Zap,
-  ArrowRight,
-  Loader2,
-  Target,
-  Award,
-  Building2,
-  Calendar
-} from 'lucide-react';
+  FaEye, 
+  FaCheckCircle,
+  FaTimesCircle,
+  FaClock,
+  FaGraduationCap,
+  FaUserGraduate,
+  FaTimes,
+  FaEnvelope,
+  FaPhone,
+  FaBriefcase,
+  FaThumbsUp,
+  FaThumbsDown,
+  FaFileAlt,
+  FaFilter,
+  FaSearch,
+  FaCheck
+} from 'react-icons/fa';
 import tpoApi from '../../../services/tpoApi';
 
 const StudentApprovalSystem = () => {
@@ -35,12 +25,12 @@ const StudentApprovalSystem = () => {
   const [students, setStudents] = useState([]);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [showStudentModal, setShowStudentModal] = useState(false);
-  const [activeTab, setActiveTab] = useState('all'); 
+  const [activeTab, setActiveTab] = useState('all'); // 'all', 'pending', 'verified', 'rejected'
   const [searchQuery, setSearchQuery] = useState('');
   const [rejectReason, setRejectReason] = useState('');
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectingStudentId, setRejectingStudentId] = useState(null);
-  const [actionLoading, setActionLoading] = useState(null);
+  const [actionLoading, setActionLoading] = useState(null); // studentId being acted on
 
   useEffect(() => {
     fetchStudents();
@@ -49,58 +39,132 @@ const StudentApprovalSystem = () => {
   const fetchStudents = async () => {
     try {
       setLoading(true);
+      setError(null);
+      
       const response = await tpoApi.getStudents();
       setStudents(response.students || []);
     } catch (err) {
-      setError('Failed to load student data.');
+      console.error('Error fetching students:', err);
+      setError(err.message || 'Failed to load students');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleViewStudent = (student) => {
+    setSelectedStudent(student);
+    setShowStudentModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowStudentModal(false);
+    setSelectedStudent(null);
   };
 
   const handleApproveStudent = async (studentId) => {
     try {
       setActionLoading(studentId);
       await tpoApi.approveStudent(studentId);
-      setStudents(prev => prev.map(s => s._id === studentId ? { ...s, verificationStatus: 'verified' } : s));
+      // Update the local state
+      setStudents(prev => prev.map(s => 
+        s._id === studentId ? { ...s, verificationStatus: 'verified' } : s
+      ));
+      // Also update selected student if modal is open
       if (selectedStudent && selectedStudent._id === studentId) {
         setSelectedStudent(prev => ({ ...prev, verificationStatus: 'verified' }));
       }
     } catch (error) {
-      alert('Failed to approve student.');
+      console.error('Error approving student:', error);
+      const errorMessage = error.message || 'Failed to approve student. Please try again.';
+      alert(errorMessage);
     } finally {
       setActionLoading(null);
     }
   };
 
+  const handleOpenRejectModal = (studentId) => {
+    setRejectingStudentId(studentId);
+    setRejectReason('');
+    setShowRejectModal(true);
+  };
+
   const handleRejectStudent = async () => {
-    if (!rejectReason.trim()) return;
+    if (!rejectReason.trim()) {
+      alert('Please provide a reason for rejection');
+      return;
+    }
     try {
       setActionLoading(rejectingStudentId);
       await tpoApi.rejectStudent(rejectingStudentId, rejectReason);
-      setStudents(prev => prev.map(s => s._id === rejectingStudentId ? { ...s, verificationStatus: 'rejected', verificationNotes: rejectReason } : s));
+      // Update the local state
+      setStudents(prev => prev.map(s => 
+        s._id === rejectingStudentId ? { ...s, verificationStatus: 'rejected', verificationNotes: rejectReason } : s
+      ));
       if (selectedStudent && selectedStudent._id === rejectingStudentId) {
         setSelectedStudent(prev => ({ ...prev, verificationStatus: 'rejected', verificationNotes: rejectReason }));
       }
       setShowRejectModal(false);
+      setRejectReason('');
+      setRejectingStudentId(null);
     } catch (error) {
-      alert('Failed to reject student.');
+      console.error('Error rejecting student:', error);
+      const errorMessage = error.message || 'Failed to reject student. Please try again.';
+      alert(errorMessage);
     } finally {
       setActionLoading(null);
     }
   };
 
-  const getStudentStatus = (student) => student.verificationStatus || 'pending';
+  // Helper to get verification status (handles both old and new field names)
+  const getStudentStatus = (student) => {
+    // New Student model uses verificationStatus
+    if (student.verificationStatus) return student.verificationStatus;
+    // Old User model uses approvalStatus
+    if (student.approvalStatus) {
+      const map = { 'Approved': 'verified', 'Rejected': 'rejected', 'Pending': 'pending' };
+      return map[student.approvalStatus] || 'pending';
+    }
+    return 'pending';
+  };
 
-  const getStatusStyle = (status) => {
+  const getStatusDisplayText = (status) => {
     switch (status) {
-      case 'verified': return 'bg-emerald-50 text-emerald-600 border-emerald-100';
-      case 'rejected': return 'bg-rose-50 text-rose-600 border-rose-100';
-      case 'pending': return 'bg-amber-50 text-amber-600 border-amber-100';
-      default: return 'bg-slate-50 text-slate-600 border-slate-100';
+      case 'verified': return 'Approved';
+      case 'rejected': return 'Rejected';
+      case 'pending': return 'Pending';
+      default: return 'Pending';
     }
   };
 
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'verified': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+      case 'rejected': return 'bg-red-100 text-red-800 border-red-200';
+      case 'pending': return 'bg-amber-100 text-amber-800 border-amber-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'verified': return <FaCheckCircle className="w-3.5 h-3.5" />;
+      case 'rejected': return <FaTimesCircle className="w-3.5 h-3.5" />;
+      case 'pending': return <FaClock className="w-3.5 h-3.5" />;
+      default: return <FaClock className="w-3.5 h-3.5" />;
+    }
+  };
+
+  const formatPackage = (packageValue) => {
+    if (!packageValue) return 'N/A';
+    if (packageValue >= 100000) {
+      return `₹${(packageValue / 100000).toFixed(1)}L`;
+    } else if (packageValue >= 1000) {
+      return `₹${(packageValue / 1000).toFixed(1)}K`;
+    }
+    return `₹${packageValue}`;
+  };
+
+  // Filter students based on tab and search
   const filteredStudents = students.filter(student => {
     const status = getStudentStatus(student);
     const matchesTab = activeTab === 'all' || status === activeTab;
@@ -111,269 +175,492 @@ const StudentApprovalSystem = () => {
     return matchesTab && matchesSearch;
   });
 
-  const stats = {
-    total: students.length,
-    pending: students.filter(s => getStudentStatus(s) === 'pending').length,
-    approved: students.filter(s => getStudentStatus(s) === 'verified').length,
-    rejected: students.filter(s => getStudentStatus(s) === 'rejected').length
-  };
+  // Count stats
+  const pendingCount = students.filter(s => getStudentStatus(s) === 'pending').length;
+  const approvedCount = students.filter(s => getStudentStatus(s) === 'verified').length;
+  const rejectedCount = students.filter(s => getStudentStatus(s) === 'rejected').length;
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] animate-fade-in">
-        <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
-        <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">Loading Student Records...</p>
+      <div className="flex items-center justify-center h-64">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+          <span className="text-gray-600 font-medium">Loading students...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-xl p-6">
+        <div className="flex items-start gap-4">
+          <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0">
+            <FaTimesCircle className="w-5 h-5 text-red-500" />
+          </div>
+          <div>
+            <h3 className="text-red-800 font-semibold text-lg">Error Loading Students</h3>
+            <p className="text-red-600 text-sm mt-1">{error}</p>
+            <button 
+              onClick={fetchStudents}
+              className="mt-4 px-5 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium text-sm"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8 pb-20">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-        <div className="space-y-1">
-          <h1 className="text-3xl font-black text-slate-900 tracking-tighter flex items-center gap-3 uppercase">
-             <ShieldCheck size={32} className="text-indigo-600" />
-             Student Verification
-          </h1>
-          <p className="text-slate-500 font-medium tracking-tight">Review and verify student profile credentials for placements.</p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">Student Profile Approval</h1>
+          <p className="text-gray-500 mt-1">Review and manage student profile verifications</p>
         </div>
       </div>
 
-      {/* Stats Hub */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-         {[
-           { label: 'Total Students', value: stats.total, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
-           { label: 'Pending Review', value: stats.pending, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50' },
-           { label: 'Verified', value: stats.approved, icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-           { label: 'Rejected', value: stats.rejected, icon: XCircle, color: 'text-rose-600', bg: 'bg-rose-50' },
-         ].map((stat, i) => (
-           <div key={i} className="glass-card p-6 rounded-[2rem] border-white/50 hover-lift flex items-center justify-between">
-              <div>
-                 <p className="text-[11px] font-bold uppercase text-slate-400 tracking-widest mb-1">{stat.label}</p>
-                 <h3 className="text-2xl font-black text-slate-900 tracking-tight">{stat.value}</h3>
-              </div>
-              <div className={`p-3 rounded-2xl ${stat.bg} ${stat.color}`}>
-                 <stat.icon size={20} />
-              </div>
-           </div>
-         ))}
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+              <FaUserGraduate className="w-5 h-5 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">{students.length}</p>
+              <p className="text-xs text-gray-500 font-medium">Total Students</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-amber-50 rounded-lg flex items-center justify-center">
+              <FaClock className="w-5 h-5 text-amber-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-amber-600">{pendingCount}</p>
+              <p className="text-xs text-gray-500 font-medium">Pending Review</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center">
+              <FaCheckCircle className="w-5 h-5 text-emerald-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-emerald-600">{approvedCount}</p>
+              <p className="text-xs text-gray-500 font-medium">Approved</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center">
+              <FaTimesCircle className="w-5 h-5 text-red-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-red-600">{rejectedCount}</p>
+              <p className="text-xs text-gray-500 font-medium">Rejected</p>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Filter Options */}
-      <div className="glass-card rounded-[2.5rem] p-4 flex flex-col xl:flex-row items-center justify-between gap-6 border-white/50">
-         <div className="flex flex-wrap items-center gap-2 pl-4">
+      {/* Filter Tabs + Search */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          {/* Tabs */}
+          <div className="flex flex-wrap gap-2">
             {[
-              { key: 'all', label: 'All Students' },
-              { key: 'pending', label: 'Pending' },
-              { key: 'verified', label: 'Verified' },
-              { key: 'rejected', label: 'Rejected' }
+              { key: 'all', label: 'All', count: students.length },
+              { key: 'pending', label: 'Pending', count: pendingCount },
+              { key: 'verified', label: 'Approved', count: approvedCount },
+              { key: 'rejected', label: 'Rejected', count: rejectedCount },
             ].map(tab => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`px-6 py-2.5 rounded-2xl text-[11px] font-bold uppercase tracking-widest transition-all ${
-                  activeTab === tab.key ? 'bg-indigo-600 text-white shadow-xl' : 'bg-transparent text-slate-400 hover:bg-slate-50'
+                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                  activeTab === tab.key
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
                 {tab.label}
+                <span className={`ml-1.5 px-1.5 py-0.5 rounded-full text-xs ${
+                  activeTab === tab.key ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-500'
+                }`}>
+                  {tab.count}
+                </span>
               </button>
             ))}
-         </div>
-
-         <div className="relative group flex-1 max-w-sm w-full">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-            <input 
-              type="text" 
-              placeholder="Search by name, roll no or branch..." 
+          </div>
+          {/* Search */}
+          <div className="relative w-full sm:w-72">
+            <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search by name, email, roll..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-semibold focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:bg-white transition-all shadow-inner"
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
-         </div>
-      </div>
-
-      {/* Student List */}
-      <div className="glass-card rounded-[2.5rem] border-white/50 overflow-hidden shadow-2xl shadow-slate-200/50">
-        <div className="overflow-x-auto custom-scrollbar">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-slate-50/50 border-b border-slate-100">
-                <th className="px-8 py-6 text-left text-[11px] font-bold text-slate-400 uppercase tracking-widest">Student Information</th>
-                <th className="px-6 py-6 text-left text-[11px] font-bold text-slate-400 uppercase tracking-widest">Branch</th>
-                <th className="px-6 py-6 text-left text-[11px] font-bold text-slate-400 uppercase tracking-widest">CGPA</th>
-                <th className="px-6 py-6 text-left text-[11px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
-                <th className="px-8 py-6 text-right text-[11px] font-bold text-slate-400 uppercase tracking-widest">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {filteredStudents.map((student) => (
-                <tr key={student._id} className="group hover:bg-slate-50/50 transition-all">
-                  <td className="px-8 py-6">
-                    <div className="flex items-center gap-4">
-                       <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-slate-100">
-                          <span className="text-sm font-bold text-slate-900">{(student.name || 'S')[0]}</span>
-                       </div>
-                       <div>
-                          <p className="text-sm font-bold text-slate-900 leading-none mb-1">{student.name}</p>
-                          <p className="text-[10px] text-slate-500 font-medium">{student.email}</p>
-                       </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-6">
-                    <span className="bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-lg font-bold uppercase tracking-tight text-[10px]">
-                       {student.branch || 'GENERAL'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-6">
-                    <div className="flex items-center gap-3">
-                       <span className="text-sm font-bold text-slate-900">{student.cgpa || '0.0'}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-6">
-                    <span className={`px-3 py-1.5 rounded-xl border text-[9px] font-bold uppercase tracking-widest ${getStatusStyle(getStudentStatus(student))}`}>
-                      {getStudentStatus(student)}
-                    </span>
-                  </td>
-                  <td className="px-8 py-6 text-right">
-                    <div className="flex justify-end gap-2">
-                       <button onClick={() => { setSelectedStudent(student); setShowStudentModal(true); }} className="p-2.5 bg-white text-slate-400 hover:text-indigo-600 rounded-xl shadow-sm border border-slate-100 hover:border-indigo-100 transition-all">
-                          <Eye size={14} />
-                       </button>
-                       {getStudentStatus(student) === 'pending' && (
-                         <>
-                           <button onClick={() => handleApproveStudent(student._id)} className="p-2.5 bg-emerald-500 text-white rounded-xl shadow-lg shadow-emerald-500/20 hover:scale-110 transition-all">
-                              <ThumbsUp size={14} />
-                           </button>
-                           <button onClick={() => { setRejectingStudentId(student._id); setShowRejectModal(true); }} className="p-2.5 bg-rose-500 text-white rounded-xl shadow-lg shadow-rose-500/20 hover:scale-110 transition-all">
-                              <ThumbsDown size={14} />
-                           </button>
-                         </>
-                       )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          </div>
         </div>
       </div>
 
-      {/* Student Details Modal */}
-      {showStudentModal && selectedStudent && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowStudentModal(false)}></div>
-           <div className="bg-white rounded-[3rem] w-full max-w-4xl max-h-[90vh] overflow-y-auto custom-scrollbar relative z-10 animate-slide-up shadow-2xl">
-              <div className="p-8 border-b border-slate-50 flex justify-between items-center sticky top-0 bg-white/80 backdrop-blur-xl z-20">
-                 <div>
-                    <h2 className="text-2xl font-black text-slate-900 tracking-tight uppercase">Student Details</h2>
-                    <p className="text-slate-400 text-[11px] font-bold uppercase tracking-widest mt-1">Full profile information</p>
-                 </div>
-                 <button onClick={() => setShowStudentModal(false)} className="w-12 h-12 flex items-center justify-center rounded-2xl hover:bg-slate-50 transition-all text-slate-400">
-                    <X size={24} />
-                 </button>
-              </div>
-
-              <div className="p-10 space-y-10">
-                 <div className="bg-slate-900 rounded-[2.5rem] p-10 text-white relative overflow-hidden shadow-2xl">
-                    <div className="flex flex-col md:flex-row items-center gap-8 relative z-10">
-                       <div className="w-24 h-24 bg-indigo-600 rounded-[2rem] flex items-center justify-center text-3xl font-black shadow-2xl">
-                          {(selectedStudent.name || 'S')[0]}
-                       </div>
-                       <div className="text-center md:text-left">
-                          <h3 className="text-3xl font-black tracking-tighter mb-1">{selectedStudent.name}</h3>
-                          <p className="text-indigo-400 font-bold uppercase tracking-widest text-[11px]">{selectedStudent.rollNumber} • {selectedStudent.branch}</p>
-                          <div className="mt-4 flex flex-wrap gap-2 justify-center md:justify-start">
-                             <span className="flex items-center gap-2 px-3 py-1.5 bg-white/10 rounded-xl text-[10px] font-bold lowercase tracking-wider">
-                                {selectedStudent.email}
-                             </span>
-                             <span className={`px-4 py-1.5 rounded-xl border text-[10px] font-bold uppercase tracking-widest ${getStatusStyle(getStudentStatus(selectedStudent))}`}>
-                                {getStudentStatus(selectedStudent)}
-                             </span>
-                          </div>
-                       </div>
-                    </div>
-                 </div>
-
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="space-y-4">
-                       <h4 className="text-[11px] font-bold uppercase text-slate-400 tracking-widest flex items-center gap-2">
-                          <GraduationCap size={14} className="text-indigo-600" /> Academic Information
-                       </h4>
-                       <div className="grid grid-cols-2 gap-4">
-                          {[
-                            { label: 'Current CGPA', value: selectedStudent.cgpa || '0.0', icon: Target },
-                            { label: 'Current Year', value: selectedStudent.year || 'N/A', icon: Calendar },
-                            { label: 'College Name', value: selectedStudent.collegeName || 'N/A', icon: Building2 },
-                            { label: 'Branch', value: selectedStudent.branch || 'N/A', icon: Briefcase },
-                          ].map((item, i) => (
-                            <div key={i} className="p-5 bg-slate-50 rounded-3xl border border-slate-100">
-                               <div className="flex items-center gap-3 mb-2">
-                                  <item.icon size={16} className="text-slate-400" />
-                                  <span className="text-[10px] font-bold uppercase text-slate-400 tracking-widest">{item.label}</span>
-                               </div>
-                               <p className="text-sm font-bold text-slate-900">{item.value}</p>
+      {/* Students Table */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        {filteredStudents.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 px-4">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+              <FaUserGraduate className="w-8 h-8 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-700 mb-1">No Students Found</h3>
+            <p className="text-gray-500 text-sm text-center max-w-sm">
+              {activeTab !== 'all' 
+                ? `No ${activeTab === 'verified' ? 'approved' : activeTab} students found.` 
+                : 'No students are registered yet.'}
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-100">
+                <tr>
+                  <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Student
+                  </th>
+                  <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Department
+                  </th>
+                  <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    CGPA
+                  </th>
+                  <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {filteredStudents.map((student) => {
+                  const status = getStudentStatus(student);
+                  return (
+                    <tr key={student._id} className="hover:bg-gray-50/50 transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 h-10 w-10">
+                            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm">
+                              {(student.name || 'S')[0].toUpperCase()}
                             </div>
-                          ))}
-                       </div>
-                    </div>
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-semibold text-gray-900">{student.name || 'N/A'}</div>
+                            <div className="text-xs text-gray-500">{student.rollNumber || student.email || 'N/A'}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-700 font-medium">{student.branch || 'N/A'}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-semibold text-gray-900">{student.cgpa || 'N/A'}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(status)}`}>
+                          {getStatusIcon(status)}
+                          {getStatusDisplayText(status)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          <button 
+                            onClick={() => handleViewStudent(student)}
+                            className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            title="View Profile"
+                          >
+                            <FaEye className="w-4 h-4" />
+                          </button>
+                          {status === 'pending' && (
+                            <>
+                              <button 
+                                onClick={() => handleApproveStudent(student._id)}
+                                disabled={actionLoading === student._id}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white text-xs font-semibold rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Approve"
+                              >
+                                {actionLoading === student._id ? (
+                                  <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                                ) : (
+                                  <FaThumbsUp className="w-3 h-3" />
+                                )}
+                                Approve
+                              </button>
+                              <button 
+                                onClick={() => handleOpenRejectModal(student._id)}
+                                disabled={actionLoading === student._id}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white text-xs font-semibold rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Reject"
+                              >
+                                <FaThumbsDown className="w-3 h-3" />
+                                Reject
+                              </button>
+                            </>
+                          )}
+                          {status === 'rejected' && (
+                            <button 
+                              onClick={() => handleApproveStudent(student._id)}
+                              disabled={actionLoading === student._id}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              title="Re-approve"
+                            >
+                              <FaCheck className="w-3 h-3" />
+                              Re-approve
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
-                    <div className="space-y-4">
-                       <h4 className="text-[11px] font-bold uppercase text-slate-400 tracking-widest flex items-center gap-2">
-                          <Zap size={14} className="text-indigo-600" /> Key Skills
-                       </h4>
-                       <div className="flex flex-wrap gap-2">
-                          {(selectedStudent.skills || []).map((skill, i) => (
-                             <span key={i} className="px-4 py-2 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-2xl text-[11px] font-bold uppercase tracking-widest">
-                                {skill}
-                             </span>
-                          ))}
-                       </div>
-                    </div>
-                 </div>
-
-                 <div className="pt-10 border-t border-slate-50 flex justify-between items-center -mx-10 px-10">
-                    <span className="text-[11px] font-bold uppercase text-slate-400 tracking-widest">Select Action</span>
-                    <div className="flex gap-3 py-8">
-                       <button onClick={() => setShowStudentModal(false)} className="px-8 py-3.5 bg-white text-slate-600 rounded-2xl font-bold uppercase text-[11px] tracking-widest hover:bg-slate-100 transition-all border border-slate-100">Close</button>
-                       {getStudentStatus(selectedStudent) === 'pending' && (
-                         <>
-                           <button onClick={() => handleApproveStudent(selectedStudent._id)} className="px-8 py-3.5 bg-emerald-600 text-white rounded-2xl font-bold uppercase text-[11px] tracking-widest hover:shadow-2xl transition-all shadow-xl active:scale-95">Approve Student</button>
-                           <button onClick={() => { setRejectingStudentId(selectedStudent._id); setShowRejectModal(true); }} className="px-8 py-3.5 bg-rose-600 text-white rounded-2xl font-bold uppercase text-[11px] tracking-widest hover:shadow-2xl transition-all shadow-xl active:scale-95">Reject Student</button>
-                         </>
-                       )}
-                    </div>
-                 </div>
+      {/* Student Profile Modal */}
+      {showStudentModal && selectedStudent && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={handleCloseModal}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 border-b border-gray-100 sticky top-0 bg-white z-10 rounded-t-2xl">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-800">Student Profile Review</h2>
+                <button
+                  onClick={handleCloseModal}
+                  className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  <FaTimes className="w-5 h-5 text-gray-500" />
+                </button>
               </div>
-           </div>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              {/* Profile Header */}
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-5 border border-blue-100">
+                <div className="flex items-center justify-between flex-wrap gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-xl">
+                      {(selectedStudent.name || 'S')[0].toUpperCase()}
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900">{selectedStudent.name || 'N/A'}</h3>
+                      <p className="text-gray-600 text-sm">{selectedStudent.rollNumber || 'N/A'} • {selectedStudent.branch || 'N/A'}</p>
+                    </div>
+                  </div>
+                  <span className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-semibold border ${getStatusColor(getStudentStatus(selectedStudent))}`}>
+                    {getStatusIcon(getStudentStatus(selectedStudent))}
+                    {getStatusDisplayText(getStudentStatus(selectedStudent))}
+                  </span>
+                </div>
+              </div>
+
+              {/* Basic Information */}
+              <div>
+                <h3 className="text-base font-bold text-gray-800 mb-4 flex items-center gap-2">
+                  <FaUserGraduate className="text-blue-600" />
+                  Basic Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Full Name</label>
+                    <p className="text-gray-800 mt-1 font-medium">{selectedStudent.name || 'N/A'}</p>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Roll Number</label>
+                    <p className="text-gray-800 mt-1 font-medium">{selectedStudent.rollNumber || 'N/A'}</p>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Email</label>
+                    <p className="text-gray-800 mt-1 font-medium flex items-center gap-2">
+                      <FaEnvelope className="w-3.5 h-3.5 text-gray-400" />
+                      {selectedStudent.email || 'N/A'}
+                    </p>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Phone</label>
+                    <p className="text-gray-800 mt-1 font-medium flex items-center gap-2">
+                      <FaPhone className="w-3.5 h-3.5 text-gray-400" />
+                      {selectedStudent.phoneNumber || selectedStudent.phone || 'N/A'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Academic Information */}
+              <div>
+                <h3 className="text-base font-bold text-gray-800 mb-4 flex items-center gap-2">
+                  <FaGraduationCap className="text-indigo-600" />
+                  Academic Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Department</label>
+                    <p className="text-gray-800 mt-1 font-medium">{selectedStudent.branch || 'N/A'}</p>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">CGPA</label>
+                    <p className="text-gray-800 mt-1 font-medium">{selectedStudent.cgpa || 'N/A'}</p>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">College</label>
+                    <p className="text-gray-800 mt-1 font-medium">{selectedStudent.collegeName || 'N/A'}</p>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Year</label>
+                    <p className="text-gray-800 mt-1 font-medium">{selectedStudent.year || 'N/A'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Skills */}
+              {selectedStudent.skills && selectedStudent.skills.length > 0 && (
+                <div>
+                  <h3 className="text-base font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <FaBriefcase className="text-purple-600" />
+                    Skills
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {(Array.isArray(selectedStudent.skills) ? selectedStudent.skills : []).map((skill, index) => (
+                      <span key={index} className="px-3 py-1.5 bg-blue-50 text-blue-700 text-xs font-medium rounded-full border border-blue-100">
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Rejection Notes */}
+              {getStudentStatus(selectedStudent) === 'rejected' && selectedStudent.verificationNotes && (
+                <div className="bg-red-50 border border-red-100 rounded-xl p-4">
+                  <h3 className="text-sm font-bold text-red-800 mb-2">Rejection Reason</h3>
+                  <p className="text-red-700 text-sm">{selectedStudent.verificationNotes}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Approval Actions */}
+            <div className="p-6 border-t border-gray-100 bg-gray-50/50 rounded-b-2xl">
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-500">
+                    Current Status:
+                  </span>
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(getStudentStatus(selectedStudent))}`}>
+                    {getStatusIcon(getStudentStatus(selectedStudent))}
+                    {getStatusDisplayText(getStudentStatus(selectedStudent))}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={handleCloseModal}
+                    className="px-5 py-2.5 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm"
+                  >
+                    Close
+                  </button>
+                  {getStudentStatus(selectedStudent) === 'pending' && (
+                    <>
+                      <button 
+                        onClick={() => handleApproveStudent(selectedStudent._id)}
+                        disabled={actionLoading === selectedStudent._id}
+                        className="px-5 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2 font-medium text-sm disabled:opacity-50"
+                      >
+                        {actionLoading === selectedStudent._id ? (
+                          <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                        ) : (
+                          <FaThumbsUp className="w-4 h-4" />
+                        )}
+                        Approve Profile
+                      </button>
+                      <button 
+                        onClick={() => {
+                          handleCloseModal();
+                          handleOpenRejectModal(selectedStudent._id);
+                        }}
+                        className="px-5 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2 font-medium text-sm"
+                      >
+                        <FaThumbsDown className="w-4 h-4" />
+                        Reject Profile
+                      </button>
+                    </>
+                  )}
+                  {getStudentStatus(selectedStudent) === 'rejected' && (
+                    <button 
+                      onClick={() => handleApproveStudent(selectedStudent._id)}
+                      disabled={actionLoading === selectedStudent._id}
+                      className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 font-medium text-sm disabled:opacity-50"
+                    >
+                      <FaCheck className="w-4 h-4" />
+                      Re-approve Profile
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
       {/* Reject Reason Modal */}
       {showRejectModal && (
-        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
-           <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-md" onClick={() => setShowRejectModal(false)}></div>
-           <div className="bg-white rounded-[3rem] w-full max-w-md relative z-10 animate-slide-up shadow-2xl p-10 shadow-indigo-100">
-              <div className="text-center space-y-4 mb-8">
-                 <div className="w-16 h-16 bg-rose-50 text-rose-500 rounded-3xl flex items-center justify-center mx-auto mb-6">
-                    <XCircle size={32} />
-                 </div>
-                 <h3 className="text-2xl font-black text-slate-900 tracking-tight uppercase">Reject Student</h3>
-                 <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Reason for rejection</p>
-              </div>
-              
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4" onClick={() => setShowRejectModal(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 border-b border-gray-100">
+              <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                <FaTimesCircle className="w-5 h-5 text-red-500" />
+                Reject Student Profile
+              </h3>
+              <p className="text-sm text-gray-500 mt-1">Please provide a reason for rejecting this profile.</p>
+            </div>
+            <div className="p-6">
               <textarea
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
-                placeholder="Explain why the profile is being rejected..."
-                className="w-full p-6 bg-slate-50 border border-slate-100 rounded-[2.5rem] text-sm font-medium focus:ring-4 focus:ring-rose-500/10 transition-all h-40 focus:outline-none"
+                placeholder="Enter the reason for rejection..."
+                className="w-full p-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
+                rows={4}
+                autoFocus
               />
-
-              <div className="flex gap-2 mt-8">
-                 <button onClick={() => setShowRejectModal(false)} className="flex-1 py-4 bg-slate-50 text-slate-500 rounded-2xl font-bold uppercase text-[11px] tracking-widest hover:bg-slate-100 transition-all">Cancel</button>
-                 <button onClick={handleRejectStudent} className="flex-1 py-4 bg-rose-600 text-white rounded-2xl font-bold uppercase text-[11px] tracking-widest shadow-xl shadow-rose-500/20 active:scale-95 transition-all">Reject Now</button>
-              </div>
-           </div>
+            </div>
+            <div className="p-6 pt-0 flex items-center justify-end gap-3">
+              <button
+                onClick={() => setShowRejectModal(false)}
+                className="px-5 py-2.5 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRejectStudent}
+                disabled={!rejectReason.trim() || actionLoading}
+                className="px-5 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {actionLoading ? (
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                ) : (
+                  <FaThumbsDown className="w-4 h-4" />
+                )}
+                Reject Profile
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

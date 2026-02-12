@@ -48,7 +48,7 @@ const PracticeHub = () => {
     e.preventDefault();
     try {
       await studentApi.createPracticeSession(formData);
-      toast.success('Session saved successfully!');
+      toast.success('Practice session saved successfully!');
       setShowForm(false);
       setFormData({
         topic: '',
@@ -61,7 +61,8 @@ const PracticeHub = () => {
       });
       fetchSessionsData();
     } catch (error) {
-      toast.error('Failed to save session');
+      console.error('Error creating practice session:', error);
+      toast.error('Failed to save practice session');
     }
   };
 
@@ -73,262 +74,245 @@ const PracticeHub = () => {
     }));
   };
 
-  const categories = [
-    { value: 'all', label: 'All Categories' },
-    { value: 'data-structures', label: 'Data Structures' },
-    { value: 'algorithms', label: 'Algorithms' },
-    { value: 'system-design', label: 'System Design' },
-    { value: 'database', label: 'Database' },
-    { value: 'web-development', label: 'Web Dev' },
-    { value: 'machine-learning', label: 'ML/AI' },
-    { value: 'soft-skills', label: 'Behavioural' }
-  ];
-
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center h-[60vh] animate-fade-in">
-        <div className="w-16 h-16 border-4 border-indigo-50 flex items-center justify-center rounded-2xl relative overflow-hidden">
-           <div className="absolute inset-0 bg-indigo-600 animate-grow h-1 origin-bottom"></div>
-           <FaBookOpen className="text-indigo-200 animate-pulse" size={24} />
-        </div>
-        <p className="mt-6 text-gray-400 font-bold uppercase tracking-widest text-[10px]">Loading Practice Data...</p>
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (!sessionsData) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-gray-500">Failed to load practice sessions</p>
+        <button 
+          onClick={fetchSessionsData}
+          className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          Retry
+        </button>
       </div>
     );
   }
 
   const { sessions, categoryStats } = sessionsData;
 
+  const categories = [
+    { value: 'all', label: 'All Categories' },
+    { value: 'data-structures', label: 'Data Structures' },
+    { value: 'algorithms', label: 'Algorithms' },
+    { value: 'system-design', label: 'System Design' },
+    { value: 'database', label: 'Database' },
+    { value: 'web-development', label: 'Web Development' },
+    { value: 'machine-learning', label: 'Machine Learning' },
+    { value: 'soft-skills', label: 'Soft Skills' }
+  ];
+
+  const difficulties = [
+    { value: 'easy', label: 'Easy' },
+    { value: 'medium', label: 'Medium' },
+    { value: 'hard', label: 'Hard' }
+  ];
+
   return (
-    <div className="space-y-10 pb-20">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-2">
+      <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-3xl font-black text-gray-800 tracking-tight uppercase">Practice Hub</h2>
-          <p className="text-gray-400 text-sm font-bold uppercase tracking-widest mt-1">Log and track your technical practice sessions</p>
+          <h2 className="text-2xl font-bold text-gray-800">Practice Hub</h2>
+          <p className="text-gray-600">Track your practice sessions and improve your skills</p>
         </div>
         <button
           onClick={() => setShowForm(true)}
-          className="bg-indigo-600 text-white px-8 py-4 rounded-2xl shadow-xl shadow-indigo-200 hover:bg-indigo-700 transition-all duration-300 font-bold uppercase tracking-widest text-[11px] flex items-center gap-3 group"
+          className="bg-gradient-to-r from-blue-600 to-blue-400 text-white px-4 py-2 rounded-lg shadow hover:from-blue-700 hover:to-blue-500 transition text-sm font-medium flex items-center gap-2"
         >
-          <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center group-hover:rotate-90 transition-transform">
-             <FaPlus size={12} />
-          </div>
-          Log New Session
+          <FaPlus className="w-4 h-4" />
+          Add Session
         </button>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-         {[
-           { label: 'Total Sessions', val: sessions.length, icon: FaPlay, color: 'from-indigo-600 to-blue-600' },
-           { label: 'Avg Accuracy', val: `${Math.round(sessions.reduce((acc, s) => acc + s.score, 0) / (sessions.length || 1))}%`, icon: FaTrophy, color: 'from-amber-500 to-orange-600' },
-           { label: 'Time Spent', val: `${Math.round(sessions.reduce((acc, s) => acc + Number(s.timeSpent), 0) / 60)}h`, icon: FaClock, color: 'from-emerald-500 to-teal-600' },
-           { label: 'Topics Covered', val: categoryStats.length, icon: FaChartBar, color: 'from-rose-500 to-pink-600' }
-         ].map((s, i) => (
-           <div key={i} className="glass-card p-6 rounded-[2rem] hover-lift relative overflow-hidden border-white/50">
-              <div className={`absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br ${s.color} opacity-5 rounded-full`}></div>
+      {/* Category Filter */}
+      <div className="flex gap-2">
+        <select 
+          value={filter} 
+          onChange={(e) => setFilter(e.target.value)}
+          className="border px-3 py-2 rounded-lg text-sm hover:bg-gray-100 transition"
+        >
+          {categories.map(category => (
+            <option key={category.value} value={category.value}>
+              {category.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Category Statistics */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {categoryStats.map((stat, index) => (
+          <div key={index} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+            <div className="text-2xl font-bold text-blue-600">{stat.count}</div>
+            <div className="text-sm text-gray-600">{stat.category.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}</div>
+            <div className="text-xs text-gray-500">Avg: {stat.averageScore}%</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Practice Sessions */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4">Recent Practice Sessions</h3>
+        <div className="space-y-4">
+          {sessions.map((session) => (
+            <div key={session.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
               <div className="flex items-center gap-4">
-                 <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${s.color} flex items-center justify-center text-white shadow-lg`}>
-                    <s.icon size={18} />
-                 </div>
-                 <div>
-                    <p className="text-2xl font-black text-gray-800">{s.val}</p>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">{s.label}</p>
-                 </div>
-              </div>
-           </div>
-         ))}
-      </div>
-
-      <div className="grid lg:grid-cols-12 gap-10">
-        {/* Left Column - Topics */}
-        <div className="lg:col-span-4 space-y-8">
-           <div className="space-y-4">
-              <h3 className="text-sm font-black text-gray-800 uppercase tracking-widest px-2 flex items-center gap-2">
-                 <div className="w-1.5 h-4 bg-indigo-600 rounded-full"></div>
-                 Categories
-              </h3>
-              <div className="flex flex-wrap gap-2 px-1">
-                 {categories.map(cat => (
-                   <button
-                     key={cat.value}
-                     onClick={() => setFilter(cat.value)}
-                     className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all duration-300 border ${
-                       filter === cat.value 
-                         ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-100' 
-                         : 'bg-white text-gray-400 border-gray-100 hover:border-indigo-200 hover:text-indigo-600'
-                     }`}
-                   >
-                     {cat.label}
-                   </button>
-                 ))}
-              </div>
-           </div>
-
-           <div className="space-y-4">
-              <h3 className="text-sm font-black text-gray-800 uppercase tracking-widest px-2">Topic Mastery</h3>
-              <div className="space-y-3">
-                 {categoryStats.map((stat, idx) => (
-                   <div key={idx} className="glass-card p-5 rounded-3xl border-white/50 group hover:border-indigo-100 transition-colors">
-                      <div className="flex justify-between items-center mb-3">
-                         <p className="text-xs font-bold text-gray-700 uppercase tracking-wider">{stat.category.replace('-', ' ')}</p>
-                         <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-lg">{stat.count} Sessions</span>
-                      </div>
-                      <div className="relative h-2 bg-gray-100 rounded-full overflow-hidden">
-                         <div 
-                           className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-blue-500 transition-all duration-1000"
-                           style={{ width: `${stat.averageScore}%` }}
-                         ></div>
-                      </div>
-                      <div className="flex justify-between mt-2">
-                         <span className="text-[10px] font-bold text-gray-400 uppercase">Avg Score</span>
-                         <span className="text-[10px] font-black text-gray-800 uppercase">{stat.averageScore}%</span>
-                      </div>
-                   </div>
-                 ))}
-              </div>
-           </div>
-        </div>
-
-        {/* Right Column - Timeline */}
-        <div className="lg:col-span-8 space-y-6">
-           <div className="flex items-center justify-between px-2">
-              <h3 className="text-sm font-black text-gray-800 uppercase tracking-widest flex items-center gap-2">
-                 <div className="w-1.5 h-4 bg-indigo-600 rounded-full"></div>
-                 Recent Sessions
-              </h3>
-              <FaFilter className="text-gray-400" size={14} />
-           </div>
-
-           <div className="space-y-4">
-              {sessions.map((session, idx) => (
-                <div key={idx} className="glass-card group p-6 rounded-[2.2rem] border-white/50 hover:border-indigo-100 hover:shadow-2xl hover:shadow-indigo-200/20 transition-all duration-500 flex items-center justify-between">
-                   <div className="flex items-center gap-6">
-                      <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
-                         <FaBookOpen size={20} className="text-gray-400 group-hover:text-indigo-600 transition-colors" />
-                      </div>
-                      <div>
-                         <h4 className="text-lg font-bold text-gray-800 leading-tight group-hover:text-indigo-600 transition-colors">{session.topic}</h4>
-                         <div className="flex items-center gap-3 mt-1">
-                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{session.category.replace('-', ' ')}</span>
-                            <div className="w-1 h-1 bg-gray-200 rounded-full"></div>
-                            <span className={`text-[10px] font-bold uppercase tracking-widest ${
-                               session.difficulty === 'hard' ? 'text-rose-500' : 
-                               session.difficulty === 'medium' ? 'text-amber-500' : 'text-emerald-500'
-                            }`}>{session.difficulty}</span>
-                         </div>
-                      </div>
-                   </div>
-                   <div className="text-right">
-                      <p className="text-2xl font-black text-gray-800 tracking-tighter">{session.score}%</p>
-                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center justify-end gap-1.5">
-                         <FaClock size={10} />
-                         {session.timeSpent} MIN
-                      </p>
-                   </div>
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <FaBookOpen className="w-6 h-6 text-blue-600" />
                 </div>
-              ))}
-
-              {sessions.length === 0 && (
-                <div className="glass-card rounded-[2.5rem] py-20 text-center">
-                  <div className="w-20 h-20 bg-gray-50 text-gray-300 rounded-3xl flex items-center justify-center mx-auto mb-4">
-                    <FaBookOpen size={32} />
-                  </div>
-                  <p className="text-gray-400 font-bold uppercase tracking-widest text-xs">No practice sessions found</p>
+                <div>
+                  <h4 className="font-medium text-gray-800">{session.topic}</h4>
+                  <p className="text-sm text-gray-500">
+                    {session.category.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())} • {session.difficulty}
+                  </p>
                 </div>
-              )}
-           </div>
+              </div>
+              <div className="text-right">
+                <div className="text-lg font-bold text-gray-800">{session.score}%</div>
+                <div className="text-sm text-gray-500">{session.timeSpent} min</div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Form Modal */}
+      {/* Add Practice Session Modal */}
       {showForm && (
-        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-fade-in">
-          <div className="glass-morphism bg-white rounded-[2.5rem] max-w-lg w-full overflow-hidden shadow-2xl flex flex-col p-8">
-            <div className="flex justify-between items-center mb-8">
-               <div>
-                  <h3 className="text-2xl font-black text-gray-800 uppercase">Log Session</h3>
-                  <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Record your practice performance</p>
-               </div>
-               <button onClick={() => setShowForm(false)} className="w-10 h-10 rounded-xl bg-gray-50 text-gray-400 hover:text-rose-500 hover:bg-rose-50 flex items-center justify-center transition-colors">
-                  <FaTimes size={18} />
-               </button>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-800">Add Practice Session</h3>
+              <button
+                onClick={() => setShowForm(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <FaTimes className="w-5 h-5" />
+              </button>
             </div>
             
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-gray-800 uppercase tracking-widest mb-2 px-1">Topic Name</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Topic</label>
                 <input
                   type="text"
                   name="topic"
                   value={formData.topic}
                   onChange={handleInputChange}
-                  className="w-full bg-gray-50/50 border border-gray-100 rounded-2xl px-5 py-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all duration-300 shadow-inner"
-                  placeholder="e.g. Graph Algorithms"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 />
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                 <div>
-                    <label className="block text-xs font-bold text-gray-800 uppercase tracking-widest mb-2 px-1">Category</label>
-                    <select
-                      name="category"
-                      value={formData.category}
-                      onChange={handleInputChange}
-                      className="w-full bg-gray-50/50 border border-gray-100 rounded-2xl px-5 py-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none cursor-pointer"
-                    >
-                      {categories.slice(1).map(cat => (
-                        <option key={cat.value} value={cat.value}>{cat.label}</option>
-                      ))}
-                    </select>
-                 </div>
-                 <div>
-                    <label className="block text-xs font-bold text-gray-800 uppercase tracking-widest mb-2 px-1">Difficulty</label>
-                    <select
-                      name="difficulty"
-                      value={formData.difficulty}
-                      onChange={handleInputChange}
-                      className="w-full bg-gray-50/50 border border-gray-100 rounded-2xl px-5 py-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none cursor-pointer"
-                    >
-                      <option value="easy">Easy</option>
-                      <option value="medium">Medium</option>
-                      <option value="hard">Hard</option>
-                    </select>
-                 </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                <select
+                  name="category"
+                  value={formData.category}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  {categories.slice(1).map(category => (
+                    <option key={category.value} value={category.value}>
+                      {category.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Difficulty</label>
+                <select
+                  name="difficulty"
+                  value={formData.difficulty}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  {difficulties.map(difficulty => (
+                    <option key={difficulty.value} value={difficulty.value}>
+                      {difficulty.label}
+                    </option>
+                  ))}
+                </select>
               </div>
               
               <div className="grid grid-cols-2 gap-4">
-                 <div>
-                    <label className="block text-xs font-bold text-gray-800 uppercase tracking-widest mb-2 px-1">Score Accuracy (%)</label>
-                    <input
-                      type="number"
-                      name="score"
-                      value={formData.score}
-                      onChange={handleInputChange}
-                      className="w-full bg-gray-50/50 border border-gray-100 rounded-2xl px-5 py-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-inner"
-                      required
-                    />
-                 </div>
-                 <div>
-                    <label className="block text-xs font-bold text-gray-800 uppercase tracking-widest mb-2 px-1">Time Spent (Min)</label>
-                    <input
-                      type="number"
-                      name="timeSpent"
-                      value={formData.timeSpent}
-                      onChange={handleInputChange}
-                      className="w-full bg-gray-50/50 border border-gray-100 rounded-2xl px-5 py-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-inner"
-                      required
-                    />
-                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Score (%)</label>
+                  <input
+                    type="number"
+                    name="score"
+                    value={formData.score}
+                    onChange={handleInputChange}
+                    min="0"
+                    max="100"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Time (min)</label>
+                  <input
+                    type="number"
+                    name="timeSpent"
+                    value={formData.timeSpent}
+                    onChange={handleInputChange}
+                    min="1"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
+                </div>
               </div>
               
-              <button
-                type="submit"
-                className="w-full py-5 bg-indigo-600 text-white rounded-[1.8rem] font-bold uppercase tracking-widest text-[11px] shadow-xl shadow-indigo-200 hover:bg-indigo-700 transition-all duration-300 mt-4"
-              >
-                Save Practice Session
-              </button>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Total Questions</label>
+                  <input
+                    type="number"
+                    name="totalQuestions"
+                    value={formData.totalQuestions}
+                    onChange={handleInputChange}
+                    min="1"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Correct Answers</label>
+                  <input
+                    type="number"
+                    name="correctAnswers"
+                    value={formData.correctAnswers}
+                    onChange={handleInputChange}
+                    min="0"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
+                </div>
+              </div>
+              
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowForm(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                >
+                  Save Session
+                </button>
+              </div>
             </form>
           </div>
         </div>
