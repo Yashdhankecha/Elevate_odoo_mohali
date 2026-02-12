@@ -1,18 +1,25 @@
 import React, { useState } from 'react';
 import { 
-  FaUsers, 
-  FaFilter, 
-  FaSearch, 
-  FaEye, 
-  FaCheck, 
-  FaTimes, 
-  FaEnvelope,
-  FaPhone,
-  FaGraduationCap,
-  FaMapMarkerAlt,
-  FaCalendarAlt,
-  FaDownload
-} from 'react-icons/fa';
+  Users, 
+  Filter, 
+  Search, 
+  Eye, 
+  CheckCircle2, 
+  XCircle, 
+  Mail,
+  Phone,
+  GraduationCap,
+  MapPin,
+  Calendar,
+  Download,
+  MoreVertical,
+  ChevronRight,
+  UserCheck,
+  Zap,
+  Star,
+  Layers,
+  FileText
+} from 'lucide-react';
 
 const ApplicationsTracking = () => {
   const [filterStatus, setFilterStatus] = useState('all');
@@ -121,163 +128,161 @@ const ApplicationsTracking = () => {
     }
   };
 
-  const getStatusColor = (status) => {
+  const getStatusStyle = (status) => {
     switch (status.toLowerCase()) {
       case 'shortlisted':
-        return 'bg-green-100 text-green-700';
+        return 'bg-emerald-50 text-emerald-600 border-emerald-100';
       case 'interview':
-        return 'bg-blue-100 text-blue-700';
+        return 'bg-blue-50 text-blue-600 border-blue-100';
       case 'applied':
-        return 'bg-yellow-100 text-yellow-700';
+        return 'bg-amber-50 text-amber-600 border-amber-100';
       case 'rejected':
-        return 'bg-red-100 text-red-700';
+        return 'bg-rose-50 text-rose-600 border-rose-100';
       default:
-        return 'bg-gray-100 text-gray-700';
+        return 'bg-slate-50 text-slate-600 border-slate-100';
     }
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 pb-20">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">Applications Tracking</h1>
-          <p className="text-gray-600">Manage and review job applications</p>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+        <div className="space-y-1">
+          <h1 className="text-3xl font-black text-slate-900 tracking-tighter flex items-center gap-3">
+             <UserCheck size={32} className="text-blue-600" />
+             Acquisition Pipeline
+          </h1>
+          <p className="text-slate-500 font-medium tracking-tight">Real-time tracking and evaluation of incoming global talent assets.</p>
         </div>
-        <div className="flex gap-2">
-          <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-            <FaDownload className="w-4 h-4" />
-            Export
+        
+        <div className="flex items-center gap-3">
+          <button className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-100 rounded-2xl shadow-sm text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all active:scale-95">
+            <Download size={18} />
+            Export Manifest
           </button>
-          <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+          <button className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-2xl shadow-xl shadow-slate-200 hover:shadow-2xl transition-all font-bold text-sm active:scale-95">
+            <Zap size={18} />
             Bulk Actions
           </button>
         </div>
       </div>
 
-      {/* Filters and Search */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1">
-            <div className="relative">
-              <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <input
-                type="text"
-                placeholder="Search by name, role, or department..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+      {/* Control Panel */}
+      <div className="glass-card rounded-[2rem] p-4 flex flex-wrap items-center justify-between gap-4 border-white/50">
+         <div className="flex items-center gap-8 pl-4">
+            <div className="flex items-center gap-3">
+               <Filter size={14} className="text-slate-400" />
+               <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Filter By</span>
             </div>
-          </div>
-          <div className="flex gap-2">
+            
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="bg-transparent border-none text-sm font-bold text-slate-900 focus:ring-0 cursor-pointer"
             >
-              <option value="all">All Status</option>
-              <option value="applied">Applied</option>
-              <option value="shortlisted">Shortlisted</option>
-              <option value="interview">Interview</option>
-              <option value="rejected">Rejected</option>
+              <option value="all">Global Status</option>
+              <option value="applied">New Applied</option>
+              <option value="shortlisted">Alpha Candidates</option>
+              <option value="interview">Eval Sessions</option>
+              <option value="rejected">Rejected Vectors</option>
             </select>
-            <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-              <FaFilter className="w-4 h-4" />
-              More Filters
+
+            <button className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-xl text-[10px] font-black uppercase text-slate-500 hover:bg-slate-900 hover:text-white transition-all">
+               Advanced Evaluation
             </button>
-          </div>
-        </div>
+         </div>
+
+         <div className="relative group flex-1 max-w-sm">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={14} />
+            <input 
+              type="text" 
+              placeholder="Query candidate name, ID or role..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-xs font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:bg-white transition-all shadow-inner"
+            />
+         </div>
       </div>
 
-      {/* Applications Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="px-6 py-3 text-left">
+      {/* Applications Data Matrix */}
+      <div className="glass-card rounded-[2.5rem] border-white/50 overflow-hidden shadow-2xl shadow-slate-200/50">
+        <div className="overflow-x-auto custom-scrollbar">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="bg-slate-50/50 border-b border-slate-100">
+                <th className="px-8 py-6 text-left">
                   <input
                     type="checkbox"
                     checked={selectedApplications.length === filteredApplications.length && filteredApplications.length > 0}
                     onChange={handleSelectAll}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className="w-5 h-5 rounded-lg border-slate-200 text-blue-600 focus:ring-blue-500/20 transition-all cursor-pointer"
                   />
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Candidate
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Role
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Department
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  CGPA
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Applied Date
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
+                <th className="px-6 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Candidate Intel</th>
+                <th className="px-6 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Position Vector</th>
+                <th className="px-6 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Academia Score</th>
+                <th className="px-6 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Pipeline Status</th>
+                <th className="px-6 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Time Logs</th>
+                <th className="px-8 py-6 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Control</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredApplications.map((application) => (
-                <tr key={application.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
+            <tbody className="divide-y divide-slate-50 font-sans">
+              {filteredApplications.map((app) => (
+                <tr key={app.id} className={`group hover:bg-slate-50/50 transition-all ${selectedApplications.includes(app.id) ? 'bg-blue-50/30' : ''}`}>
+                  <td className="px-8 py-6">
                     <input
                       type="checkbox"
-                      checked={selectedApplications.includes(application.id)}
-                      onChange={() => handleSelectApplication(application.id)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      checked={selectedApplications.includes(app.id)}
+                      onChange={() => handleSelectApplication(app.id)}
+                      className="w-5 h-5 rounded-lg border-slate-200 text-blue-600 focus:ring-blue-500/20 transition-all cursor-pointer"
                     />
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                        <FaUsers className="w-5 h-5 text-blue-600" />
+                  <td className="px-6 py-6">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-slate-100 group-hover:scale-110 transition-transform">
+                        <span className="text-sm font-black text-slate-900">{app.name.charAt(0)}</span>
                       </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">{application.name}</div>
-                        <div className="text-sm text-gray-500">{application.email}</div>
+                      <div>
+                        <p className="text-sm font-bold text-slate-900 leading-none mb-1">{app.name}</p>
+                        <p className="text-[10px] text-slate-400 font-medium">{app.email}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{application.role}</div>
-                    <div className="text-sm text-gray-500">{application.experience} experience</div>
+                  <td className="px-6 py-6">
+                    <div className="space-y-1">
+                       <p className="text-xs font-black text-slate-800 tracking-tight">{app.role}</p>
+                       <p className="text-[10px] font-bold text-blue-600 uppercase tracking-tighter bg-blue-50 px-2 py-0.5 rounded inline-block">{app.department}</p>
+                    </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{application.department}</div>
-                    <div className="text-sm text-gray-500">{application.location}</div>
+                  <td className="px-6 py-6">
+                    <div className="flex items-center gap-3">
+                       <div className="text-sm font-black text-slate-900">{app.cgpa}</div>
+                       <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                          <div className={`h-full ${parseFloat(app.cgpa) > 8.5 ? 'bg-emerald-500' : 'bg-blue-500'}`} style={{ width: `${parseFloat(app.cgpa) * 10}%` }}></div>
+                       </div>
+                    </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{application.cgpa}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(application.status)}`}>
-                      {application.status}
+                  <td className="px-6 py-6">
+                    <span className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border ${getStatusStyle(app.status)}`}>
+                      {app.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(application.appliedDate).toLocaleDateString()}
+                  <td className="px-6 py-6">
+                    <div className="space-y-1">
+                       <p className="text-[10px] font-black text-slate-900">{new Date(app.appliedDate).toLocaleDateString()}</p>
+                       <p className="text-[10px] text-slate-400 font-medium">T-Minus Protocol</p>
+                    </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex gap-2">
-                      <button className="text-blue-600 hover:text-blue-900">
-                        <FaEye className="w-4 h-4" />
+                  <td className="px-8 py-6 text-right">
+                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0">
+                      <button className="p-2.5 bg-white text-slate-400 hover:text-blue-600 rounded-xl shadow-sm border border-slate-100 hover:border-blue-100 transition-all">
+                        <Eye size={14} />
                       </button>
-                      <button className="text-green-600 hover:text-green-900">
-                        <FaCheck className="w-4 h-4" />
+                      <button className="p-2.5 bg-white text-slate-400 hover:text-emerald-600 rounded-xl shadow-sm border border-slate-100 hover:border-emerald-100 transition-all">
+                        <CheckCircle2 size={14} />
                       </button>
-                      <button className="text-red-600 hover:text-red-900">
-                        <FaTimes className="w-4 h-4" />
+                      <button className="p-2.5 bg-white text-slate-400 hover:text-rose-600 rounded-xl shadow-sm border border-slate-100 hover:border-rose-100 transition-all">
+                        <XCircle size={14} />
                       </button>
                     </div>
                   </td>
@@ -288,25 +293,25 @@ const ApplicationsTracking = () => {
         </div>
       </div>
 
-      {/* Selected Actions */}
+      {/* Selected Actions HUD */}
       {selectedApplications.length > 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-blue-800">
-              {selectedApplications.length} application(s) selected
-            </span>
-            <div className="flex gap-2">
-              <button className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700">
-                Shortlist Selected
-              </button>
-              <button className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
-                Schedule Interview
-              </button>
-              <button className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700">
-                Reject Selected
-              </button>
-            </div>
-          </div>
+        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[150] w-full max-w-2xl px-4 animate-slide-up">
+           <div className="bg-slate-900 border border-white/10 p-6 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                 <div className="w-10 h-10 bg-indigo-500 rounded-xl flex items-center justify-center text-white ring-4 ring-indigo-500/20">
+                    <Layers size={18} />
+                 </div>
+                 <div>
+                    <p className="text-white font-black text-sm tracking-tight">{selectedApplications.length} Assets Selected</p>
+                    <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Ready for Bulk Ops</p>
+                 </div>
+              </div>
+              
+              <div className="flex gap-2">
+                 <button className="px-6 py-3 bg-white text-slate-900 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-100 transition-all active:scale-95">Shortlist</button>
+                 <button className="px-6 py-3 bg-rose-500 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-rose-600 transition-all active:scale-95">Reject</button>
+              </div>
+           </div>
         </div>
       )}
     </div>

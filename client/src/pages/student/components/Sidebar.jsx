@@ -1,164 +1,138 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { 
-  FaHome, 
-  FaFileAlt, 
-  FaBookOpen, 
-  FaBriefcase, 
-  FaHistory,
-  FaUser,
-  FaGraduationCap,
-  FaSearch,
-  FaSignOutAlt,
-  FaBars,
-  FaCheckCircle,
-  FaLaptopCode
-} from 'react-icons/fa';
-import { useAuth } from '../../../contexts/AuthContext';
-import { getUserDisplayName, getUserInitials } from '../../../utils/helpers';
+import React, { useState } from 'react';
+import {
+  Home,
+  Briefcase,
+  FileText,
+  Code2,
+  History,
+  Sparkles,
+  GraduationCap,
+  ChevronLeft,
+  ChevronRight,
+  X,
+  LayoutGrid
+} from 'lucide-react';
 
-const Sidebar = ({ activeSection, setActiveSection, isCollapsed, setSidebarCollapsed }) => {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const profileRef = useRef();
-  
-  const navigationItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: FaHome, color: 'text-blue-600' },
-    { id: 'resume', label: 'Resume Builder', icon: FaFileAlt, color: 'text-green-600' },
-    { id: 'practice', label: 'Practice Hub', icon: FaBookOpen, color: 'text-purple-600' },
-    { id: 'applications', label: 'Applications', icon: FaBriefcase, color: 'text-indigo-600' },
-    { id: 'jobs', label: 'Browse Jobs', icon: FaSearch, color: 'text-yellow-600' },
-    { id: 'internships', label: 'Internship Offers', icon: FaLaptopCode, color: 'text-cyan-600' },
-    { id: 'history', label: 'Placement History', icon: FaHistory, color: 'text-pink-600' },
-    { id: 'ai-coach', label: 'AI Career Coach', icon: FaGraduationCap, color: 'text-teal-600' },
-    { id: 'profile-approval', label: 'Profile Approval', icon: FaCheckCircle, color: 'text-orange-600' }
+const Sidebar = ({ activeSection, setActiveSection, isCollapsed, setSidebarCollapsed, isMobileOpen, setIsMobileOpen }) => {
+  const menuItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: Home },
+    { id: 'jobs', label: 'Browse Jobs', icon: Briefcase },
+    { id: 'internships', label: 'Internships', icon: GraduationCap },
+    { id: 'applications', label: 'My Applications', icon: FileText },
+    { id: 'practice', label: 'Practice Hub', icon: Code2 },
+    { id: 'resume', label: 'Resume Builder', icon: FileText },
+    { id: 'ai-coach', label: 'AI Career Coach', icon: Sparkles },
+    { id: 'history', label: 'Placement History', icon: History },
   ];
 
-  const handleProfile = () => {
-    setIsProfileOpen(false);
-    navigate('/profile');
+  const handleNavigation = (sectionId) => {
+    setActiveSection(sectionId);
+    setIsMobileOpen(false);
   };
-
-  const handleLogout = async () => {
-    setIsProfileOpen(false);
-    await logout();
-  };
-
-  // Close dropdowns when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (profileRef.current && !profileRef.current.contains(event.target)) {
-        setIsProfileOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
 
   return (
-    <div className={`bg-white shadow-lg transition-all duration-300 ${isCollapsed ? 'w-16' : 'w-64'} h-screen fixed left-0 top-0 z-50 flex flex-col`}>
-      {/* Logo Section */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200">
-        {!isCollapsed && (
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-              <FaGraduationCap className="text-white text-sm" />
-            </div>
-            <span className="text-lg font-bold text-gray-800">Elevate Student</span>
-          </div>
-        )}
-        <button
-          onClick={() => setSidebarCollapsed(!isCollapsed)}
-          className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
-        >
-          <FaBars className="text-gray-600 w-4 h-4" />
-        </button>
-      </div>
+    <>
+      {/* Mobile Overlay */}
+      {isMobileOpen && (
+        <div 
+          className="fixed inset-0 bg-[#0f172a]/60 backdrop-blur-xl z-[60] lg:hidden animate-fade-in"
+          onClick={() => setIsMobileOpen(false)}
+        />
+      )}
 
-      {/* Navigation Items */}
-      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-        {navigationItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = activeSection === item.id;
-          
-          return (
-            <button
-              key={item.id}
-              onClick={() => setActiveSection(item.id)}
-              className={`w-full flex items-center space-x-3 px-3 py-3 rounded-lg transition-all duration-200 ${
-                isActive 
-                  ? 'bg-gradient-to-r from-blue-50 to-purple-50 border-l-4 border-blue-500 text-blue-700' 
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'
-              }`}
-            >
-              <Icon className={`w-5 h-5 ${isActive ? item.color : 'text-gray-500'}`} />
-              {!isCollapsed && (
-                <span className={`font-medium ${isActive ? 'text-blue-700' : 'text-gray-700'}`}>
-                  {item.label}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </nav>
-
-      {/* Bottom Section - Profile */}
-      <div className="border-t border-gray-200 p-4">
-        {/* Profile Section */}
-        <div className="relative" ref={profileRef}>
-          <button
-            onClick={() => setIsProfileOpen(!isProfileOpen)}
-            className="w-full flex items-center space-x-3 px-3 py-3 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-              <span className="text-white text-xs font-medium">
-                {getUserInitials(getUserDisplayName(user))}
-              </span>
-            </div>
+      {/* Sidebar */}
+      <aside className={`
+        fixed top-0 left-0 h-screen bg-white border-r border-slate-100 shadow-[20px_0_60px_-15px_rgba(0,0,0,0.03)] z-[70]
+        transition-all duration-700 cubic-bezier(0.4, 0, 0.2, 1)
+        ${isCollapsed ? 'w-20' : 'w-64'}
+        ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+      `}>
+        <div className="flex flex-col h-full">
+          {/* Brand Header */}
+          <div className={`flex items-center justify-between p-6 border-b border-slate-50 ${isCollapsed ? 'px-4' : ''}`}>
             {!isCollapsed && (
-              <div className="flex-1 text-left">
-                <p className="text-sm font-medium text-gray-800">
-                  {getUserDisplayName(user)}
-                </p>
-                <p className="text-xs text-gray-500">Student</p>
+              <div className="flex items-center gap-3 animate-fade-in">
+                <div className="w-10 h-10 bg-blue-600 rounded-[1rem] flex items-center justify-center shadow-2xl shadow-blue-200">
+                  <GraduationCap className="text-white w-5 h-5" strokeWidth={2.5} />
+                </div>
+                <div>
+                  <h1 className="text-xl font-black text-slate-900 tracking-tighter leading-none">
+                    ELEVATE
+                  </h1>
+                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">Student Portal</p>
+                </div>
               </div>
             )}
-          </button>
-
-          {/* Profile Dropdown Menu */}
-          {isProfileOpen && (
-            <div className="absolute bottom-full left-0 mb-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-              <div className="px-4 py-2 border-b border-gray-100">
-                <p className="text-sm font-medium text-gray-800">{getUserDisplayName(user)}</p>
-                <p className="text-xs text-gray-500">{user?.email || 'user@example.com'}</p>
+            
+            {isCollapsed && (
+              <div className="w-10 h-10 bg-blue-600 rounded-[1rem] flex items-center justify-center shadow-xl mx-auto">
+                 <GraduationCap className="text-white w-5 h-5" strokeWidth={2.5} />
               </div>
+            )}
+
+            {/* Mobile Close Button */}
+            <button
+              onClick={() => setIsMobileOpen(false)}
+              className="lg:hidden w-8 h-8 flex items-center justify-center rounded-lg bg-slate-50 text-slate-500 hover:bg-rose-50 hover:text-rose-600 transition-all"
+            >
+              <X size={18} />
+            </button>
+          </div>
+
+          {/* Navigation Menu */}
+          <nav className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-1.5">
+            {menuItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeSection === item.id;
               
-              <button 
-                onClick={handleProfile}
-                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
-              >
-                <FaUser className="text-gray-500" />
-                <span>Profile</span>
-              </button>
-              
-              <div className="border-t border-gray-100 my-1"></div>
-              
-              <button 
-                onClick={handleLogout}
-                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
-              >
-                <FaSignOutAlt className="text-red-500" />
-                <span>Sign Out</span>
-              </button>
-            </div>
-          )}
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => handleNavigation(item.id)}
+                  className={`
+                    w-full flex items-center gap-3 px-3 py-3 rounded-[1rem] font-bold text-[12px]
+                    transition-all duration-500 group relative
+                    ${isActive 
+                      ? 'bg-blue-600 text-white shadow-2xl shadow-blue-200 active:scale-95' 
+                      : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+                    }
+                    ${isCollapsed ? 'justify-center px-0' : ''}
+                  `}
+                  title={isCollapsed ? item.label : ''}
+                >
+                  <div className={`
+                    w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-500
+                    ${isActive 
+                      ? 'bg-white/10 scale-105 shadow-inner' 
+                      : 'bg-slate-50 group-hover:bg-white group-hover:shadow-lg'
+                    }
+                  `}>
+                    <Icon size={16} strokeWidth={isActive ? 3 : 2} className={isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-900'} />
+                  </div>
+                  
+                  {!isCollapsed && (
+                    <span className="flex-1 text-left truncate">{item.label}</span>
+                  )}
+
+                  {isActive && !isCollapsed && (
+                    <div className="absolute right-3 w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
+                  )}
+                </button>
+              );
+            })}
+          </nav>
         </div>
-      </div>
-    </div>
+      </aside>
+
+      {/* Desktop Collapse Trigger */}
+      <button
+         onClick={() => setSidebarCollapsed(!isCollapsed)}
+         className={`hidden lg:flex fixed top-8 w-7 h-7 items-center justify-center rounded-lg bg-white border border-slate-100 text-slate-400 hover:bg-slate-900 hover:text-white transition-all z-[80] shadow-xl hover:scale-110 active:scale-95 mb-4`}
+         style={{ left: isCollapsed ? '68px' : '244px' }}
+      >
+         {isCollapsed ? <ChevronRight size={12} strokeWidth={3} /> : <ChevronLeft size={12} strokeWidth={3} />}
+      </button>
+    </>
   );
 };
 

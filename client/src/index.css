@@ -63,31 +63,36 @@
   .animation-delay-4000 {
     animation-delay: 4s;
   }
-}
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(24px);
+  /* Premium Utilities */
+  .glass-card {
+    @apply bg-white bg-opacity-70 backdrop-blur-md border border-white border-opacity-30 shadow-xl;
   }
 
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-@keyframes growBar {
-  from {
-    width: 0;
+  .glass-morphism {
+    @apply bg-white bg-opacity-20 backdrop-blur-lg border border-white border-opacity-20 shadow-2xl;
   }
 
-  to {
-    width: 100%;
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600;
   }
-}
 
-@layer utilities {
+  .gradient-border {
+    position: relative;
+    border-radius: 0.75rem;
+    padding: 1px;
+    background: linear-gradient(to right, #2563eb, #9333ea);
+  }
+
+  .gradient-border>* {
+    background: white;
+    border-radius: calc(0.75rem - 1px);
+  }
+
+  .hover-lift {
+    @apply transition-transform duration-300 hover:-translate-y-1 hover:shadow-2xl;
+  }
+
   .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -112,4 +117,63 @@
   .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     @apply bg-slate-600;
   }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes growBar {
+  from {
+    width: 0;
+  }
+
+  to {
+    width: 100%;
+  }
+}
+
+@keyframes blob {
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  25% {
+    transform: translate(20px, -50px) scale(1.1);
+  }
+
+  50% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+
+  75% {
+    transform: translate(50px, 50px) scale(1.05);
+  }
+}
+
+.animate-blob {
+  animation: blob 7s infinite;
+}
+
+:root {
+  --primary: #2563eb;
+  --secondary: #9333ea;
+  --accent: #f59e0b;
+  --background: #f8fafc;
+  --surface: #ffffff;
+}
+
+body {
+  background-color: var(--background);
+  color: #1e293b;
 }

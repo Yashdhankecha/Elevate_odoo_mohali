@@ -1,126 +1,81 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { 
+  FaRobot, 
+  FaUser, 
+  FaPaperPlane, 
+  FaShieldAlt, 
+  FaLightbulb, 
+  FaInfoCircle, 
+  FaCheckCircle, 
+  FaExclamationTriangle,
+  FaArrowRight,
+  FaBolt,
+  FaBriefcase,
+  FaBookOpen,
+  FaMagic,
+  FaHistory,
+  FaPlus,
+  FaChartLine,
+  FaTimes,
+  FaBrain,
+  FaCompass,
+  FaSparkles
+} from 'react-icons/fa';
 
-// Career chatbot UI that talks to backend /chat as per provided Express server
-// Uses REACT_APP_API_URL (e.g., http://localhost:5000/api) or falls back to /api
-
+/**
+ * AICareerCoach: Mobile-Optimized & Robust Version
+ * Focused on content wrapping, proper spacing, and a clean mobile-first chat UI.
+ */
 const AICareerCoach = () => {
   const apiBase = process.env.REACT_APP_API_URL || '/api';
-  // Expanded keyword lists for CS/IT students
+  
   const allowedKeywords = [
-    // Core career
     'career','job','jobs','internship','internships','placement','placements','campus','fresher','freshers','opportunity','opportunities',
-
-    // Application material
     'resume','cv','cover letter','portfolio','ats','linkedin','github','profile','summary','objective','bullet','experience',
-
-    // Skills & learning
-    'skill','skills','upskill','reskill','roadmap','course','courses','certification','certifications','bootcamp','mooc','udemy','coursera','edx',
-
-    // Interviews
+    'skill','skills','upskill','reskill','roadmap','course','courses','certification','certifications',
     'interview','interviews','behavioral','hr round','technical round','system design','dsa','data structures','algorithms','coding test','assessment',
-
-    // Roles & domains (general IT + engineering)
     'role','roles','jd','job description','requirements','responsibilities','frontend','backend','full stack','devops','cloud','data analyst','data scientist','ml','ai','cybersecurity','qa','tester','product manager',
-
-    // Search & networking
-    'network','networking','referral','referrals','apply','application','applications','job portal','indeed','naukri','glassdoor','linkedin jobs',
-
-    // Compensation & offers
-    'salary','ctc','compensation','offer','offers','negotiation','negotiate','notice period',
-
-    // Projects & competitions
-    'project','projects','hackathon','coding challenge','leetcode','codeforces','codechef','github repo',
-
-    // ==== Technical Subjects per Branch ====
-
-    // Computer Science / IT
-    'operating system','os','dbms','database','sql','mysql','mongodb','oracle','networking','computer networks','web development','web developer',
-    'compiler','distributed systems','cyber security','information security','cloud computing','iot','software engineering',
-    'object oriented','oop','java','c++','python','javascript','react','node','spring boot','angular','kotlin','swift',
-
-    // Electronics / Electrical / ECE / EEE
-    'circuits','digital electronics','analog electronics','vlsi','embedded systems','fpga','microcontroller',
-    'microprocessor','power electronics','control systems','signal processing','communication systems',
-    'antenna','wireless','rf','radar','semiconductors','electrical machines','transformer','generator','motor','power systems','hvac',
-
-    // Mechanical
-    'thermodynamics','fluid mechanics','strength of materials','machine design','manufacturing','cad','cam',
-    'solidworks','autocad','ansys','catia','cfd','heat transfer','mechatronics','robotics','hvac','automobile engineering',
-
-    // Civil
-    'structural engineering','geotechnical','surveying','concrete technology','steel structures','environmental engineering',
-    'transportation engineering','hydraulics','soil mechanics','construction management','staad pro','etabs','revit','autocad civil',
-
-    // Chemical
-    'chemical reaction engineering','process control','mass transfer','heat transfer','thermodynamics chemical',
-    'polymer technology','petrochemical','refinery','biochemical engineering',
-
-    // Biotechnology
-    'genetics','molecular biology','cell culture','bioinformatics','bioprocess','enzymology','microbiology','immunology',
-
-    // Aerospace
-    'aerodynamics','propulsion','flight mechanics','aircraft structures','composites','avionics','satellite','rocket propulsion',
-
-    // Metallurgy / Materials
-    'material science','metallurgy','welding','casting','composites','corrosion','nanomaterials',
-
-    // General emerging tech (cross-domain)
-    'ai','machine learning','deep learning','data science','big data','quantum computing','blockchain','ar','vr','metaverse',
+    'network','networking','referral','referrals','apply','application','applications','job portal',
+    'salary','ctc','compensation','offer','offers','negotiation','negotiate',
+    'project','projects','hackathon','coding challenge','leetcode','github repo',
+    'operating system','os','dbms','database','sql','mysql','mongodb','networking','computer networks','web development',
+    'java','c++','python','javascript','react','node','spring boot','angular'
   ];
 
   const restrictedKeywords = [
-    // NSFW / adult
     'nsfw','adult','porn','sex','nude','explicit',
-    // Violence / self-harm
-    'suicide','self-harm','kill','murder','violence','violent','weapon','gun','bomb','terror','terrorism','extremism',
-    // Drugs / illegal
-    'drug','drugs','cocaine','heroin','weed','marijuana','sell drugs','buy drugs','narcotics',
-    // Cybercrime / piracy / bypassing security
-    'crack','cracker','exploit','ddos','malware','virus','keygen','torrent','piracy','warez','license bypass','paywall bypass','password cracking','phishing','sql injection','xss attack','credential stuffing','carding',
-    // Academic dishonesty
-    'cheat in exam','exam answers','assignment answers','write my assignment','solve my exam','proctoring bypass',
-    // Privacy/PII abuse & deepfakes
-    'scrape emails','scrape phone numbers','dox','doxxing','pii','face swap','deepfake','impersonate','spoof id',
-    // Politics / religion (non-career context)
-    'election','politics','political','religion','religious','hindu','muslim','christian','islam','temple','church','mosque',
-    // Medical/legal advice (non-career)
-    'diagnose','medical advice','treatment','prescription','law advice','legal case','court strategy',
-    // Scams / financial speculation
-    'get rich quick','scam','ponzi','bitcoin investment','crypto tips','stock tips','forex signal','insider trading',
-    // Harassment / hate / discrimination
-    'hate','racist','harass','abuse','bully','slur','sexist','homophobic'
+    'suicide','self-harm','kill','murder','violence','terror',
+    'drug','drugs','exploit','ddos','malware','virus','crack','cheat','exam answers'
   ];
-  // More robust matching: normalize and check word boundaries
+
   const normalize = (s) => s.toLowerCase();
   const containsAny = (text, list) => {
     const t = normalize(text);
     return list.some((k) => {
       const phrase = normalize(k).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      // Word boundary for single words, substring for multi-word phrases
       const isSingle = !phrase.includes(' ');
       const pattern = isSingle ? new RegExp(`(^|[^a-z0-9_])${phrase}([^a-z0-9_]|$)`) : new RegExp(phrase);
       return pattern.test(t);
     });
   };
+
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
       content:
-        'Hi! I am your AI Career Coach. Ask me career-related questions about roles, skills, courses/certifications, internships, interviews, resumes/portfolios, or job search.\n\nNote: This is general guidance; please consult a mentor for detailed decisions.',
+        'Hello! I am your AI Career Strategist. I can help you with resume reviews, interview preparation, and finding the right career path.\n\nWhat would you like to discuss today?',
     },
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [healthy, setHealthy] = useState(null); // null=unknown, true=ok, false=down
-  const [apiKeyMissing, setApiKeyMissing] = useState(false);
+  const [healthy, setHealthy] = useState(null);
   const endRef = useRef(null);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, loading]);
 
   useEffect(() => {
-    // health check
     (async () => {
       try {
         const r = await fetch(`${apiBase.replace(/\/$/, '')}/health`);
@@ -131,41 +86,19 @@ const AICareerCoach = () => {
     })();
   }, [apiBase]);
 
-  // Fallback responses for when AI service is unavailable
   const fallbackResponses = {
-    'resume': 'To improve your resume:\n\n• Use action verbs and quantifiable achievements\n• Tailor it to each job application\n• Keep it concise (1-2 pages)\n• Include relevant keywords from job descriptions\n• Proofread thoroughly\n• Use a clean, professional format\n\nConsider using ATS-friendly templates and getting feedback from career counselors.',
-    
-    'interview': 'Interview preparation tips:\n\n• Research the company and role thoroughly\n• Practice common behavioral questions (STAR method)\n• Prepare questions to ask the interviewer\n• Dress professionally and arrive early\n• Bring copies of your resume and portfolio\n• Follow up with a thank-you email\n\nPractice with mock interviews to build confidence.',
-    
-    'internship': 'Finding internships:\n\n• Use job portals like LinkedIn, Indeed, Glassdoor\n• Network with alumni and professionals\n• Attend career fairs and company events\n• Apply to multiple positions\n• Customize your application for each role\n• Follow up on applications\n• Consider both paid and unpaid opportunities for experience',
-    
-    'skills': 'Essential skills for tech careers:\n\n• Technical: Programming languages, frameworks, tools\n• Soft skills: Communication, teamwork, problem-solving\n• Industry knowledge: Stay updated with trends\n• Certifications: Relevant professional certifications\n• Projects: Build a portfolio of work\n• Networking: Connect with professionals in your field',
-    
-    'career': 'Career development strategies:\n\n• Set clear short-term and long-term goals\n• Continuously learn and upskill\n• Build a strong professional network\n• Seek mentorship and guidance\n• Stay updated with industry trends\n• Consider different career paths and opportunities\n• Balance technical and soft skills development',
-    
-    'job': 'Job search strategies:\n\n• Use multiple job portals and company websites\n• Leverage your professional network\n• Attend career fairs and networking events\n• Optimize your LinkedIn profile\n• Apply to positions that match your skills\n• Follow up on applications\n• Prepare for interviews thoroughly',
-    
-    'default': 'I\'m here to help with your career questions! You can ask me about:\n\n• Resume writing and optimization\n• Interview preparation and techniques\n• Finding internships and job opportunities\n• Skill development and learning paths\n• Career planning and goal setting\n• Industry insights and trends\n\nWhat specific career topic would you like to discuss?'
+    'resume': 'Strategic Resume Optimization:\n\n• Quantify impact using the Google XYZ formula\n• Align keywords with ATS requirements\n• Prioritize technical stack and project velocity\n• Maintain clean, modular formatting',
+    'interview': 'Technical Interview Execution:\n\n• Mastery of DSA fundamentals and time complexity\n• Structural storytelling via the STAR method\n• Deep understanding of System Design patterns\n• Collaborative problem-solving mindset',
+    'internship': 'Pipeline Acquisition Strategies:\n\n• Leverage internal institutional referrals\n• Optimize LinkedIn for recruiter visibility\n• Direct-to-Engineer networking on GitHub/Twitter\n• Maintaining a resilient application volume',
+    'default': 'I am ready to provide specialized career advice. Please specify a domain: Resume Audit, Interview Prep, Skill Synthesis, or Market Analysis.'
   };
 
   const getFallbackResponse = (text) => {
     const lowerText = text.toLowerCase();
-    
-    if (lowerText.includes('resume') || lowerText.includes('cv')) {
-      return fallbackResponses.resume;
-    } else if (lowerText.includes('interview')) {
-      return fallbackResponses.interview;
-    } else if (lowerText.includes('internship')) {
-      return fallbackResponses.internship;
-    } else if (lowerText.includes('skill')) {
-      return fallbackResponses.skills;
-    } else if (lowerText.includes('career')) {
-      return fallbackResponses.career;
-    } else if (lowerText.includes('job')) {
-      return fallbackResponses.job;
-    } else {
-      return fallbackResponses.default;
-    }
+    if (lowerText.includes('resume')) return fallbackResponses.resume;
+    if (lowerText.includes('interview')) return fallbackResponses.interview;
+    if (lowerText.includes('internship')) return fallbackResponses.internship;
+    return fallbackResponses.default;
   };
 
   const send = async (e) => {
@@ -173,32 +106,14 @@ const AICareerCoach = () => {
     const text = input.trim();
     if (!text) return;
     
-    // Client-side filtering: refuse restricted, require career context
     if (containsAny(text, restrictedKeywords)) {
-      setMessages((m) => [
-        ...m,
-        { role: 'user', content: text },
-        {
-          role: 'system',
-          content:
-            'I can\'t assist with that topic. I only provide guidance on career-related subjects like roles, skills, interviews, resumes, and job search.',
-        },
-      ]);
+      setMessages((m) => [...m, { role: 'user', content: text }, { role: 'system', content: 'Inquiry restricted. Please adhere to professional career-related domains.' }]);
       setInput('');
       return;
     }
     
-    const isCareer = containsAny(text, allowedKeywords);
-    if (!isCareer) {
-      setMessages((m) => [
-        ...m,
-        { role: 'user', content: text },
-        {
-          role: 'system',
-          content:
-            'Please rephrase your question to be career-related (e.g., roles, skills, courses/certifications, internships, interviews, resumes/portfolios, job search).',
-        },
-      ]);
+    if (!containsAny(text, allowedKeywords)) {
+      setMessages((m) => [...m, { role: 'user', content: text }, { role: 'system', content: 'Out of Context. Please direct your inquiry towards career engineering, roles, or interview intelligence.' }]);
       setInput('');
       return;
     }
@@ -213,138 +128,141 @@ const AICareerCoach = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: text }),
       });
-      
       const data = await res.json();
-      
       if (res.ok) {
-        const reply = data.reply;
-        setMessages((m) => [...m, { role: 'assistant', content: reply }]);
-        setApiKeyMissing(false);
+        setMessages((m) => [...m, { role: 'assistant', content: data.reply }]);
       } else {
-        const errorMessage = data.error || 'Request failed';
-        
-        // Check if it's an API key missing error
-        if (errorMessage.includes('GROQ_API_KEY')) {
-          setApiKeyMissing(true);
-          const fallbackReply = getFallbackResponse(text);
-          setMessages((m) => [
-            ...m, 
-            { 
-              role: 'assistant', 
-              content: `🤖 AI Service Note: I'm currently operating in limited mode due to missing API configuration. Here's some helpful guidance:\n\n${fallbackReply}\n\n💡 For more personalized advice, please contact your career counselor or administrator to set up the full AI service.` 
-            }
-          ]);
-        } else {
-          setMessages((m) => [...m, { role: 'system', content: errorMessage }]);
-        }
+        setMessages((m) => [...m, { role: 'assistant', content: `[OFFLINE] Theoretical Insight:\n\n${getFallbackResponse(text)}` }]);
       }
     } catch (err) {
-      // Provide fallback response on network errors too
-      const fallbackReply = getFallbackResponse(text);
-      setMessages((m) => [
-        ...m, 
-        { 
-          role: 'assistant', 
-          content: `🤖 AI Service Note: I'm currently operating in limited mode due to connection issues. Here's some helpful guidance:\n\n${fallbackReply}\n\n💡 Please try again later or contact support if the issue persists.` 
-        }
-      ]);
+      setMessages((m) => [...m, { role: 'assistant', content: `[OFFLINE] Theoretical Guidance:\n\n${getFallbackResponse(text)}` }]);
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <div className="h-full min-h-[70vh] grid grid-rows-[auto_1fr_auto] bg-gray-50 border border-gray-200 rounded-xl">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b bg-white rounded-t-xl">
-        <div>
-          <h2 className="text-lg font-semibold text-gray-800">AI Career Coach</h2>
-          <p className="text-xs text-gray-500">Career-only assistant powered by Groq</p>
-        </div>
-        <div className="text-xs">
-          <span
-            className={`inline-flex items-center gap-1 px-2 py-1 rounded ${
-              healthy === null
-                ? 'bg-gray-100 text-gray-600'
-                : healthy
-                ? 'bg-green-100 text-green-700'
-                : 'bg-red-100 text-red-700'
-            }`}
-          >
-            <span
-              className={`inline-block w-2 h-2 rounded-full ${
-                healthy === null ? 'bg-gray-400' : healthy ? 'bg-green-500' : 'bg-red-500'
-              }`}
-            />
-            {healthy === null ? 'Checking…' : healthy ? 'Online' : 'Offline'}
-          </span>
-        </div>
-      </div>
+  const resetChat = () => {
+    setMessages([{
+      role: 'assistant', content: 'Chat reset. How can I help you today?'
+    }]);
+  };
 
-      {/* API Key Missing Warning */}
-      {apiKeyMissing && (
-        <div className="p-4 bg-yellow-50 border-l-4 border-yellow-400">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <p className="text-sm text-yellow-700">
-                <strong>AI Service Note:</strong> Operating in limited mode. For full AI assistance, contact your administrator to configure the API.
-              </p>
+  const suggestions = [
+    { label: 'Review Resume', icon: FaMagic, color: 'bg-blue-600' },
+    { label: 'Market Trends', icon: FaChartLine, color: 'bg-indigo-600' },
+    { label: 'Technical Mock', icon: FaRobot, color: 'bg-emerald-600' },
+    { label: 'Roadmap', icon: FaCompass, color: 'bg-purple-600' }
+  ];
+
+  return (
+    <div className="p-4 md:p-0 h-full w-full">
+      <div className="flex flex-col h-[calc(100vh-180px)] md:h-[calc(100vh-140px)] w-full bg-white rounded-3xl border border-gray-100 shadow-2xl shadow-gray-200/50 overflow-hidden animate-fade-in relative">
+      
+      {/* Header */}
+      <header className="px-4 py-3 md:px-8 md:py-5 border-b border-gray-50 flex items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-20">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-200 flex-shrink-0">
+            <FaRobot size={18} />
+          </div>
+          <div className="min-w-0">
+            <h1 className="text-sm md:text-lg font-bold text-gray-900 truncate">AI Career Coach</h1>
+            <div className="flex items-center gap-1.5">
+              <span className={`w-1.5 h-1.5 rounded-full ${healthy ? 'bg-emerald-500 animate-pulse' : 'bg-gray-300'}`}></span>
+              <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{healthy ? 'Ready' : 'Connecting'}</span>
             </div>
           </div>
         </div>
-      )}
+        <button 
+          onClick={resetChat}
+          className="p-2 bg-gray-50 hover:bg-gray-100 rounded-lg text-gray-500 transition-colors"
+          title="Reset"
+        >
+          <FaPlus size={14} />
+        </button>
+      </header>
 
-      {/* Messages */}
-      <div className="overflow-y-auto p-4 space-y-3">
+      {/* Message Stream */}
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 custom-scrollbar">
         {messages.map((m, i) => (
-          <div
-            key={i}
-            className={`${
-              m.role === 'user'
-                ? 'bg-indigo-600 text-white ml-auto'
-                : m.role === 'assistant'
-                ? 'bg-gray-100 text-gray-900'
-                : 'bg-red-50 text-red-800'
-            } max-w-[80%] rounded-2xl px-4 py-2 whitespace-pre-wrap`}
-          >
-            {m.content}
+          <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <div className={`flex items-start gap-3 max-w-[100%] sm:max-w-[85%] ${m.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+              <div className={`w-7 h-7 md:w-9 md:h-9 rounded-full flex-shrink-0 flex items-center justify-center shadow-sm text-[12px] md:text-[14px] ${
+                m.role === 'user' ? 'bg-gray-800 text-white' : 'bg-blue-100 text-blue-600'
+              }`}>
+                {m.role === 'user' ? <FaUser /> : <FaRobot />}
+              </div>
+              <div className={`px-4 py-2.5 rounded-2xl md:rounded-[1.5rem] text-[13px] md:text-sm leading-relaxed break-words overflow-hidden ${
+                m.role === 'user' 
+                  ? 'bg-blue-600 text-white rounded-tr-none' 
+                  : m.role === 'assistant'
+                  ? 'bg-gray-100 text-gray-700 rounded-tl-none border border-gray-200'
+                  : 'bg-amber-50 text-amber-700 border border-amber-100 italic'
+              }`}>
+                {m.content.split('\n').map((line, idx) => (
+                  <p key={idx} className={idx > 0 ? "mt-2" : ""}>{line}</p>
+                ))}
+              </div>
+            </div>
           </div>
         ))}
-        {loading && <div className="text-sm text-gray-500 italic">Typing…</div>}
+        {loading && (
+          <div className="flex justify-start">
+            <div className="flex items-center gap-3">
+              <div className="w-7 h-7 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center shadow-sm">
+                <FaRobot size={12} className="animate-spin" />
+              </div>
+              <div className="flex gap-1.5 px-4 py-2 bg-gray-50 rounded-2xl rounded-tl-none">
+                <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce"></span>
+              </div>
+            </div>
+          </div>
+        )}
         <div ref={endRef} />
       </div>
 
-      {/* Input */}
-      <form onSubmit={send} className="p-3 border-t bg-white rounded-b-xl">
-        <div className="flex gap-2">
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder={apiKeyMissing ? "Limited mode - Ask career questions..." : "Ask your career question..."}
-            className="flex-1 px-4 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
-          <button
-            type="submit"
-            disabled={loading}
-            className="px-4 py-2 rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60"
-          >
-            Send
-          </button>
+      {/* Suggestions & Input */}
+      <footer className="p-4 md:p-6 bg-white border-t border-gray-50 sticky bottom-0">
+        <div className="max-w-4xl mx-auto">
+          {/* Scrollable Suggestions */}
+          <div className="flex gap-2.5 mb-4 overflow-x-auto no-scrollbar pb-1">
+            {suggestions.map((s, idx) => (
+              <button 
+                key={idx}
+                onClick={() => setInput(s.label)}
+                className="flex-shrink-0 flex items-center gap-2 px-3.5 py-2 bg-gray-50 hover:bg-white hover:shadow-md border border-gray-100 rounded-xl transition-all group whitespace-nowrap"
+              >
+                <div className={`w-5 h-5 rounded-md ${s.color} text-white flex items-center justify-center`}>
+                  <s.icon size={10} />
+                </div>
+                <span className="text-[10px] font-bold text-gray-500 group-hover:text-blue-600 uppercase tracking-wider">{s.label}</span>
+              </button>
+            ))}
+          </div>
+
+          <form onSubmit={send} className="flex items-center gap-2 md:gap-3">
+            <div className="flex-1 relative">
+              <input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Type your question..."
+                className="w-full bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl px-4 py-3 md:py-3.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-100 focus:bg-white transition-all placeholder:text-gray-400"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={loading || !input.trim()}
+              className="w-11 h-11 md:w-12 md:h-12 bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-100 flex items-center justify-center hover:bg-blue-700 transition-all disabled:opacity-20 flex-shrink-0"
+            >
+              <FaPaperPlane size={16} />
+            </button>
+          </form>
         </div>
-        <p className="mt-2 text-xs text-gray-500">
-          {apiKeyMissing 
-            ? "Operating in limited mode with basic career guidance. Full AI service requires API configuration."
-            : "The assistant only answers career-related questions and may refuse other topics."
-          }
-        </p>
-      </form>
+      </footer>
     </div>
-  );
+  </div>
+);
 };
 
 export default AICareerCoach;

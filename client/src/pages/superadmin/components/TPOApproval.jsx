@@ -1,51 +1,46 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  FaShieldAlt, 
-  FaSearch, 
-  FaFilter, 
-  FaCheck, 
-  FaTimes, 
-  FaEnvelope,
-  FaBuilding,
-  FaCalendarAlt,
-  FaUser,
-  FaGraduationCap
-} from 'react-icons/fa';
+  ShieldCheck, 
+  Search, 
+  Filter, 
+  CheckCircle2, 
+  XCircle, 
+  Mail,
+  Building2,
+  Calendar,
+  User,
+  GraduationCap,
+  Zap,
+  MoreVertical,
+  ChevronRight,
+  ShieldAlert,
+  Archive,
+  Loader2,
+  Lock,
+  Unlock,
+  Clock
+} from 'lucide-react';
 import axios from 'axios';
+import toast from 'react-hot-toast';
 
-// Create axios instance with base configuration
 const api = axios.create({
   baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api',
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  headers: { 'Content-Type': 'application/json' },
   withCredentials: true,
 });
 
-// Request interceptor to add auth token
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+}, (error) => Promise.reject(error));
 
 const TPOApproval = ({ onApprovalProcessed }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterInstitute, setFilterInstitute] = useState('All');
-  const [sortBy, setSortBy] = useState('newest');
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [pendingTPOs, setPendingTPOs] = useState([]);
   const [processingApproval, setProcessingApproval] = useState(false);
   const [selectedTPOs, setSelectedTPOs] = useState([]);
-  const [showBulkActions, setShowBulkActions] = useState(false);
 
   useEffect(() => {
     fetchPendingTPOs();
@@ -54,384 +49,182 @@ const TPOApproval = ({ onApprovalProcessed }) => {
   const fetchPendingTPOs = async () => {
     try {
       setLoading(true);
-      setError(null);
       const response = await api.get('/admin/pending-registrations');
-      
-      // Filter only TPO registrations
-      const tpoOnly = response.data.pendingUsers.filter(user => user.role === 'tpo');
-      setPendingTPOs(tpoOnly);
+      setPendingTPOs(response.data.pendingUsers.filter(user => user.role === 'tpo'));
     } catch (err) {
-      console.error('Error fetching pending TPOs:', err);
-      setError(err.response?.data?.message || err.message || 'Failed to load pending TPOs');
+      toast.error('Failed to load TPO requests');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleApproveTPO = async (tpoId) => {
+  const handleAction = async (tpoId, action) => {
     try {
       setProcessingApproval(true);
-      await api.post(`/admin/approve-user/${tpoId}`);
-      alert('TPO approved successfully!');
-      fetchPendingTPOs(); // Refresh the list
-      if (onApprovalProcessed) {
-        onApprovalProcessed();
-      }
-    } catch (error) {
-      console.error('Error approving TPO:', error);
-      alert('Failed to approve TPO: ' + (error.response?.data?.message || error.message));
-    } finally {
-      setProcessingApproval(false);
-    }
-  };
-
-  const handleRejectTPO = async (tpoId) => {
-    try {
-      setProcessingApproval(true);
-      await api.post(`/admin/reject-user/${tpoId}`);
-      alert('TPO rejected successfully!');
-      fetchPendingTPOs(); // Refresh the list
-      if (onApprovalProcessed) {
-        onApprovalProcessed();
-      }
-    } catch (error) {
-      console.error('Error rejecting TPO:', error);
-      alert('Failed to reject TPO: ' + (error.response?.data?.message || error.message));
-    } finally {
-      setProcessingApproval(false);
-    }
-  };
-
-  const handleSelectTPO = (tpoId) => {
-    setSelectedTPOs(prev => {
-      const newSelected = prev.includes(tpoId) 
-        ? prev.filter(id => id !== tpoId)
-        : [...prev, tpoId];
-      setShowBulkActions(newSelected.length > 0);
-      return newSelected;
-    });
-  };
-
-  const handleSelectAll = () => {
-    const allPendingIds = filteredAndSortedTPOs
-      .filter(tpo => tpo.status === 'pending')
-      .map(tpo => tpo.id);
-    
-    if (selectedTPOs.length === allPendingIds.length) {
-      setSelectedTPOs([]);
-      setShowBulkActions(false);
-    } else {
-      setSelectedTPOs(allPendingIds);
-      setShowBulkActions(true);
-    }
-  };
-
-  const handleBulkApprove = async () => {
-    if (selectedTPOs.length === 0) return;
-    
-    try {
-      setProcessingApproval(true);
-      const promises = selectedTPOs.map(tpoId => api.post(`/admin/approve-user/${tpoId}`));
-      await Promise.all(promises);
-      alert(`${selectedTPOs.length} TPOs approved successfully!`);
-      setSelectedTPOs([]);
-      setShowBulkActions(false);
+      await api.post(`/admin/${action}-user/${tpoId}`);
+      toast.success(`TPO ${action === 'approve' ? 'Approved' : 'Rejected'}`);
       fetchPendingTPOs();
-      if (onApprovalProcessed) {
-        onApprovalProcessed();
-      }
+      if (onApprovalProcessed) onApprovalProcessed();
     } catch (error) {
-      console.error('Error in bulk approval:', error);
-      alert('Failed to approve some TPOs: ' + (error.response?.data?.message || error.message));
+      toast.error('Operation failed');
     } finally {
       setProcessingApproval(false);
     }
   };
 
-  const handleBulkReject = async () => {
+  const handleBulkAction = async (action) => {
     if (selectedTPOs.length === 0) return;
-    
     try {
       setProcessingApproval(true);
-      const promises = selectedTPOs.map(tpoId => api.post(`/admin/reject-user/${tpoId}`));
-      await Promise.all(promises);
-      alert(`${selectedTPOs.length} TPOs rejected successfully!`);
+      await Promise.all(selectedTPOs.map(id => api.post(`/admin/${action}-user/${id}`)));
+      toast.success(`${selectedTPOs.length} requests ${action === 'approve' ? 'approved' : 'rejected'}`);
       setSelectedTPOs([]);
-      setShowBulkActions(false);
       fetchPendingTPOs();
-      if (onApprovalProcessed) {
-        onApprovalProcessed();
-      }
+      if (onApprovalProcessed) onApprovalProcessed();
     } catch (error) {
-      console.error('Error in bulk rejection:', error);
-      alert('Failed to reject some TPOs: ' + (error.response?.data?.message || error.message));
+      toast.error('Bulk operation failed');
     } finally {
       setProcessingApproval(false);
     }
   };
 
-  // Get unique institutes for filter
-  const uniqueInstitutes = ['All', ...new Set(pendingTPOs.map(tpo => tpo.instituteName).filter(Boolean))];
+  const filteredTPOs = pendingTPOs.filter(tpo => 
+    tpo.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    tpo.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (tpo.instituteName && tpo.instituteName.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
 
-  const filteredAndSortedTPOs = pendingTPOs
-    .filter(tpo => {
-      const matchesSearch = tpo.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           tpo.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           (tpo.instituteName && tpo.instituteName.toLowerCase().includes(searchQuery.toLowerCase()));
-      
-      const matchesInstitute = filterInstitute === 'All' || tpo.instituteName === filterInstitute;
-      
-      return matchesSearch && matchesInstitute;
-    })
-    .sort((a, b) => {
-      switch (sortBy) {
-        case 'newest':
-          return new Date(b.createdAt) - new Date(a.createdAt);
-        case 'oldest':
-          return new Date(a.createdAt) - new Date(b.createdAt);
-        case 'name':
-          return a.name.localeCompare(b.name);
-        case 'institute':
-          return (a.instituteName || '').localeCompare(b.instituteName || '');
-        default:
-          return 0;
-      }
-    });
-
-  const sortOptions = [
-    { value: 'newest', label: 'Newest First' },
-    { value: 'oldest', label: 'Oldest First' },
-    { value: 'name', label: 'Name A-Z' },
-    { value: 'institute', label: 'Institute A-Z' }
-  ];
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'active': return 'bg-green-100 text-green-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
-      case 'pending': return 'bg-orange-100 text-orange-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading pending TPOs...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-red-500 text-6xl mb-4">⚠️</div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Oops! Something went wrong</h2>
-          <p className="text-gray-600 mb-4">{error}</p>
-          <button 
-            onClick={fetchPendingTPOs} 
-            className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors"
-          >
-            Try Again
-          </button>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return (
+     <div className="flex flex-col items-center justify-center min-h-[500px]">
+        <Loader2 className="animate-spin w-12 h-12 text-blue-600 mb-4" />
+        <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Loading requests...</p>
+     </div>
+  );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 pb-24">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-            <FaShieldAlt className="text-orange-600" />
-            TPO Management
-          </h2>
-          <p className="text-gray-600">Review and approve new TPO registration requests</p>
-        </div>
-        <div className="flex gap-2">
-          <button 
-            onClick={() => fetchPendingTPOs()}
-            className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
-            title="Refresh data"
-          >
-            🔄 Refresh
-          </button>
-        </div>
-      </div>
-
-      {/* Search Bar Only */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div className="space-y-4">
-          {/* Search Bar */}
-          <div className="relative">
-            <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search by name, email, or institute..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-            />
-          </div>
-
-          {/* Bulk Actions */}
-          {showBulkActions && (
-            <div className="flex items-center gap-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <span className="text-sm font-medium text-blue-700">
-                {selectedTPOs.length} TPO{selectedTPOs.length !== 1 ? 's' : ''} selected
-              </span>
-              <div className="flex gap-2">
-                <button
-                  onClick={handleBulkApprove}
-                  disabled={processingApproval}
-                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition-colors disabled:opacity-50"
-                >
-                  <FaCheck className="w-3 h-3" />
-                  Approve All
-                </button>
-                <button
-                  onClick={handleBulkReject}
-                  disabled={processingApproval}
-                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition-colors disabled:opacity-50"
-                >
-                  <FaTimes className="w-3 h-3" />
-                  Reject All
-                </button>
-                <button
-                  onClick={() => {
-                    setSelectedTPOs([]);
-                    setShowBulkActions(false);
-                  }}
-                  className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm transition-colors"
-                >
-                  Clear Selection
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* TPOs List */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-800">
-              {filteredAndSortedTPOs.length} Registration{filteredAndSortedTPOs.length !== 1 ? 's' : ''}
-            </h3>
-            {filteredAndSortedTPOs.filter(tpo => tpo.status === 'pending').length > 0 && (
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="selectAll"
-                  checked={selectedTPOs.length === filteredAndSortedTPOs.filter(tpo => tpo.status === 'pending').length}
-                  onChange={handleSelectAll}
-                  className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
-                />
-                <label htmlFor="selectAll" className="text-sm text-gray-600">
-                  Select All Pending
-                </label>
-              </div>
-            )}
-          </div>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+        <div className="space-y-1">
+          <h1 className="text-3xl font-black text-slate-900 tracking-tighter flex items-center gap-3 uppercase">
+             <ShieldAlert size={32} className="text-blue-600" />
+             TPO Approvals
+          </h1>
+          <p className="text-slate-500 font-medium tracking-tight">Approve or reject TPO registration requests. Only verified TPOs can manage placements.</p>
         </div>
         
-        <div className="divide-y divide-gray-200">
-          {filteredAndSortedTPOs.length > 0 ? (
-            filteredAndSortedTPOs.map((tpo) => (
-              <div key={tpo.id} className="p-6 hover:bg-gray-50 transition-colors">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-4 flex-1">
-                    {/* Checkbox for pending TPOs */}
-                    {tpo.status === 'pending' && (
-                      <input
-                        type="checkbox"
-                        checked={selectedTPOs.includes(tpo.id)}
-                        onChange={() => handleSelectTPO(tpo.id)}
-                        className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500 mt-1"
-                      />
-                    )}
-                    
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-3">
-                        <h4 className="text-lg font-semibold text-gray-800">{tpo.name}</h4>
-                      <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(tpo.status)}`}>
-                        {tpo.status}
-                      </span>
-                      <span className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-700">
-                        {tpo.role.toUpperCase()}
-                      </span>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <FaEnvelope className="w-4 h-4 text-gray-400" />
-                          <span>{tpo.email}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <FaBuilding className="w-4 h-4 text-gray-400" />
-                          <span>{tpo.instituteName || 'N/A'}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <FaCalendarAlt className="w-4 h-4 text-gray-400" />
-                          <span>Registered: {new Date(tpo.createdAt).toLocaleDateString()}</span>
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <FaUser className="w-4 h-4 text-gray-400" />
-                          <span>Role: {tpo.role.toUpperCase()}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <FaGraduationCap className="w-4 h-4 text-gray-400" />
-                          <span>Status: {tpo.status}</span>
-                        </div>
-                      </div>
-                    </div>
-                    </div>
-                  </div>
-                  
-                  <div className="ml-6 flex flex-col gap-2">
-                    {tpo.status === 'pending' && (
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleApproveTPO(tpo.id)}
-                          disabled={processingApproval}
-                          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors disabled:opacity-50"
-                        >
-                          <FaCheck className="w-4 h-4" />
-                          Approve
-                        </button>
-                        <button
-                          onClick={() => handleRejectTPO(tpo.id)}
-                          disabled={processingApproval}
-                          className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors disabled:opacity-50"
-                        >
-                          <FaTimes className="w-4 h-4" />
-                          Reject
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="p-12 text-center text-gray-500">
-              <FaShieldAlt className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-              <p className="text-lg font-medium">No pending TPO registrations found</p>
-              <p className="text-sm">There are currently no pending TPO approval requests.</p>
-            </div>
-          )}
+        <div className="flex items-center gap-3">
+           <div className="px-6 py-2.5 bg-white border border-slate-100 rounded-2xl flex items-center gap-3 shadow-xl shadow-slate-200">
+              <Lock size={16} className="text-blue-600" />
+              <span className="text-[11px] font-bold uppercase tracking-widest">{pendingTPOs.length} Pending Requests</span>
+           </div>
         </div>
+      </div>
+
+      {/* Control Panel */}
+      <div className="glass-card rounded-[3rem] p-6 border-white/50 shadow-2xl shadow-slate-200/40">
+        <div className="flex flex-col lg:flex-row gap-6 items-center">
+           <div className="relative flex-1 w-full lg:w-auto">
+              <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+              <input 
+                type="text" 
+                placeholder="Search by name or college..." 
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-3xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all shadow-inner"
+              />
+           </div>
+
+           {selectedTPOs.length > 0 && (
+              <div className="flex items-center gap-3 animate-fade-in w-full lg:w-auto">
+                 <button onClick={() => handleBulkAction('approve')} className="flex-1 lg:flex-none px-8 py-4 bg-emerald-600 text-white rounded-3xl font-bold uppercase text-[10px] tracking-widest hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-600/20 active:scale-95">Approve Selected</button>
+                 <button onClick={() => handleBulkAction('reject')} className="flex-1 lg:flex-none px-8 py-4 bg-rose-600 text-white rounded-3xl font-bold uppercase text-[10px] tracking-widest hover:bg-rose-700 transition-all shadow-xl shadow-rose-600/20 active:scale-95">Reject Selected</button>
+                 <button onClick={() => setSelectedTPOs([])} className="p-4 bg-slate-100 text-slate-500 rounded-2xl hover:bg-slate-200 transition-all"><XCircle size={18} /></button>
+              </div>
+           )}
+        </div>
+      </div>
+
+      {/* Request Cards */}
+      <div className="space-y-6">
+         {filteredTPOs.length > 0 ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+               {filteredTPOs.map((tpo) => (
+                  <div key={tpo.id} className="group glass-card p-10 rounded-[3.5rem] border-white/50 hover-lift relative overflow-hidden flex flex-col justify-between">
+                     <div className="relative z-10 flex gap-8">
+                        <div className="relative">
+                           <div className="w-24 h-24 bg-blue-600 rounded-[2.5rem] flex items-center justify-center relative overflow-hidden flex-shrink-0 shadow-2xl group-hover:scale-110 transition-transform">
+                              <User className="text-white/40 absolute" size={50} />
+                              <span className="text-white font-black text-2xl relative">{tpo.name[0]}</span>
+                           </div>
+                           <input 
+                             type="checkbox" 
+                             checked={selectedTPOs.includes(tpo.id)}
+                             onChange={() => setSelectedTPOs(prev => prev.includes(tpo.id) ? prev.filter(id => id !== tpo.id) : [...prev, tpo.id])}
+                             className="absolute -top-2 -left-2 w-8 h-8 rounded-xl border-4 border-white bg-slate-100 checked:bg-blue-600 checked:border-blue-600 transition-all cursor-pointer appearance-none shadow-lg" 
+                           />
+                        </div>
+                        <div className="flex-1 space-y-3">
+                           <div>
+                              <div className="flex items-center gap-2 mb-1">
+                                 <span className="px-3 py-1 bg-amber-50 text-amber-600 rounded-lg text-[10px] font-bold uppercase tracking-widest border border-amber-100 flex items-center gap-1">
+                                    <Clock size={10} /> Pending Review
+                                 </span>
+                              </div>
+                              <h3 className="text-2xl font-black text-slate-900 tracking-tighter leading-tight">{tpo.name}</h3>
+                              <p className="text-slate-400 text-sm font-semibold">{tpo.email}</p>
+                           </div>
+                        </div>
+                     </div>
+
+                     <div className="mt-10 grid grid-cols-2 gap-5 relative z-10">
+                        <div className="p-6 bg-slate-50/70 backdrop-blur-sm rounded-[2rem] border border-slate-100 group-hover:bg-white transition-colors">
+                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-2">
+                              <Building2 size={12} /> College / Institute
+                           </p>
+                           <p className="text-sm font-bold text-slate-900 truncate">{tpo.instituteName || 'Not Provided'}</p>
+                        </div>
+                        <div className="p-6 bg-slate-50/70 backdrop-blur-sm rounded-[2rem] border border-slate-100 group-hover:bg-white transition-colors">
+                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-2">
+                              <GraduationCap size={12} /> Account Role
+                           </p>
+                           <p className="text-sm font-bold text-slate-800 uppercase tracking-tighter">{tpo.role}</p>
+                        </div>
+                     </div>
+
+                     <div className="mt-10 pt-10 border-t border-slate-50 flex justify-between items-center relative z-10">
+                        <div className="flex gap-3">
+                           <button 
+                             onClick={() => handleAction(tpo.id, 'approve')}
+                             disabled={processingApproval}
+                             className="px-8 py-4 bg-slate-900 text-white rounded-[1.8rem] font-bold uppercase text-[11px] tracking-widest hover:bg-emerald-600 transition-all shadow-2xl active:scale-95 flex items-center gap-2"
+                           >
+                              <Unlock size={14} /> Approve TPO
+                           </button>
+                           <button 
+                             onClick={() => handleAction(tpo.id, 'reject')}
+                             disabled={processingApproval}
+                             className="px-8 py-4 bg-slate-100 text-slate-900 rounded-[1.8rem] font-bold uppercase text-[11px] tracking-widest hover:bg-rose-600 hover:text-white transition-all active:scale-95 flex items-center gap-2"
+                           >
+                              <XCircle size={14} /> Reject
+                           </button>
+                        </div>
+                        <div className="text-right">
+                           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sign Up Date</p>
+                           <p className="text-[11px] font-bold text-slate-500">{new Date(tpo.createdAt).toLocaleDateString()}</p>
+                        </div>
+                     </div>
+                  </div>
+               ))}
+            </div>
+         ) : (
+            <div className="py-20 text-center">
+               <div className="w-24 h-24 bg-white rounded-[3rem] border border-slate-100 flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-slate-100">
+                  <Unlock size={40} className="text-slate-200" />
+               </div>
+               <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest text-xs">No pending TPO requests</p>
+            </div>
+         )}
       </div>
     </div>
   );
