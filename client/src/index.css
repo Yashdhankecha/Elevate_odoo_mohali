@@ -5,129 +5,133 @@
 @layer base {
   html {
     font-family: 'Inter', system-ui, sans-serif;
+    scroll-behavior: smooth;
   }
 
   body {
-    @apply bg-gray-50 text-gray-900;
+    @apply bg-slate-50 text-slate-900 antialiased;
   }
 }
 
 @layer components {
   .btn-primary {
-    @apply bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+    @apply bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-6 rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 active:scale-95;
   }
 
   .btn-secondary {
-    @apply bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2;
+    @apply bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-semibold py-2 px-6 rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-slate-300 active:scale-95;
   }
 
   .btn-danger {
-    @apply bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2;
+    @apply bg-rose-500 hover:bg-rose-600 text-white font-semibold py-2 px-6 rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-rose-400 active:scale-95;
   }
 
   .input-field {
-    @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200;
+    @apply w-full px-4 py-3 bg-white/50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-300 backdrop-blur-sm placeholder:text-slate-400;
   }
 
-
   .form-label {
-    @apply block text-sm font-medium text-gray-700 mb-2;
+    @apply block text-sm font-semibold text-slate-700 mb-2;
   }
 
   .card {
-    @apply bg-white rounded-xl shadow-lg border border-gray-100 p-6;
+    @apply bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 p-8 transition-all duration-300;
   }
 
   .nav-link {
-    @apply text-gray-600 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200;
+    @apply text-slate-600 hover:text-indigo-600 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 hover:bg-indigo-50;
   }
 
   .nav-link-active {
-    @apply text-primary-600 bg-primary-50 px-3 py-2 rounded-md text-sm font-medium;
+    @apply text-indigo-600 bg-indigo-50 px-4 py-2 rounded-xl text-sm font-semibold border border-indigo-100;
   }
 }
 
 @layer utilities {
   .animate-fade-in {
-    animation: fadeIn 0.7s both;
+    animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 
   .animate-grow {
     animation: growBar 1.2s cubic-bezier(.4, 0, .2, 1) both;
   }
 
-  .animation-delay-2000 {
-    animation-delay: 2s;
-  }
-
-  .animation-delay-4000 {
-    animation-delay: 4s;
-  }
-
-  /* Premium Utilities */
   .glass-card {
-    @apply bg-white bg-opacity-70 backdrop-blur-md border border-white border-opacity-30 shadow-xl;
+    @apply bg-white/70 backdrop-blur-xl border border-white/40;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
   }
 
   .glass-morphism {
-    @apply bg-white bg-opacity-20 backdrop-blur-lg border border-white border-opacity-20 shadow-2xl;
+    @apply bg-white/20 backdrop-blur-md border border-white/20 shadow-2xl;
   }
 
   .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600;
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 via-blue-600 to-indigo-700;
   }
 
-  .gradient-border {
-    position: relative;
-    border-radius: 0.75rem;
-    padding: 1px;
-    background: linear-gradient(to right, #2563eb, #9333ea);
-  }
-
-  .gradient-border>* {
-    background: white;
-    border-radius: calc(0.75rem - 1px);
+  .bg-gradient-mesh {
+    background-color: #ffffff;
+    background-image:
+      radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0, transparent 50%),
+      radial-gradient(at 100% 0%, rgba(139, 92, 246, 0.15) 0, transparent 50%),
+      radial-gradient(at 100% 100%, rgba(244, 63, 94, 0.1) 0, transparent 50%),
+      radial-gradient(at 0% 100%, rgba(37, 99, 235, 0.1) 0, transparent 50%);
   }
 
   .hover-lift {
-    @apply transition-transform duration-300 hover:-translate-y-1 hover:shadow-2xl;
+    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-indigo-500/10;
   }
 
   .custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 8px;
   }
 
   .custom-scrollbar::-webkit-scrollbar-track {
-    background: transparent;
+    @apply bg-slate-50;
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    @apply bg-slate-300 rounded-full;
+    @apply bg-slate-300 rounded-full border-2 border-slate-50 hover:bg-slate-400 transition-colors;
   }
 
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    @apply bg-slate-400;
+  .animate-spin-slow {
+    animation: spin 3s linear infinite;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
   }
 
-  .dark .custom-scrollbar::-webkit-scrollbar-thumb {
-    @apply bg-slate-700;
-  }
-
-  .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    @apply bg-slate-600;
+  to {
+    transform: rotate(360deg);
   }
 }
 
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(24px);
   }
 
   to {
     opacity: 1;
-    transform: none;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -148,32 +152,24 @@
     transform: translate(0, 0) scale(1);
   }
 
-  25% {
-    transform: translate(20px, -50px) scale(1.1);
+  33% {
+    transform: translate(30px, -50px) scale(1.1);
   }
 
-  50% {
+  66% {
     transform: translate(-20px, 20px) scale(0.9);
-  }
-
-  75% {
-    transform: translate(50px, 50px) scale(1.05);
   }
 }
 
 .animate-blob {
-  animation: blob 7s infinite;
+  animation: blob 10s infinite alternate cubic-bezier(0.45, 0.05, 0.55, 0.95);
 }
 
 :root {
-  --primary: #2563eb;
-  --secondary: #9333ea;
+  --primary: #4f46e5;
+  --primary-dark: #4338ca;
+  --secondary: #7c3aed;
   --accent: #f59e0b;
   --background: #f8fafc;
   --surface: #ffffff;
-}
-
-body {
-  background-color: var(--background);
-  color: #1e293b;
 }

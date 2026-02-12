@@ -7,6 +7,7 @@ import InterviewManagement from './components/InterviewManagement';
 import JobManagement from './components/JobManagement';
 import ReportsAnalytics from './components/ReportsAnalytics';
 import ApprovalPending from './components/ApprovalPending';
+import CompanyManagement from './components/CompanyManagement';
 import { useAuth } from '../../contexts/AuthContext';
 
 const TPODashboard = () => {
@@ -33,6 +34,8 @@ const TPODashboard = () => {
         return <DashboardOverview />;
       case 'students':
         return <StudentManagement />;
+      case 'companies':
+        return <CompanyManagement />;
       case 'interviews':
         return <InterviewManagement />;
       case 'jobs':
@@ -70,6 +73,8 @@ const TPODashboard = () => {
         setActiveSection={setActiveSection}
         isCollapsed={sidebarCollapsed}
         setSidebarCollapsed={setSidebarCollapsed}
+        isMobileOpen={isMobileSidebarOpen}
+        setIsMobileOpen={setIsMobileSidebarOpen}
       />
 
       {/* Main Content Area */}
@@ -78,6 +83,7 @@ const TPODashboard = () => {
         <TopNavbar
           toggleSidebar={toggleSidebar}
           sidebarCollapsed={sidebarCollapsed}
+          isMobileSidebarOpen={isMobileSidebarOpen}
         />
 
         {/* Main Content */}

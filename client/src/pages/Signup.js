@@ -1,333 +1,264 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { registerUser, getCollegesWithTPOs, searchTPOs } from '../utils/api';
-import {
-    Mail,
-    Lock,
-    User,
-    ArrowRight,
-    Loader2,
-    Eye,
-    EyeOff,
-    Building,
-    GraduationCap,
-    Phone,
-    Zap,
-    Rocket,
-    ShieldCheck,
-    Check
-} from 'lucide-react';
-import toast from 'react-hot-toast';
+import { toast } from 'react-hot-toast';
+import { GraduationCap, Building2, Presentation, CheckCircle2, Eye, EyeOff, Mail, Lock, ArrowRight, Phone, User, School, Loader2 } from 'lucide-react';
+import { registerUser, searchTPOs } from '../utils/api';
+
+const InputWrapper = ({ label, icon: Icon, children, error }) => (
+    <div className="space-y-1.5">
+        <label className="form-label px-1">{label}</label>
+        <div className="relative group">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors group-focus-within:text-indigo-600 text-slate-400">
+                <Icon className="h-5 w-5" />
+            </div>
+            {children}
+        </div>
+        {error && <p className="text-xs text-rose-500 font-medium px-1">{error}</p>}
+    </div>
+);
 
 const Signup = () => {
     const navigate = useNavigate();
-    const [step, setStep] = useState(1);
-    const [formData, setFormData] = useState({
-        name: '', email: '', password: '', confirmPassword: '',
-        role: 'student', phone: '',
-        collegeName: '', branch: '', year: '', rollNumber: '',
-        companyName: '', designation: '', companySize: '',
-        tpoId: ''
-    });
+    const [selectedRole, setSelectedRole] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
-    const [loading, setLoading] = useState(false);
-    const [errors, setErrors] = useState({});
-    const [colleges, setColleges] = useState([]);
-    const [tpoList, setTpoList] = useState([]);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [collegeSuggestions, setCollegeSuggestions] = useState([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const [isSearchingColleges, setIsSearchingColleges] = useState(false);
+    const [selectedTPO, setSelectedTPO] = useState(null);
+    const [formData, setFormData] = useState({
+        email: '', password: '', confirmPassword: '',
+        name: '', rollNumber: '', branch: '', graduationYear: '', collegeName: '',
+        companyName: '', contactNumber: '', instituteName: ''
+    });
 
-    useEffect(() => {
-        const fetchColleges = async () => {
-            try {
-                const response = await getCollegesWithTPOs();
-                if (response.data) setColleges(response.data.colleges || []);
-            } catch (err) { console.error('Error fetching colleges:', err); }
-        };
-        fetchColleges();
-    }, []);
+    const handleRoleSelect = (role) => {
+        setSelectedRole(role);
+        setFormData({
+            email: '', password: '', confirmPassword: '',
+            name: '', rollNumber: '', branch: '', graduationYear: '', collegeName: '',
+            companyName: '', contactNumber: '', instituteName: ''
+        });
+    };
 
-    useEffect(() => {
-        if (formData.collegeName && formData.role === 'student') {
-            const fetchTPOs = async () => {
-                try {
-                    const response = await searchTPOs(formData.collegeName);
-                    if (response.data) setTpoList(response.data.tpos || []);
-                } catch (err) { console.error('Error fetching TPOs:', err); }
-            };
-            fetchTPOs();
-        }
-    }, [formData.collegeName, formData.role]);
-
-    const handleChange = (e) => {
+    const handleInputChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
-        if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
+        if (name === 'collegeName' && selectedRole === 'student') searchColleges(value);
     };
 
-    const validateStep1 = () => {
-        const newErrors = {};
-        if (!formData.name.trim()) newErrors.name = 'Name required';
-        if (!formData.email) newErrors.email = 'Email required';
-        else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Format invalid';
-        if (!formData.password) newErrors.password = 'Security key required';
-        else if (formData.password.length < 6) newErrors.password = 'Force failure: Min 6 chars';
-        if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Keys mismatch';
-        if (!formData.phone) newErrors.phone = 'Communication line required';
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
+    const searchColleges = async (collegeName) => {
+        if (!collegeName || collegeName.trim().length < 2) {
+            setCollegeSuggestions([]);
+            setShowSuggestions(false);
+            setSelectedTPO(null);
+            return;
+        }
+        setIsSearchingColleges(true);
+        try {
+            const response = await searchTPOs(collegeName);
+            if (response.success) {
+                setCollegeSuggestions(response.tpos);
+                setShowSuggestions(response.tpos.length > 0);
+            }
+        } catch (error) {
+            console.error('Error searching colleges:', error);
+        } finally {
+            setIsSearchingColleges(false);
+        }
     };
 
-    const handleNextStep = () => {
-        if (validateStep1()) setStep(2);
+    const selectCollege = (college) => {
+        setFormData(prev => ({ ...prev, collegeName: college.instituteName }));
+        setSelectedTPO(college);
+        setShowSuggestions(false);
+    };
+
+    const validateForm = () => {
+        if (!selectedRole) { toast.error('Please select a role'); return false; }
+        if (!formData.email || !formData.password || !formData.confirmPassword) { toast.error('Required fields missing'); return false; }
+        if (formData.password !== formData.confirmPassword) { toast.error('Passwords do not match'); return false; }
+        if (formData.password.length < 6) { toast.error('Password too short (min 6)'); return false; }
+
+        if (selectedRole === 'student') {
+            if (!formData.name || !formData.rollNumber || !formData.branch || !formData.graduationYear || !formData.collegeName) { toast.error('Fill student fields'); return false; }
+            if (!selectedTPO) { toast.error('Select verified college'); return false; }
+        } else if (selectedRole === 'company') {
+            if (!formData.companyName || !formData.contactNumber) { toast.error('Fill company fields'); return false; }
+        } else if (selectedRole === 'tpo') {
+            if (!formData.name || !formData.instituteName || !formData.contactNumber) { toast.error('Fill TPO fields'); return false; }
+        }
+        return true;
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setLoading(true);
+        if (!validateForm()) return;
+        setIsLoading(true);
         try {
-            const response = await registerUser(formData);
-            if (response.data.success) {
-                toast.success('Registration sequence initialized.');
-                navigate('/verify-otp', { state: { userId: response.data.userId, email: formData.email } });
+            const response = await registerUser({ role: selectedRole, ...formData });
+            if (response.success) {
+                toast.success(response.message);
+                navigate('/verify-otp', { state: { userId: response.userId, email: formData.email, role: selectedRole } });
+            } else {
+                toast.error(response.message);
             }
         } catch (error) {
-            const message = error.response?.data?.message || 'Initialization error';
-            toast.error(message);
-            setErrors({ general: message });
+            toast.error(error.response?.data?.message || 'Signup failed');
         } finally {
-            setLoading(false);
+            setIsLoading(false);
         }
     };
 
-    const roles = [
-        { value: 'student', label: 'Talent', icon: GraduationCap, desc: 'Seeking high-impact placements' },
-        { value: 'company', label: 'Partner', icon: Building, desc: 'Acquiring world-class talent' },
-    ];
-
     return (
-        <div className="min-h-screen bg-[#020617] flex items-center justify-center p-4 sm:p-6 lg:p-8 font-sans selection:bg-indigo-500/30 selection:text-indigo-200 overflow-hidden relative">
-            {/* Dynamic Background Elements */}
-            <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-600/20 blur-[120px] rounded-full animate-blob pointer-events-none"></div>
-            <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-600/20 blur-[120px] rounded-full animate-blob animation-delay-2000 pointer-events-none"></div>
+        <div className="min-h-screen bg-gradient-mesh relative flex items-center justify-center p-4 overflow-hidden py-12">
+            {/* Background Blobs */}
+            <div className="absolute top-0 -left-4 w-72 h-72 bg-indigo-300 rounded-full mix-blend-multiply filter blur-xl opacity-40 animate-blob"></div>
+            <div className="absolute top-0 -right-4 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-40 animate-blob animation-delay-2000"></div>
+            <div className="absolute -bottom-8 left-20 w-72 h-72 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl opacity-40 animate-blob animation-delay-4000"></div>
 
-            {/* Grid Pattern */}
-            <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b1a_1px,transparent_1px),linear-gradient(to_bottom,#1e293b1a_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] pointer-events-none"></div>
-
-            <div className="w-full max-w-[1200px] grid lg:grid-cols-2 gap-0 bg-white/5 backdrop-blur-2xl rounded-[3rem] border border-white/10 shadow-2xl overflow-hidden relative z-10 animate-fade-in">
-
-                {/* Left Panel: Stepper Feedback */}
-                <div className="hidden lg:flex flex-col justify-between p-16 bg-gradient-to-br from-white/5 to-white/[0.02] border-r border-white/10 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-20 opacity-5 scale-150 rotate-12 pointer-events-none text-white">
-                        <Rocket size={300} />
+            <div className="max-w-xl w-full relative z-10">
+                <div className="text-center mb-8 animate-fade-in">
+                    <div className="inline-flex items-center justify-center p-3 bg-white rounded-2xl shadow-xl shadow-indigo-100 mb-6 hover-lift">
+                        <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center text-white text-2xl font-bold">E</div>
                     </div>
-
-                    <div className="relative z-10">
-                        <div className="flex items-center gap-3 mb-12 group cursor-pointer" onClick={() => navigate('/')}>
-                            <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-2xl shadow-white/10 group-hover:scale-110 transition-transform duration-500">
-                                <Zap className="text-slate-900 w-6 h-6 fill-slate-900" />
-                            </div>
-                            <span className="text-2xl font-black text-white tracking-tighter">ELEVATE</span>
-                        </div>
-
-                        <div className="space-y-12">
-                            <div className="space-y-4">
-                                <p className="text-[10px] font-black uppercase text-indigo-400 tracking-[0.3em]">Protocol Initiation</p>
-                                <h1 className="text-4xl font-black text-white leading-tight tracking-tighter">
-                                    Join the Elite <br /> Recruitment Core.
-                                </h1>
-                            </div>
-
-                            {/* Visual Steps */}
-                            <div className="space-y-6">
-                                {[
-                                    { s: 1, label: 'Identity Protocol', active: step >= 1 },
-                                    { s: 2, label: 'Professional Blueprint', active: step >= 2 },
-                                    { s: 3, label: 'Neural Sync', active: false }
-                                ].map((s, idx) => (
-                                    <div key={idx} className={`flex items-center gap-6 transition-all duration-700 ${s.active ? 'opacity-100 translate-x-4' : 'opacity-30'}`}>
-                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs border-2 ${s.active ? 'bg-indigo-500 border-indigo-400 text-white shadow-lg shadow-indigo-500/20' : 'border-white/20 text-white'}`}>
-                                            {idx === 0 && step > 1 ? <Check size={16} /> : s.s}
-                                        </div>
-                                        <span className={`font-bold text-sm uppercase tracking-widest ${s.active ? 'text-white' : 'text-slate-500'}`}>{s.label}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="relative z-10 pt-8 border-t border-white/5">
-                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-loose">
-                            By initializing this profile, you agree to <br /> our algorithmic recruitment protocols.
-                        </p>
-                    </div>
+                    <h1 className="text-4xl font-extrabold text-slate-900 mb-2">Create <span className="text-gradient">Account</span></h1>
+                    <p className="text-slate-500 font-medium px-4">Join the ultimate placement tracking intelligence platform</p>
                 </div>
 
-                {/* Right Panel: Signup Form */}
-                <div className="p-8 sm:p-12 lg:p-16 flex flex-col justify-center overflow-y-auto max-h-screen scroll-smooth custom-scrollbar">
-                    <div className="max-w-md mx-auto w-full space-y-8 py-4">
-                        <div className="space-y-2 text-center lg:text-left">
-                            <h2 className="text-3xl font-black text-white tracking-tighter">
-                                {step === 1 ? 'New Profile Identity' : 'Structural Mapping'}
-                            </h2>
-                            <p className="text-slate-400 font-medium">
-                                Already registered?{' '}
-                                <Link to="/login" className="text-indigo-400 hover:text-indigo-300 font-bold underline transition-colors decoration-indigo-400/30 hover:decoration-indigo-300 text-sm">
-                                    Secure Log In
-                                </Link>
-                            </p>
+                <div className="glass-card rounded-[2.5rem] p-8 md:p-10 animate-slide-up">
+                    <div className="mb-10">
+                        <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest text-center mb-6">Choose your destination</h3>
+                        <div className="grid grid-cols-3 gap-3 md:gap-4">
+                            {[
+                                { id: 'student', icon: GraduationCap, label: 'Student' },
+                                { id: 'company', icon: Building2, label: 'Company' },
+                                { id: 'tpo', icon: Presentation, label: 'TPO' }
+                            ].map((role) => (
+                                <button
+                                    key={role.id}
+                                    type="button"
+                                    onClick={() => handleRoleSelect(role.id)}
+                                    className={`flex flex-col items-center p-4 rounded-2xl border-2 transition-all duration-300 ${selectedRole === role.id
+                                        ? 'border-indigo-600 bg-indigo-600 text-white shadow-xl shadow-indigo-200'
+                                        : 'border-slate-100 bg-white/50 text-slate-500 hover:border-indigo-200 hover:bg-white'
+                                        }`}
+                                >
+                                    <role.icon className={`w-8 h-8 mb-2 transition-transform ${selectedRole === role.id ? 'scale-110' : ''}`} />
+                                    <span className="text-xs md:text-sm font-bold">{role.label}</span>
+                                </button>
+                            ))}
                         </div>
+                    </div>
 
-                        <form onSubmit={handleSubmit} className="space-y-6 animate-fade-in" key={step}>
-                            {step === 1 ? (
-                                <>
-                                    {/* Role Configuration */}
-                                    <div className="space-y-3">
-                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Strategic Designation</label>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            {roles.map((role) => {
-                                                const Icon = role.icon;
-                                                const isActive = formData.role === role.value;
-                                                return (
-                                                    <button key={role.value} type="button" onClick={() => handleChange({ target: { name: 'role', value: role.value } })}
-                                                        className={`p-5 rounded-3xl border-2 text-left transition-all duration-500 group relative overflow-hidden ${isActive ? 'border-indigo-500 bg-indigo-500/10 shadow-2xl shadow-indigo-500/10' : 'border-white/5 hover:border-white/10'}`}
-                                                    >
-                                                        <Icon className={`h-5 w-5 mb-3 transition-colors ${isActive ? 'text-indigo-400' : 'text-slate-500'}`} />
-                                                        <p className={`text-xs font-black uppercase tracking-widest ${isActive ? 'text-white' : 'text-slate-400'}`}>{role.label}</p>
-                                                        {isActive && <div className="absolute top-3 right-3 w-4 h-4 bg-indigo-500 rounded-lg flex items-center justify-center shadow-lg"><Check size={10} className="text-white" /></div>}
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
+                    {selectedRole ? (
+                        <form onSubmit={handleSubmit} className="space-y-6 animate-fade-in">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                <InputWrapper label="Email Address" icon={Mail}>
+                                    <input name="email" type="email" required className="input-field pl-12" placeholder="name@email.com" value={formData.email} onChange={handleInputChange} />
+                                </InputWrapper>
 
-                                    {/* Basic Data Grid */}
-                                    <div className="space-y-4">
-                                        <div className="group space-y-2">
-                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Full Signature (Name)</label>
-                                            <div className="relative">
-                                                <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 group-focus-within:text-indigo-400" />
-                                                <input name="name" value={formData.name} onChange={handleChange} placeholder="John Doe"
-                                                    className="w-full bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 py-4 text-white text-sm font-medium focus:outline-none focus:ring-4 focus:ring-indigo-500/20 focus:bg-white/10 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 shadow-inner" />
-                                            </div>
-                                        </div>
+                                <InputWrapper label="Full Name" icon={User}>
+                                    <input name="name" type="text" required className="input-field pl-12" placeholder="John Doe" value={formData.name} onChange={handleInputChange} />
+                                </InputWrapper>
 
-                                        <div className="group space-y-2">
-                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Identifier (Email)</label>
-                                            <div className="relative">
-                                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 group-focus-within:text-indigo-400" />
-                                                <input name="email" type="email" value={formData.email} onChange={handleChange} placeholder="john@network.system"
-                                                    className="w-full bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 py-4 text-white text-sm font-medium focus:outline-none focus:ring-4 focus:ring-indigo-500/20 focus:bg-white/10 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 shadow-inner" />
-                                            </div>
-                                        </div>
-
-                                        <div className="group space-y-2">
-                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Comms Protocol (Phone)</label>
-                                            <div className="relative">
-                                                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 group-focus-within:text-indigo-400" />
-                                                <input name="phone" value={formData.phone} onChange={handleChange} placeholder="+91 90000 00000"
-                                                    className="w-full bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 py-4 text-white text-sm font-medium focus:outline-none focus:ring-4 focus:ring-indigo-500/20 focus:bg-white/10 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 shadow-inner" />
-                                            </div>
-                                        </div>
-
-                                        {/* Security Keys */}
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1 text-center">Security Key</label>
-                                                <input name="password" type={showPassword ? 'text' : 'password'} value={formData.password} onChange={handleChange} placeholder="Min 6"
-                                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-4 text-white text-sm font-medium focus:outline-none focus:ring-4 focus:ring-indigo-500/20 focus:bg-white/10 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 shadow-inner" />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1 text-center">Repeat Key</label>
-                                                <input name="confirmPassword" type="password" value={formData.confirmPassword} onChange={handleChange} placeholder="Re-type"
-                                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-4 text-white text-sm font-medium focus:outline-none focus:ring-4 focus:ring-indigo-500/20 focus:bg-white/10 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 shadow-inner" />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <button type="button" onClick={handleNextStep}
-                                        className="w-full bg-white text-slate-900 py-5 rounded-[2rem] font-black uppercase text-xs tracking-[0.2em] shadow-2xl hover:bg-indigo-50 transition-all duration-500 transform hover:-translate-y-1 flex justify-center items-center group"
-                                    >
-                                        Validate Step 01 <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                                <InputWrapper label="Password" icon={Lock}>
+                                    <input name="password" type={showPassword ? 'text' : 'password'} required className="input-field pl-12 pr-12" placeholder="••••••••" value={formData.password} onChange={handleInputChange} />
+                                    <button type="button" className="absolute inset-y-0 right-0 pr-4 text-slate-400 hover:text-indigo-600" onClick={() => setShowPassword(!showPassword)}>
+                                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                                     </button>
-                                </>
-                            ) : (
-                                <>
-                                    {/* Structural Config: Student */}
-                                    {formData.role === 'student' && (
-                                        <div className="space-y-6">
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Sector (College)</label>
-                                                <select name="collegeName" value={formData.collegeName} onChange={handleChange}
-                                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-4 text-white text-sm font-medium focus:outline-none focus:ring-4 focus:ring-indigo-500/20 focus:bg-white/10 appearance-none cursor-pointer">
-                                                    <option className="bg-slate-900" value="">Select Institutional Hub</option>
-                                                    {colleges.map((c, i) => <option key={i} className="bg-slate-900" value={c}>{c}</option>)}
-                                                </select>
-                                            </div>
+                                </InputWrapper>
 
-                                            {tpoList.length > 0 && (
-                                                <div className="space-y-2">
-                                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Primary Controller (TPO)</label>
-                                                    <select name="tpoId" value={formData.tpoId} onChange={handleChange}
-                                                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-4 text-white text-sm font-medium focus:outline-none focus:ring-4 focus:ring-indigo-500/20 focus:bg-white/10 appearance-none cursor-pointer">
-                                                        <option className="bg-slate-900" value="">Select Assigned Controller</option>
-                                                        {tpoList.map((t) => <option key={t._id} className="bg-slate-900" value={t._id}>{t.name}</option>)}
-                                                    </select>
+                                <InputWrapper label="Confirm Password" icon={Lock}>
+                                    <input name="confirmPassword" type={showConfirmPassword ? 'text' : 'password'} required className="input-field pl-12 pr-12" placeholder="••••••••" value={formData.confirmPassword} onChange={handleInputChange} />
+                                    <button type="button" className="absolute inset-y-0 right-0 pr-4 text-slate-400 hover:text-indigo-600" onClick={() => setShowConfirmPassword(!showConfirmPassword)}>
+                                        {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                                    </button>
+                                </InputWrapper>
+
+                                {selectedRole === 'student' && (
+                                    <>
+                                        <InputWrapper label="Roll Number" icon={User}>
+                                            <input name="rollNumber" type="text" required className="input-field pl-12" placeholder="BT123456" value={formData.rollNumber} onChange={handleInputChange} />
+                                        </InputWrapper>
+                                        <InputWrapper label="Branch" icon={GraduationCap}>
+                                            <input name="branch" type="text" required className="input-field pl-12" placeholder="CSE" value={formData.branch} onChange={handleInputChange} />
+                                        </InputWrapper>
+                                        <InputWrapper label="Graduation Year" icon={School}>
+                                            <input name="graduationYear" type="number" required className="input-field pl-12" placeholder="2025" value={formData.graduationYear} onChange={handleInputChange} />
+                                        </InputWrapper>
+                                        <div className="md:col-span-2 relative">
+                                            <InputWrapper label="College Name" icon={Building2}>
+                                                <input
+                                                    name="collegeName" type="text" required className="input-field pl-12" placeholder="Search major colleges..." value={formData.collegeName}
+                                                    onChange={handleInputChange} onFocus={() => collegeSuggestions.length > 0 && setShowSuggestions(true)}
+                                                    onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                                                />
+                                                {isSearchingColleges && <div className="absolute right-4 top-1/2 -translate-y-1/2"><Loader2 className="animate-spin h-4 w-4 text-indigo-500" /></div>}
+                                                {selectedTPO && <CheckCircle2 className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald-500 h-5 w-5" />}
+                                            </InputWrapper>
+                                            {showSuggestions && collegeSuggestions.length > 0 && (
+                                                <div className="absolute z-20 w-full mt-2 bg-white/95 backdrop-blur-xl border border-slate-100 rounded-2xl shadow-2xl max-h-60 overflow-y-auto custom-scrollbar animate-fade-in">
+                                                    {collegeSuggestions.map((c, i) => (
+                                                        <div key={i} onClick={() => selectCollege(c)} className="p-4 hover:bg-indigo-50 cursor-pointer border-b border-slate-50 last:border-0 transition-colors">
+                                                            <p className="font-bold text-slate-800">{c.instituteName}</p>
+                                                            <p className="text-xs text-slate-500">TPO: {c.tpoName} • {c.tpoEmail}</p>
+                                                        </div>
+                                                    ))}
                                                 </div>
                                             )}
-
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div className="space-y-2">
-                                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Vertical (Branch)</label>
-                                                    <input name="branch" value={formData.branch} onChange={handleChange} placeholder="e.g. CSE"
-                                                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-4 text-white text-sm font-medium focus:outline-none focus:ring-4 focus:ring-indigo-500/20 focus:bg-white/10 placeholder:text-slate-600" />
+                                            {selectedTPO && (
+                                                <div className="mt-3 p-3 bg-emerald-50 rounded-xl border border-emerald-100 flex items-start gap-3 animate-fade-in">
+                                                    <CheckCircle2 className="text-emerald-500 mt-1 h-4 w-4" />
+                                                    <div>
+                                                        <p className="text-xs font-bold text-emerald-700">Verified Integration</p>
+                                                        <p className="text-[10px] text-emerald-600">Connected to TPO {selectedTPO.tpoName}</p>
+                                                    </div>
                                                 </div>
-                                                <div className="space-y-2">
-                                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Orbit (Year)</label>
-                                                    <select name="year" value={formData.year} onChange={handleChange}
-                                                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-4 text-white text-sm font-medium focus:outline-none focus:ring-4 focus:ring-indigo-500/20 focus:bg-white/10 appearance-none cursor-pointer">
-                                                        <option className="bg-slate-900" value="">Select Orbit</option>
-                                                        {[1, 2, 3, 4].map(y => <option key={y} className="bg-slate-900" value={y}>Orbit 0{y}</option>)}
-                                                    </select>
-                                                </div>
-                                            </div>
-
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Unit ID (Roll No)</label>
-                                                <input name="rollNumber" value={formData.rollNumber} onChange={handleChange} placeholder="Identifier code"
-                                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-4 text-white text-sm font-medium focus:outline-none focus:ring-4 focus:ring-indigo-500/20 focus:bg-white/10 placeholder:text-slate-600" />
-                                            </div>
+                                            )}
                                         </div>
-                                    )}
+                                    </>
+                                )}
 
-                                    {/* Companies */}
-                                    {formData.role === 'company' && (
-                                        <div className="space-y-6">
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Enterprise Core</label>
-                                                <input name="companyName" value={formData.companyName} onChange={handleChange} placeholder="Legal Enterprise Name"
-                                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-4 text-white text-sm font-medium focus:outline-none focus:ring-4 focus:ring-indigo-500/20 focus:bg-white/10" />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Access Designation</label>
-                                                <input name="designation" value={formData.designation} onChange={handleChange} placeholder="HR Lead / Recruiter"
-                                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-4 text-white text-sm font-medium focus:outline-none focus:ring-4 focus:ring-indigo-500/20 focus:bg-white/10" />
-                                            </div>
-                                        </div>
-                                    )}
+                                {selectedRole === 'company' && (
+                                    <>
+                                        <InputWrapper label="Company Name" icon={Building2}>
+                                            <input name="companyName" type="text" required className="input-field pl-12" placeholder="TechCorp Inc." value={formData.companyName} onChange={handleInputChange} />
+                                        </InputWrapper>
+                                        <InputWrapper label="Contact Number" icon={Phone}>
+                                            <input name="contactNumber" type="tel" required className="input-field pl-12" placeholder="+91 XXXX XXXX" value={formData.contactNumber} onChange={handleInputChange} />
+                                        </InputWrapper>
+                                    </>
+                                )}
 
-                                    <div className="flex gap-4 pt-4">
-                                        <button type="button" onClick={() => setStep(1)}
-                                            className="px-8 bg-white/5 border border-white/10 text-white rounded-[2rem] font-bold text-xs uppercase tracking-widest hover:bg-white/10 transition-all">
-                                            Roll Back
-                                        </button>
-                                        <button type="submit" disabled={loading}
-                                            className="flex-1 flex justify-center items-center py-5 bg-indigo-600 text-white rounded-[2rem] font-black uppercase text-xs tracking-[0.2em] shadow-2xl shadow-indigo-500/40 hover:bg-indigo-500 hover:shadow-indigo-500/60 transition-all transform hover:-translate-y-1 group disabled:opacity-50"
-                                        >
-                                            {loading ? <Loader2 className="animate-spin h-5 w-5" /> : <>Deploy Profile <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" /></>}
-                                        </button>
-                                    </div>
-                                </>
-                            )}
+                                {selectedRole === 'tpo' && (
+                                    <>
+                                        <InputWrapper label="Institute Name" icon={School}>
+                                            <input name="instituteName" type="text" required className="input-field pl-12" placeholder="University Engineering College" value={formData.instituteName} onChange={handleInputChange} />
+                                        </InputWrapper>
+                                        <InputWrapper label="Contact Number" icon={Phone}>
+                                            <input name="contactNumber" type="tel" required className="input-field pl-12" placeholder="+91 XXXX XXXX" value={formData.contactNumber} onChange={handleInputChange} />
+                                        </InputWrapper>
+                                    </>
+                                )}
+                            </div>
+
+                            <button type="submit" disabled={isLoading} className="btn-primary w-full py-4 mt-4 flex items-center justify-center gap-2 group">
+                                {isLoading ? <Loader2 className="animate-spin h-5 w-5" /> : <>Create Account <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" /></>}
+                            </button>
                         </form>
+                    ) : (
+                        <div className="text-center py-12 animate-fade-in">
+                            <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
+                                <GraduationCap className="w-8 h-8" />
+                            </div>
+                            <p className="text-slate-400 font-medium">Please select your role to continue</p>
+                        </div>
+                    )}
+
+                    <div className="mt-10 pt-8 border-t border-slate-200/50 text-center">
+                        <p className="text-slate-500 font-medium">Already part of Elevate? <Link to="/login" className="text-indigo-600 font-bold hover:text-indigo-700 transition-colors">Sign In</Link></p>
                     </div>
                 </div>
             </div>
