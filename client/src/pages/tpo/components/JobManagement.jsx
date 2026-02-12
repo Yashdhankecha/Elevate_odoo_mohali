@@ -1,18 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { tpoApi } from '../../../services/tpoApi';
 import { 
-  FaSearch, 
-  FaFilter, 
-  FaEye,
-  FaBuilding,
-  FaMapMarkerAlt,
-  FaChartBar,
-  FaDownload,
-  FaBriefcase,
-  FaCalendarAlt,
-  FaUsers,
-  FaMoneyBillWave
-} from 'react-icons/fa';
+  Search, 
+  Filter, 
+  Eye,
+  Building2,
+  MapPin,
+  BarChart3,
+  Download,
+  Briefcase,
+  Calendar,
+  Users,
+  Banknote,
+  ChevronRight,
+  MoreVertical,
+  Zap,
+  Target,
+  Activity,
+  ArrowUpRight,
+  Clock,
+  Layers,
+  Star,
+  Globe,
+  Loader2
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const JobManagement = () => {
@@ -39,11 +50,7 @@ const JobManagement = () => {
   const fetchJobs = async () => {
     try {
       setLoading(true);
-      const params = {
-        ...filters,
-        page: pagination.currentPage,
-        limit: 10
-      };
+      const params = { ...filters, page: pagination.currentPage, limit: 10 };
       const response = await tpoApi.getJobs(params);
       setJobs(response.jobs);
       setPagination(prev => ({
@@ -52,8 +59,7 @@ const JobManagement = () => {
         totalJobs: response.pagination.totalJobs
       }));
     } catch (error) {
-      toast.error('Failed to fetch jobs');
-      console.error('Error fetching jobs:', error);
+      toast.error('Failed to load job listings.');
     } finally {
       setLoading(false);
     }
@@ -63,379 +69,175 @@ const JobManagement = () => {
     try {
       const response = await tpoApi.getJobStats();
       setStats(response);
-    } catch (error) {
-      console.error('Error fetching stats:', error);
-    }
+    } catch (error) {}
   };
 
-  const getStatusColor = (isActive, deadline) => {
-    if (!isActive) return 'bg-red-100 text-red-800';
-    if (new Date(deadline) < new Date()) return 'bg-orange-100 text-orange-800';
-    return 'bg-green-100 text-green-800';
+  const getStatusStyle = (isActive, deadline) => {
+    if (!isActive) return 'bg-rose-50 text-rose-600 border-rose-100';
+    if (new Date(deadline) < new Date()) return 'bg-amber-50 text-amber-600 border-amber-100';
+    return 'bg-emerald-50 text-emerald-600 border-emerald-100';
   };
 
   const getStatusText = (isActive, deadline) => {
-    if (!isActive) return 'Inactive';
+    if (!isActive) return 'Restricted';
     if (new Date(deadline) < new Date()) return 'Expired';
     return 'Active';
   };
 
-  const getTypeColor = (type) => {
-    switch (type) {
-      case 'full-time': return 'bg-blue-100 text-blue-800';
-      case 'internship': return 'bg-purple-100 text-purple-800';
-      case 'contract': return 'bg-yellow-100 text-yellow-800';
-      case 'part-time': return 'bg-pink-100 text-pink-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getCategoryColor = (category) => {
-    switch (category) {
-      case 'software-engineering': return 'bg-indigo-100 text-indigo-800';
-      case 'data-science': return 'bg-green-100 text-green-800';
-      case 'product-management': return 'bg-orange-100 text-orange-800';
-      case 'design': return 'bg-pink-100 text-pink-800';
-      case 'marketing': return 'bg-purple-100 text-purple-800';
-      case 'sales': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const formatPackage = (packageData) => {
-    if (!packageData) return 'Not specified';
-    const min = packageData.min / 100000; // Convert from paise to LPA
-    const max = packageData.max / 100000;
-    return `${min}-${max} LPA`;
-  };
-
-  const exportData = () => {
-    const csvContent = [
-      ['Title', 'Company', 'Location', 'Type', 'Category', 'Package', 'Status', 'Applications', 'Deadline'],
-      ...jobs.map(job => [
-        job.title,
-        job.company?.companyName || 'N/A',
-        job.location,
-        job.type,
-        job.category,
-        formatPackage(job.package),
-        getStatusText(job.isActive, job.deadline),
-        job.totalApplications,
-        new Date(job.deadline).toLocaleDateString()
-      ])
-    ].map(row => row.join(',')).join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `jobs_${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
+  const formatPackage = (p) => {
+    if (!p) return 'TBD';
+    return `${p.min/100000}-${p.max/100000} LPA`;
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 pb-20">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Jobs and Internships</h1>
-          <p className="text-gray-600">View and manage all job postings and internship opportunities</p>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+        <div className="space-y-1">
+          <h1 className="text-3xl font-black text-slate-900 tracking-tighter flex items-center gap-3 uppercase">
+             <Briefcase size={32} className="text-blue-600" />
+             Job Management
+          </h1>
+          <p className="text-slate-500 font-medium tracking-tight">Manage all active job and internship postings for your students.</p>
         </div>
-        <div className="flex space-x-3">
-          <button
-            onClick={exportData}
-            className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-          >
-            <FaDownload className="w-4 h-4" />
-            <span>Export</span>
-          </button>
-        </div>
+        
+        <button onClick={() => {}} className="flex items-center gap-2 px-6 py-3.5 bg-slate-900 text-white rounded-2xl shadow-xl shadow-slate-200 hover:shadow-2xl transition-all font-bold uppercase text-[10px] tracking-widest active:scale-95 group">
+           <Download size={16} /> Export Listings
+        </button>
       </div>
 
-      {/* Statistics Cards */}
-      {stats && (
+      {/* Stats HUD */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+         {[
+           { label: 'Total Jobs', value: stats?.overview.totalJobs || 0, icon: Globe, color: 'text-blue-600', bg: 'bg-blue-50' },
+           { label: 'Active Jobs', value: stats?.overview.activeJobs || 0, icon: Activity, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+           { label: 'Expired', value: stats?.overview.expiredJobs || 0, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50' },
+           { label: 'Active Rate', value: `${stats?.overview.activeRate || 0}%`, icon: Zap, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+         ].map((stat, i) => (
+           <div key={i} className="glass-card p-6 rounded-[2rem] border-white/50 hover-lift flex items-center justify-between">
+              <div>
+                 <p className="text-[10px] font-bold uppercase text-slate-400 tracking-widest mb-1">{stat.label}</p>
+                 <h3 className="text-2xl font-black text-slate-900 tracking-tight">{stat.value}</h3>
+              </div>
+              <div className={`p-4 rounded-2xl ${stat.bg} ${stat.color}`}>
+                 <stat.icon size={20} />
+              </div>
+           </div>
+         ))}
+      </div>
+
+      {/* Filtering */}
+      <div className="glass-card rounded-[2.5rem] p-6 border-white/50 shadow-2xl shadow-slate-200/40">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Jobs</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.overview.totalJobs}</p>
+           <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest pl-2">Search Jobs</label>
+              <div className="relative group">
+                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={14} />
+                 <input
+                   type="text"
+                   placeholder="Search by role or company..."
+                   value={filters.search}
+                   onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                   className="w-full pl-14 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:bg-white transition-all shadow-inner"
+                 />
               </div>
-              <FaBriefcase className="w-8 h-8 text-blue-500" />
-            </div>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Active Jobs</p>
-                <p className="text-2xl font-bold text-green-600">{stats.overview.activeJobs}</p>
-              </div>
-              <FaChartBar className="w-8 h-8 text-green-500" />
-            </div>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Expired Jobs</p>
-                <p className="text-2xl font-bold text-orange-600">{stats.overview.expiredJobs}</p>
-              </div>
-              <FaCalendarAlt className="w-8 h-8 text-orange-500" />
-            </div>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Active Rate</p>
-                <p className="text-2xl font-bold text-purple-600">{stats.overview.activeRate}%</p>
-              </div>
-              <FaChartBar className="w-8 h-8 text-purple-500" />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Filters */}
-      <div className="bg-white p-6 rounded-lg shadow-sm border">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
-            <div className="relative">
-              <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <input
-                type="text"
-                placeholder="Search jobs and internships..."
-                value={filters.search}
-                onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-            <select
-              value={filters.status}
-              onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="All">All Status</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-              <option value="expired">Expired</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-            <select
-              value={filters.type}
-              onChange={(e) => setFilters(prev => ({ ...prev, type: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="All">All Types</option>
-              <option value="full-time">Full Time</option>
-              <option value="internship">Internship</option>
-              <option value="contract">Contract</option>
-              <option value="part-time">Part Time</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-            <select
-              value={filters.category}
-              onChange={(e) => setFilters(prev => ({ ...prev, category: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="All">All Categories</option>
-              <option value="software-engineering">Software Engineering</option>
-              <option value="data-science">Data Science</option>
-              <option value="product-management">Product Management</option>
-              <option value="design">Design</option>
-              <option value="marketing">Marketing</option>
-              <option value="sales">Sales</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
+           </div>
+           <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest pl-2">Job Status</label>
+              <select value={filters.status} onChange={e => setFilters(p => ({...p, status: e.target.value}))} className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold text-slate-900 focus:outline-none appearance-none cursor-pointer">
+                 <option value="All">All Status</option>
+                 <option value="active">Active Only</option>
+                 <option value="expired">Expired Only</option>
+              </select>
+           </div>
+           <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest pl-2">Job Type</label>
+              <select value={filters.type} onChange={e => setFilters(p => ({...p, type: e.target.value}))} className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold text-slate-900 focus:outline-none appearance-none cursor-pointer">
+                 <option value="All">All Types</option>
+                 <option value="full-time">Full-Time</option>
+                 <option value="internship">Internship</option>
+              </select>
+           </div>
+           <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest pl-2">Category</label>
+              <select value={filters.category} onChange={e => setFilters(p => ({...p, category: e.target.value}))} className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold text-slate-900 focus:outline-none appearance-none cursor-pointer">
+                 <option value="All">All Categories</option>
+                 <option value="software-engineering">Engineering</option>
+                 <option value="data-science">Data Science</option>
+              </select>
+           </div>
         </div>
       </div>
 
-      {/* Jobs Table */}
-      <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Job Details
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Company
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Type & Category
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Package
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Applications
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Deadline
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {loading ? (
-                <tr>
-                  <td colSpan="7" className="px-6 py-4 text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                  </td>
-                </tr>
-              ) : jobs.length === 0 ? (
-                <tr>
-                  <td colSpan="7" className="px-6 py-4 text-center text-gray-500">
-                    No jobs or internships found
-                  </td>
-                </tr>
-              ) : (
-                jobs.map((job) => (
-                  <tr key={job._id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">
-                          {job.title}
-                        </div>
-                        <div className="text-sm text-gray-500 mt-1">
-                          {job.description && job.description.length > 100 
-                            ? `${job.description.substring(0, 100)}...` 
-                            : job.description}
-                        </div>
-                        <div className="flex items-center mt-2">
-                          <FaMapMarkerAlt className="w-4 h-4 text-gray-400 mr-1" />
-                          <span className="text-sm text-gray-500">{job.location}</span>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <FaBuilding className="w-4 h-4 text-gray-400 mr-2" />
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {job.company?.companyName || 'N/A'}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {job.company?.email || 'N/A'}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="space-y-1">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getTypeColor(job.type)}`}>
-                          {job.type.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                        </span>
-                        <br />
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getCategoryColor(job.category)}`}>
-                          {job.category.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <FaMoneyBillWave className="w-4 h-4 text-green-500 mr-2" />
-                        <span className="text-sm font-medium text-gray-900">
-                          {formatPackage(job.package)}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(job.isActive, job.deadline)}`}>
-                        {getStatusText(job.isActive, job.deadline)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <FaUsers className="w-4 h-4 text-blue-500 mr-2" />
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {job.totalApplications}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {job.acceptedApplications} accepted
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <FaCalendarAlt className="w-4 h-4 text-gray-400 mr-2" />
-                        <div>
-                          <div className="text-sm text-gray-900">
-                            {new Date(job.deadline).toLocaleDateString()}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {new Date(job.postedAt).toLocaleDateString()}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+      {/* Grid */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+         {loading ? (
+            <div className="xl:col-span-2 py-32 text-center">
+               <Loader2 className="animate-spin w-12 h-12 text-blue-600 mx-auto" />
+            </div>
+         ) : jobs.map((job) => (
+           <div key={job._id} className="group glass-card p-8 rounded-[3rem] border-white/50 hover-lift relative overflow-hidden flex flex-col justify-between">
+              <div className="relative z-10 flex gap-6">
+                 <div className="w-20 h-20 bg-slate-900 rounded-[2rem] flex items-center justify-center relative overflow-hidden flex-shrink-0 shadow-2xl group-hover:scale-110 transition-transform">
+                    <Building2 className="text-white opacity-40 absolute" size={40} />
+                    <span className="text-white font-black text-xl relative">{(job.company?.companyName || 'C')[0]}</span>
+                 </div>
+                 <div className="flex-1 space-y-2">
+                    <div className="flex justify-between items-start">
+                       <div>
+                          <h3 className="text-xl font-black text-slate-900 tracking-tight leading-tight">{job.title}</h3>
+                          <p className="text-blue-600 text-[10px] font-bold uppercase tracking-widest">{job.company?.companyName}</p>
+                       </div>
+                       <span className={`px-3 py-1.5 rounded-xl border text-[9px] font-bold uppercase tracking-widest ${getStatusStyle(job.isActive, job.deadline)}`}>
+                          {getStatusText(job.isActive, job.deadline)}
+                       </span>
+                    </div>
+                    <div className="flex flex-wrap gap-2 pt-2">
+                       <span className="px-3 py-1 bg-slate-50 rounded-lg text-[9px] font-bold uppercase text-slate-400 tracking-widest border border-slate-100">{job.type}</span>
+                       <span className="px-3 py-1 bg-slate-50 rounded-lg text-[9px] font-bold uppercase text-slate-400 tracking-widest border border-slate-100">{job.category}</span>
+                       <span className="px-3 py-1 bg-indigo-50 rounded-lg text-[9px] font-bold uppercase text-indigo-600 tracking-widest border border-indigo-100 flex items-center gap-1">
+                          <Banknote size={10} /> {formatPackage(job.package)}
+                       </span>
+                    </div>
+                 </div>
+              </div>
 
-        {/* Pagination */}
-        {pagination.totalPages > 1 && (
-          <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-            <div className="flex-1 flex justify-between sm:hidden">
-              <button
-                onClick={() => setPagination(prev => ({ ...prev, currentPage: prev.currentPage - 1 }))}
-                disabled={pagination.currentPage === 1}
-                className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-              >
-                Previous
-              </button>
-              <button
-                onClick={() => setPagination(prev => ({ ...prev, currentPage: prev.currentPage + 1 }))}
-                disabled={pagination.currentPage === pagination.totalPages}
-                className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-              >
-                Next
-              </button>
-            </div>
-            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-              <div>
-                <p className="text-sm text-gray-700">
-                  Showing page <span className="font-medium">{pagination.currentPage}</span> of{' '}
-                  <span className="font-medium">{pagination.totalPages}</span>
-                </p>
+               <div className="mt-8 grid grid-cols-3 gap-4 relative z-10">
+                  <div className="p-4 bg-slate-50/50 rounded-[1.5rem] border border-slate-100">
+                     <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-1">Applications</p>
+                     <p className="text-sm font-bold text-slate-900">{job.totalApplications}</p>
+                  </div>
+                  <div className="p-4 bg-slate-50/50 rounded-[1.5rem] border border-slate-100">
+                     <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-1">Last Date</p>
+                     <p className="text-sm font-bold text-slate-900">{new Date(job.deadline).toLocaleDateString()}</p>
+                  </div>
+                  <div className="p-4 bg-slate-50/50 rounded-[1.5rem] border border-slate-100">
+                     <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-1">Location</p>
+                     <p className="text-sm font-bold text-slate-900 truncate">{job.location}</p>
+                  </div>
+               </div>
+
+              <div className="mt-8 pt-8 border-t border-slate-50 flex justify-between items-center relative z-10">
+                 <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                       <Target size={14} />
+                    </div>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                       {job.acceptedApplications} Placements
+                    </p>
+                 </div>
+                 <button className="flex items-center gap-2 px-6 py-3 bg-slate-100 text-slate-900 rounded-2xl font-bold uppercase text-[9px] tracking-widest hover:bg-slate-900 hover:text-white transition-all group/btn active:scale-95">
+                    View Details
+                    <ChevronRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
+                 </button>
               </div>
-              <div>
-                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                  <button
-                    onClick={() => setPagination(prev => ({ ...prev, currentPage: prev.currentPage - 1 }))}
-                    disabled={pagination.currentPage === 1}
-                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
-                  >
-                    Previous
-                  </button>
-                  <button
-                    onClick={() => setPagination(prev => ({ ...prev, currentPage: prev.currentPage + 1 }))}
-                    disabled={pagination.currentPage === pagination.totalPages}
-                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
-                  >
-                    Next
-                  </button>
-                </nav>
+
+              {/* Background Decoration */}
+              <div className="absolute -bottom-10 -right-10 opacity-[0.02] rotate-12 scale-150 pointer-events-none group-hover:opacity-[0.05] transition-opacity">
+                 <Briefcase size={200} />
               </div>
-            </div>
-          </div>
-        )}
+           </div>
+         ))}
       </div>
     </div>
   );

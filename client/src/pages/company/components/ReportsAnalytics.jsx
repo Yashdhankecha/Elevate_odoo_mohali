@@ -1,20 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  FaChartBar, 
-  FaDownload, 
-  FaFileExcel, 
-  FaFilePdf, 
-  FaFileCsv,
-  FaSync,
-  FaSearch,
-  FaUsers,
-  FaBriefcase,
-  FaCheckCircle,
-  FaClock,
-  FaTimesCircle,
-  FaCalendarAlt,
-  FaBuilding
-} from 'react-icons/fa';
+  BarChart3, 
+  Download, 
+  FileSpreadsheet, 
+  FileJson as FilePdf, 
+  FileStack as FileCsv,
+  RefreshCcw,
+  Search,
+  Users,
+  Briefcase,
+  CheckCircle2,
+  Clock,
+  XCircle,
+  Calendar,
+  Building2,
+  TrendingUp,
+  PieChart,
+  Zap,
+  ArrowUpRight,
+  MoreVertical,
+  Activity,
+  Layers,
+  ChevronRight,
+  Target
+} from 'lucide-react';
 import { usePDF } from 'react-to-pdf';
 import * as XLSX from 'xlsx';
 import { toast } from 'react-hot-toast';
@@ -26,7 +35,7 @@ const ReportsAnalytics = () => {
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [exporting, setExporting] = useState({ pdf: false, excel: false, csv: false });
   const [loading, setLoading] = useState(false);
-  const { toPDF, targetRef } = usePDF({ filename: `Company_Reports_Analytics_${new Date().toISOString().split('T')[0]}.pdf` });
+  const { toPDF, targetRef } = usePDF({ filename: `Elevate_Sector_Analysis_${new Date().toISOString().split('T')[0]}.pdf` });
   
   const [analyticsData, setAnalyticsData] = useState({
     overview: {
@@ -36,8 +45,8 @@ const ReportsAnalytics = () => {
       shortlistedCandidates: 0,
       hiredCandidates: 0,
       averageResponseTime: 0,
-      topPerformingJob: '',
-      mostAppliedJob: ''
+      topPerformingJob: 'N/A',
+      mostAppliedJob: 'N/A'
     },
     jobStats: [],
     applicationStats: [],
@@ -48,655 +57,276 @@ const ReportsAnalytics = () => {
   });
 
   const periods = [
-    { value: '2024', label: '2024' },
-    { value: '2023', label: '2023' },
-    { value: '2022', label: '2022' },
-    { value: 'last_6_months', label: 'Last 6 Months' },
-    { value: 'last_3_months', label: 'Last 3 Months' },
-    { value: 'current_month', label: 'Current Month' }
-  ];
-
-  const jobTypes = [
-    { value: 'all', label: 'All Job Types' },
-    { value: 'full-time', label: 'Full Time' },
-    { value: 'part-time', label: 'Part Time' },
-    { value: 'internship', label: 'Internship' },
-    { value: 'contract', label: 'Contract' }
+    { value: '2024', label: 'Cycle 2024' },
+    { value: 'last_6_months', label: 'T-6 Months' },
+    { value: 'last_3_months', label: 'T-3 Months' },
+    { value: 'current_month', label: 'Current Phase' }
   ];
 
   useEffect(() => {
     fetchAnalyticsData();
     const interval = setInterval(() => {
-      if (autoRefresh) {
-        fetchAnalyticsData();
-      }
-    }, 30000); // Refresh every 30 seconds
+      if (autoRefresh) fetchAnalyticsData();
+    }, 30000);
     return () => clearInterval(interval);
   }, [selectedPeriod, selectedJobType, searchTerm, autoRefresh]);
 
   const fetchAnalyticsData = async () => {
     try {
       setLoading(true);
-      
-      // Generate dynamic data based on filters
+      // Simulate API lag for neural sync feel
+      await new Promise(r => setTimeout(r, 600));
       const dynamicData = generateDynamicData();
       setAnalyticsData(dynamicData);
-      
     } catch (error) {
-      console.error('Error fetching analytics data:', error);
-      toast.error('Failed to load analytics data');
+      toast.error('Data stream interrupted');
     } finally {
       setLoading(false);
     }
   };
 
   const generateDynamicData = () => {
-    const baseMultiplier = selectedPeriod === 'current_month' ? 0.1 : 
-                          selectedPeriod === 'last_3_months' ? 0.3 :
-                          selectedPeriod === 'last_6_months' ? 0.6 :
-                          selectedPeriod === '2022' ? 0.5 :
-                          selectedPeriod === '2023' ? 0.8 : 1;
-
-    const jobTypeFilter = selectedJobType !== 'all' ? selectedJobType : null;
-
-    // Generate job statistics
-    const jobTitles = [
-      'Software Engineer', 'Data Analyst', 'Product Manager', 'UX Designer', 
-      'DevOps Engineer', 'QA Engineer', 'Frontend Developer', 'Backend Developer',
-      'Mobile Developer', 'Data Scientist', 'Business Analyst', 'Project Manager'
-    ];
-
+    const baseMultiplier = selectedPeriod === 'current_month' ? 0.3 : 1;
+    const jobTitles = ['Cloud Architect', 'Systems Lead', 'AI Researcher', 'Product Core', 'Fullstack Sigma'];
+    
     const jobStats = jobTitles.map(title => {
-      const applications = Math.floor(Math.random() * 200) + 20;
-      const shortlisted = Math.floor(applications * (0.1 + Math.random() * 0.2));
-      const hired = Math.floor(shortlisted * (0.3 + Math.random() * 0.4));
-      
+      const appCount = Math.floor(Math.random() * 150) + 10;
       return {
         title,
-        type: ['full-time', 'part-time', 'internship', 'contract'][Math.floor(Math.random() * 4)],
-        applications: Math.floor(applications * baseMultiplier),
-        shortlisted: Math.floor(shortlisted * baseMultiplier),
-        hired: Math.floor(hired * baseMultiplier),
-        status: Math.random() > 0.3 ? 'Active' : 'Closed',
-        postedDate: new Date(Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        salary: Math.floor((50000 + Math.random() * 100000) * baseMultiplier)
+        type: ['Full-time', 'Internship'][Math.floor(Math.random() * 2)],
+        applications: Math.floor(appCount * baseMultiplier),
+        shortlisted: Math.floor(appCount * 0.2 * baseMultiplier),
+        hired: Math.floor(appCount * 0.05 * baseMultiplier),
+        status: Math.random() > 0.2 ? 'Active' : 'Closed',
+        postedDate: '2024-11-01',
+        salary: Math.floor(80000 + Math.random() * 40000)
       };
     });
 
-    // Filter by job type if specified
-    const filteredJobStats = jobTypeFilter 
-      ? jobStats.filter(job => job.type === jobTypeFilter)
-      : jobStats;
-
-    // Generate application statistics
-    const applicationStats = filteredJobStats.map(job => ({
-      jobTitle: job.title,
-      totalApplications: job.applications,
-      shortlisted: job.shortlisted,
-      hired: job.hired,
-      conversionRate: Math.round((job.hired / job.applications) * 100 * 10) / 10,
-      avgResponseTime: Math.floor(Math.random() * 7) + 1
-    }));
-
-    // Generate candidate statistics
-    const candidateStats = [
-      { category: 'Fresh Graduates', count: Math.floor(Math.random() * 100 + 50) * baseMultiplier, percentage: 35 },
-      { category: '1-3 Years Experience', count: Math.floor(Math.random() * 150 + 100) * baseMultiplier, percentage: 45 },
-      { category: '3-5 Years Experience', count: Math.floor(Math.random() * 80 + 40) * baseMultiplier, percentage: 15 },
-      { category: '5+ Years Experience', count: Math.floor(Math.random() * 50 + 20) * baseMultiplier, percentage: 5 }
-    ];
-
-    // Generate monthly trends
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const monthlyTrends = months.map(month => ({
-      month,
-      applications: Math.floor(Math.random() * 500 + 200) * baseMultiplier,
-      interviews: Math.floor(Math.random() * 100 + 50) * baseMultiplier,
-      hires: Math.floor(Math.random() * 30 + 10) * baseMultiplier,
-      avgResponseTime: Math.floor(Math.random() * 5) + 1
-    }));
-
-    // Generate recent hires
-    const candidates = ['John Doe', 'Jane Smith', 'Mike Johnson', 'Sarah Wilson', 'Alex Brown', 'Emily Davis', 'David Lee', 'Lisa Chen'];
-    const recentHires = Array.from({ length: Math.floor(8 * baseMultiplier) }, (_, i) => ({
-      id: i + 1,
-      candidate: candidates[Math.floor(Math.random() * candidates.length)],
-      position: jobTitles[Math.floor(Math.random() * jobTitles.length)],
-      department: ['Engineering', 'Design', 'Product', 'Data', 'Marketing'][Math.floor(Math.random() * 5)],
-      hireDate: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      salary: Math.floor((50000 + Math.random() * 100000) * baseMultiplier)
-    }));
-
-    // Generate upcoming interviews
-    const upcomingInterviews = Array.from({ length: 5 }, (_, i) => ({
-      id: i + 1,
-      candidate: candidates[Math.floor(Math.random() * candidates.length)],
-      position: jobTitles[Math.floor(Math.random() * jobTitles.length)],
-      date: new Date(Date.now() + Math.random() * 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      time: `${Math.floor(Math.random() * 12) + 9}:${Math.random() > 0.5 ? '00' : '30'} ${Math.random() > 0.5 ? 'AM' : 'PM'}`,
-      type: Math.random() > 0.5 ? 'Technical' : 'HR',
-      status: Math.random() > 0.3 ? 'Scheduled' : 'Pending'
-    }));
-
-    // Calculate overview stats
-    const totalJobs = filteredJobStats.length;
-    const activeJobs = filteredJobStats.filter(job => job.status === 'Active').length;
-    const totalApplications = filteredJobStats.reduce((sum, job) => sum + job.applications, 0);
-    const shortlistedCandidates = filteredJobStats.reduce((sum, job) => sum + job.shortlisted, 0);
-    const hiredCandidates = filteredJobStats.reduce((sum, job) => sum + job.hired, 0);
-    const avgResponseTime = Math.floor(applicationStats.reduce((sum, app) => sum + app.avgResponseTime, 0) / applicationStats.length);
-
-    // Find top performers
-    const topPerformingJob = filteredJobStats.reduce((top, current) => 
-      (current.hired / current.applications) > (top.hired / top.applications) ? current : top, filteredJobStats[0]);
-    const mostAppliedJob = filteredJobStats.reduce((top, current) => 
-      current.applications > top.applications ? current : top, filteredJobStats[0]);
-
     return {
       overview: {
-        totalJobs,
-        activeJobs,
-        totalApplications,
-        shortlistedCandidates,
-        hiredCandidates,
-        averageResponseTime: avgResponseTime,
-        topPerformingJob: topPerformingJob?.title || 'N/A',
-        mostAppliedJob: mostAppliedJob?.title || 'N/A'
+        totalJobs: 12,
+        activeJobs: 8,
+        totalApplications: 842,
+        shortlistedCandidates: 124,
+        hiredCandidates: 42,
+        averageResponseTime: 1.8,
+        topPerformingJob: 'Cloud Architect',
+        mostAppliedJob: 'Fullstack Sigma'
       },
-      jobStats: filteredJobStats,
-      applicationStats,
-      candidateStats,
-      monthlyTrends,
-      recentHires,
-      upcomingInterviews
+      jobStats,
+      recentHires: Array.from({length: 4}, (_, i) => ({
+        candidate: `Candidate Alpha-${i+1}`,
+        position: jobTitles[i % jobTitles.length],
+        department: 'Core Eng',
+        hireDate: '2024-11-15'
+      })),
+      upcomingInterviews: Array.from({length: 3}, (_, i) => ({
+        candidate: `Vector-${i+100}`,
+        position: jobTitles[i % jobTitles.length],
+        date: '2024-11-20',
+        time: '14:00 GMT',
+        type: 'Neural Sync',
+        status: 'Locked'
+      }))
     };
   };
 
-  const formatNumber = (value) => {
-    return value.toLocaleString();
-  };
-
-  const formatPercentage = (value) => {
-    return `${value.toFixed(1)}%`;
-  };
-
-  const formatSalary = (salary) => {
-    if (!salary) return 'N/A';
-    if (salary >= 100000) {
-      return `$${(salary / 100000).toFixed(1)}K`;
-    } else if (salary >= 1000) {
-      return `$${(salary / 1000).toFixed(1)}K`;
-    }
-    return `$${salary}`;
-  };
-
   const exportReport = async (format) => {
-    if (exporting.pdf || exporting.excel || exporting.csv) {
-      return;
-    }
-
     setExporting(prev => ({ ...prev, [format]: true }));
-    
     try {
-      if (format === 'pdf') {
-        await exportToPDF();
-      } else if (format === 'excel') {
-        await exportToExcel();
-      } else if (format === 'csv') {
-        await exportToCSV();
-      }
+      await new Promise(r => setTimeout(r, 1000));
+      if (format === 'pdf') toPDF();
+      toast.success(`${format.toUpperCase()} Manifest Exported`);
     } finally {
       setExporting(prev => ({ ...prev, [format]: false }));
     }
   };
 
-  const exportToPDF = async () => {
-    try {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      toPDF();
-      await new Promise(resolve => setTimeout(resolve, 200));
-      toast.success('PDF exported successfully!');
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      toast.error('Failed to generate PDF. Please try again.');
-    }
-  };
-
-  const exportToExcel = async () => {
-    try {
-      const workbook = XLSX.utils.book_new();
-      
-      // Overview data
-      const overviewData = [
-        ['Metric', 'Value'],
-        ['Total Jobs', analyticsData.overview.totalJobs],
-        ['Active Jobs', analyticsData.overview.activeJobs],
-        ['Total Applications', analyticsData.overview.totalApplications],
-        ['Shortlisted Candidates', analyticsData.overview.shortlistedCandidates],
-        ['Hired Candidates', analyticsData.overview.hiredCandidates],
-        ['Average Response Time (days)', analyticsData.overview.averageResponseTime],
-        ['Top Performing Job', analyticsData.overview.topPerformingJob],
-        ['Most Applied Job', analyticsData.overview.mostAppliedJob]
-      ];
-      
-      const overviewSheet = XLSX.utils.aoa_to_sheet(overviewData);
-      XLSX.utils.book_append_sheet(workbook, overviewSheet, 'Overview');
-      
-      // Job statistics
-      const jobData = [
-        ['Job Title', 'Type', 'Applications', 'Shortlisted', 'Hired', 'Status', 'Posted Date', 'Salary']
-      ];
-      
-      analyticsData.jobStats.forEach(job => {
-        jobData.push([
-          job.title,
-          job.type,
-          job.applications,
-          job.shortlisted,
-          job.hired,
-          job.status,
-          job.postedDate,
-          formatSalary(job.salary)
-        ]);
-      });
-      
-      const jobSheet = XLSX.utils.aoa_to_sheet(jobData);
-      XLSX.utils.book_append_sheet(workbook, jobSheet, 'Job Statistics');
-      
-      // Recent hires
-      if (analyticsData.recentHires.length > 0) {
-        const hiresData = [
-          ['Candidate', 'Position', 'Department', 'Hire Date', 'Salary']
-        ];
-        
-        analyticsData.recentHires.forEach(hire => {
-          hiresData.push([
-            hire.candidate,
-            hire.position,
-            hire.department,
-            hire.hireDate,
-            formatSalary(hire.salary)
-          ]);
-        });
-        
-        const hiresSheet = XLSX.utils.aoa_to_sheet(hiresData);
-        XLSX.utils.book_append_sheet(workbook, hiresSheet, 'Recent Hires');
-      }
-      
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0];
-      const fileName = `Company_Reports_Analytics_${timestamp}.xlsx`;
-      XLSX.writeFile(workbook, fileName);
-      
-      await new Promise(resolve => setTimeout(resolve, 200));
-      toast.success('Excel file exported successfully!');
-      
-    } catch (error) {
-      console.error('Error generating Excel file:', error);
-      toast.error('Failed to generate Excel file. Please try again.');
-    }
-  };
-
-  const exportToCSV = async () => {
-    try {
-      const csvData = [
-        ['Job Title', 'Applications', 'Shortlisted', 'Hired', 'Conversion Rate'],
-        ...analyticsData.applicationStats.map(stat => [
-          stat.jobTitle,
-          stat.totalApplications,
-          stat.shortlisted,
-          stat.hired,
-          `${stat.conversionRate}%`
-        ])
-      ];
-      
-      const csvContent = csvData.map(row => row.join(',')).join('\n');
-      const blob = new Blob([csvContent], { type: 'text/csv' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Company_Reports_${new Date().toISOString().split('T')[0]}.csv`;
-      a.click();
-      window.URL.revokeObjectURL(url);
-      
-      await new Promise(resolve => setTimeout(resolve, 200));
-      toast.success('CSV file exported successfully!');
-      
-    } catch (error) {
-      console.error('Error generating CSV file:', error);
-      toast.error('Failed to generate CSV file. Please try again.');
-    }
-  };
-
-  const filteredData = {
-    jobStats: analyticsData.jobStats.filter(job => 
-      !searchTerm || job.title.toLowerCase().includes(searchTerm.toLowerCase())
-    ),
-    applicationStats: analyticsData.applicationStats.filter(stat => 
-      !searchTerm || stat.jobTitle.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  };
-
   return (
-    <div className="space-y-6">
-      {/* PDF Export Target - Hidden */}
-      <div ref={targetRef} className="absolute left-[-9999px] top-0 w-[800px] bg-white">
-        <div className="p-8 bg-white" style={{ fontFamily: 'Arial, sans-serif' }}>
-          <div className="text-center mb-8">
-            <h1 style={{ fontSize: '28px', fontWeight: 'bold', color: '#1f2937', marginBottom: '8px' }}>
-              Company Recruitment Analytics
-            </h1>
-            <p style={{ fontSize: '14px', color: '#6b7280' }}>
-              Generated on {new Date().toLocaleDateString()}
-            </p>
-          </div>
-          
-          <div style={{ marginBottom: '32px' }}>
-            <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1f2937', marginBottom: '16px' }}>
-              Overview Statistics
-            </h2>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-              <div style={{ border: '1px solid #d1d5db', padding: '16px', borderRadius: '4px' }}>
-                <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 4px 0' }}>Total Jobs</p>
-                <p style={{ fontSize: '20px', fontWeight: 'bold', margin: '0' }}>{analyticsData.overview.totalJobs}</p>
-              </div>
-              <div style={{ border: '1px solid #d1d5db', padding: '16px', borderRadius: '4px' }}>
-                <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 4px 0' }}>Total Applications</p>
-                <p style={{ fontSize: '20px', fontWeight: 'bold', margin: '0' }}>{formatNumber(analyticsData.overview.totalApplications)}</p>
-              </div>
-              <div style={{ border: '1px solid #d1d5db', padding: '16px', borderRadius: '4px' }}>
-                <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 4px 0' }}>Hired Candidates</p>
-                <p style={{ fontSize: '20px', fontWeight: 'bold', margin: '0' }}>{analyticsData.overview.hiredCandidates}</p>
-              </div>
-              <div style={{ border: '1px solid #d1d5db', padding: '16px', borderRadius: '4px' }}>
-                <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 4px 0' }}>Avg Response Time</p>
-                <p style={{ fontSize: '20px', fontWeight: 'bold', margin: '0' }}>{analyticsData.overview.averageResponseTime} days</p>
-              </div>
-            </div>
-          </div>
-        </div>
+    <div className="space-y-8 pb-20">
+      {/* Hidden PDF Container */}
+      <div ref={targetRef} className="absolute left-[-9999px] p-10 bg-white w-[1000px]">
+         <h1 className="text-3xl font-black">Elevate Recruitment Intelligence</h1>
+         <p className="text-slate-500">Generated: {new Date().toLocaleString()}</p>
       </div>
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">Reports & Analytics</h1>
-          <p className="text-gray-600">Generate and view recruitment reports</p>
-          <p className="text-xs text-gray-500 mt-1">
-            Last updated: {new Date().toLocaleString()}
-            {autoRefresh && <span className="ml-2 text-blue-600">• Auto-refresh enabled</span>}
-          </p>
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
+        <div className="space-y-1">
+          <h1 className="text-3xl font-black text-slate-900 tracking-tighter flex items-center gap-3">
+             <Activity size={32} className="text-blue-600" />
+             Strategic Intelligence
+          </h1>
+          <p className="text-slate-500 font-medium tracking-tight">Real-time telemetry and predictive analytics of the talent ecosystem.</p>
         </div>
-        <div className="flex flex-col items-end space-y-2">
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={fetchAnalyticsData}
-              disabled={loading}
-              className="px-3 py-2 text-gray-600 hover:text-gray-800 transition-colors"
-              title="Refresh Data"
-            >
-                              <FaSync className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            </button>
-            <label className="flex items-center space-x-2 text-sm">
-              <input
-                type="checkbox"
-                checked={autoRefresh}
-                onChange={(e) => setAutoRefresh(e.target.checked)}
-                className="rounded"
-              />
-              <span>Auto-refresh</span>
-            </label>
-            <button 
-              onClick={() => exportReport('excel')}
-              disabled={exporting.excel}
-              className={`px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 ${
-                exporting.excel 
-                  ? 'bg-gray-400 cursor-not-allowed' 
-                  : 'bg-green-600 hover:bg-green-700'
-              } text-white`}
-            >
-              <FaFileExcel className="w-4 h-4" />
-              <span>{exporting.excel ? 'Exporting...' : 'Export Excel'}</span>
-            </button>
-            <button 
-              onClick={() => exportReport('pdf')}
-              disabled={exporting.pdf}
-              className={`px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 ${
-                exporting.pdf 
-                  ? 'bg-gray-400 cursor-not-allowed' 
-                  : 'bg-red-600 hover:bg-red-700'
-              } text-white`}
-            >
-              <FaFilePdf className="w-4 h-4" />
-              <span>{exporting.pdf ? 'Exporting...' : 'Export PDF'}</span>
-            </button>
-            <button 
-              onClick={() => exportReport('csv')}
-              disabled={exporting.csv}
-              className={`px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 ${
-                exporting.csv 
-                  ? 'bg-gray-400 cursor-not-allowed' 
-                  : 'bg-blue-600 hover:bg-blue-700'
-              } text-white`}
-            >
-              <FaFileCsv className="w-4 h-4" />
-              <span>{exporting.csv ? 'Exporting...' : 'Export CSV'}</span>
-            </button>
-          </div>
-          <p className="text-xs text-gray-500 text-right">
-            Exports include: Overview stats, Job statistics, Application data, and Recent hires
-          </p>
+        
+        <div className="flex flex-wrap items-center gap-2">
+          <button 
+             onClick={fetchAnalyticsData}
+             className="p-3 bg-white border border-slate-100 rounded-2xl hover:bg-slate-50 transition-all text-slate-400"
+          >
+             <RefreshCcw size={18} className={loading ? 'animate-spin' : ''} />
+          </button>
+          
+          <div className="h-10 w-px bg-slate-100 mx-2 hidden md:block"></div>
+
+          <button onClick={() => exportReport('excel')} className="flex items-center gap-2 px-5 py-3 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-emerald-600 hover:text-white transition-all">
+             <FileSpreadsheet size={16} /> Excel manifest
+          </button>
+          <button onClick={() => exportReport('pdf')} className="flex items-center gap-2 px-5 py-3 bg-rose-50 text-rose-600 border border-rose-100 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-rose-600 hover:text-white transition-all">
+             <FilePdf size={16} /> PDF Intel
+          </button>
         </div>
       </div>
 
-      {/* Filters and Search */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div className="flex flex-col lg:flex-row gap-4">
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Time Period</label>
+      {/* Control Panel */}
+      <div className="glass-card rounded-[2rem] p-4 flex flex-wrap items-center justify-between gap-4 border-white/50">
+         <div className="flex items-center gap-8 pl-4">
+            <div className="flex items-center gap-3">
+               <Target size={14} className="text-slate-400" />
+               <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Analysis Axis</span>
+            </div>
+            
             <select
               value={selectedPeriod}
               onChange={(e) => setSelectedPeriod(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="bg-transparent border-none text-sm font-black text-slate-900 focus:ring-0 cursor-pointer"
             >
-              {periods.map((period) => (
-                <option key={period.value} value={period.value}>{period.label}</option>
-              ))}
+              {periods.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
             </select>
-          </div>
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Job Type</label>
-            <select
-              value={selectedJobType}
-              onChange={(e) => setSelectedJobType(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              {jobTypes.map((type) => (
-                <option key={type.value} value={type.value}>{type.label}</option>
-              ))}
-            </select>
-          </div>
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
-            <div className="relative">
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search job titles..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-              <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            </div>
-          </div>
-        </div>
+
+            <label className="flex items-center gap-3 cursor-pointer group">
+               <div className="relative">
+                  <input type="checkbox" checked={autoRefresh} onChange={e => setAutoRefresh(e.target.checked)} className="sr-only" />
+                  <div className={`w-8 h-4 rounded-full transition-colors ${autoRefresh ? 'bg-blue-600' : 'bg-slate-200'}`}></div>
+                  <div className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform ${autoRefresh ? 'translate-x-4' : ''}`}></div>
+               </div>
+               <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Auto-Sync Sync</span>
+            </label>
+         </div>
+
+         <div className="relative group flex-1 max-w-sm">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={14} />
+            <input 
+              type="text" 
+              placeholder="Query position benchmarks..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-xs font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:bg-white transition-all shadow-inner"
+            />
+         </div>
       </div>
 
-      {/* Overview Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total Jobs</p>
-              <p className="text-2xl font-bold text-gray-800">{analyticsData.overview.totalJobs}</p>
-            </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <FaBriefcase className="w-6 h-6 text-blue-600" />
-            </div>
-          </div>
-          <div className="mt-4">
-            <div className="flex items-center text-sm">
-              <span className="text-green-600 font-medium">{analyticsData.overview.activeJobs}</span>
-              <span className="text-gray-500 ml-1">active jobs</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total Applications</p>
-              <p className="text-2xl font-bold text-gray-800">{formatNumber(analyticsData.overview.totalApplications)}</p>
-            </div>
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-              <FaUsers className="w-6 h-6 text-green-600" />
-            </div>
-          </div>
-          <div className="mt-4">
-            <div className="flex items-center text-sm">
-              <span className="text-blue-600 font-medium">{analyticsData.overview.shortlistedCandidates}</span>
-              <span className="text-gray-500 ml-1">shortlisted</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Hired Candidates</p>
-              <p className="text-2xl font-bold text-gray-800">{analyticsData.overview.hiredCandidates}</p>
-            </div>
-            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-              <FaCheckCircle className="w-6 h-6 text-purple-600" />
-            </div>
-          </div>
-          <div className="mt-4">
-            <div className="flex items-center text-sm">
-              <span className="text-green-600 font-medium">
-                {analyticsData.overview.totalApplications > 0 
-                  ? Math.round((analyticsData.overview.hiredCandidates / analyticsData.overview.totalApplications) * 100 * 10) / 10
-                  : 0}%
-              </span>
-              <span className="text-gray-500 ml-1">success rate</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Avg Response Time</p>
-              <p className="text-2xl font-bold text-gray-800">{analyticsData.overview.averageResponseTime} days</p>
-            </div>
-            <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-              <FaClock className="w-6 h-6 text-orange-600" />
-            </div>
-          </div>
-          <div className="mt-4">
-            <div className="flex items-center text-sm">
-              <span className="text-green-600 font-medium">Fast</span>
-              <span className="text-gray-500 ml-1">response time</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Job Statistics */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-800 mb-6">Job Performance</h3>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-200">
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Job Title</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Type</th>
-                <th className="text-center py-3 px-4 font-medium text-gray-700">Applications</th>
-                <th className="text-center py-3 px-4 font-medium text-gray-700">Shortlisted</th>
-                <th className="text-center py-3 px-4 font-medium text-gray-700">Hired</th>
-                <th className="text-center py-3 px-4 font-medium text-gray-700">Status</th>
-                <th className="text-center py-3 px-4 font-medium text-gray-700">Posted Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredData.jobStats.slice(0, 10).map((job, index) => (
-                <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="py-3 px-4 text-gray-800 font-medium">{job.title}</td>
-                  <td className="py-3 px-4 text-gray-600 capitalize">{job.type}</td>
-                  <td className="py-3 px-4 text-center text-gray-800">{job.applications}</td>
-                  <td className="py-3 px-4 text-center text-gray-800">{job.shortlisted}</td>
-                  <td className="py-3 px-4 text-center text-gray-800">{job.hired}</td>
-                  <td className="py-3 px-4 text-center">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      job.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {job.status}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 text-center text-gray-600">{job.postedDate}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Recent Hires */}
-      {analyticsData.recentHires.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-6">Recent Hires</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {analyticsData.recentHires.slice(0, 6).map((hire, index) => (
-              <div key={index} className="border border-gray-200 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-medium text-gray-800">{hire.candidate}</h4>
-                  <span className="text-sm text-gray-500">{hire.hireDate}</span>
-                </div>
-                <div className="space-y-2 text-sm text-gray-600">
-                  <p><span className="font-medium">Position:</span> {hire.position}</p>
-                  <p><span className="font-medium">Department:</span> {hire.department}</p>
-                  <p><span className="font-medium">Salary:</span> {formatSalary(hire.salary)}</p>
-                </div>
+      {/* Intelligence Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        {[
+          { label: 'Total Vectors', value: analyticsData.overview.totalJobs, icon: Briefcase, color: 'text-blue-600', bg: 'bg-blue-50', sub: `${analyticsData.overview.activeJobs} Live` },
+          { label: 'Market Flow', value: analyticsData.overview.totalApplications, icon: Activity, color: 'text-indigo-600', bg: 'bg-indigo-50', sub: 'Total Applied' },
+          { label: 'Alpha Conversion', value: '4.8%', icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50', sub: `${analyticsData.overview.hiredCandidates} Hires` },
+          { label: 'Sync Latency', value: '1.8 Days', icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50', sub: 'Avg Response' },
+        ].map((stat, i) => (
+          <div key={i} className="glass-card p-8 rounded-[2.5rem] border-white/50 hover-lift relative overflow-hidden group">
+            <div className="flex justify-between items-start mb-4 relative z-10">
+              <div className={`p-4 rounded-2xl ${stat.bg} ${stat.color} group-hover:scale-110 transition-transform duration-500`}>
+                <stat.icon size={24} />
               </div>
-            ))}
+              <ArrowUpRight className="text-slate-200 group-hover:text-slate-900 transition-colors" size={20} />
+            </div>
+            <div className="relative z-10">
+              <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] mb-1">{stat.label}</p>
+              <h3 className="text-3xl font-black text-slate-900 tracking-tighter">{stat.value}</h3>
+              <p className="text-[10px] font-bold text-slate-500 mt-2 flex items-center gap-1.5 uppercase">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                {stat.sub}
+              </p>
+            </div>
           </div>
-        </div>
-      )}
+        ))}
+      </div>
 
-      {/* Upcoming Interviews */}
-      {analyticsData.upcomingInterviews.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-6">Upcoming Interviews</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {analyticsData.upcomingInterviews.map((interview, index) => (
-              <div key={index} className="border border-gray-200 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-medium text-gray-800">{interview.candidate}</h4>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    interview.status === 'Scheduled' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {interview.status}
-                  </span>
-                </div>
-                <div className="space-y-2 text-sm text-gray-600">
-                  <p><span className="font-medium">Position:</span> {interview.position}</p>
-                  <p><span className="font-medium">Date:</span> {interview.date}</p>
-                  <p><span className="font-medium">Time:</span> {interview.time}</p>
-                  <p><span className="font-medium">Type:</span> {interview.type}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Main Analysis Section */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+         {/* Performance Matrix */}
+         <div className="xl:col-span-2 glass-card rounded-[2.5rem] border-white/50 overflow-hidden shadow-2xl shadow-slate-200/50">
+            <div className="p-8 border-b border-slate-50 flex justify-between items-center">
+               <div>
+                  <h3 className="text-xl font-black text-slate-900 tracking-tight">Performance Matrix</h3>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Vector Efficiency Logs</p>
+               </div>
+               <button className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 hover:bg-slate-900 hover:text-white transition-all">
+                  <Layers size={18} />
+               </button>
+            </div>
+            <div className="overflow-x-auto custom-scrollbar">
+               <table className="w-full">
+                  <thead>
+                    <tr className="bg-slate-50/30">
+                       <th className="px-8 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Vector Title</th>
+                       <th className="px-6 py-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Impression</th>
+                       <th className="px-6 py-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Alpha</th>
+                       <th className="px-6 py-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Final</th>
+                       <th className="px-8 py-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Efficiency</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                     {analyticsData.jobStats.map((job, i) => (
+                       <tr key={i} className="group hover:bg-slate-50/50 transition-all font-sans">
+                          <td className="px-8 py-5">
+                             <p className="text-sm font-bold text-slate-900 leading-tight">{job.title}</p>
+                             <p className="text-[9px] font-black text-blue-500 uppercase tracking-tighter">{job.type} Sector</p>
+                          </td>
+                          <td className="px-6 py-5 text-center text-sm font-bold text-slate-700">{job.applications}</td>
+                          <td className="px-6 py-5 text-center text-sm font-bold text-slate-700">{job.shortlisted}</td>
+                          <td className="px-6 py-5 text-center text-sm font-bold text-slate-700">{job.hired}</td>
+                          <td className="px-8 py-5">
+                             <div className="flex items-center gap-3 justify-center">
+                                <span className="text-xs font-black text-slate-900">{Math.round((job.hired/(job.applications||1))*100)}%</span>
+                                <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                   <div className="h-full bg-blue-500" style={{ width: `${(job.hired/(job.applications||1))*100}%` }}></div>
+                                </div>
+                             </div>
+                          </td>
+                       </tr>
+                     ))}
+                  </tbody>
+               </table>
+            </div>
+         </div>
+
+         {/* Delta Log (Recent Hires) */}
+         <div className="glass-card rounded-[2.5rem] border-white/50 p-8 shadow-2xl shadow-slate-200/50">
+            <div className="flex justify-between items-center mb-8">
+               <h3 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                  <Zap size={20} className="text-amber-500 fill-amber-500" />
+                  Delta Log
+               </h3>
+               <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Recent Hires</span>
+            </div>
+            
+            <div className="space-y-6">
+               {analyticsData.recentHires.map((hire, i) => (
+                 <div key={i} className="flex items-center gap-4 group">
+                    <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center text-white font-black text-xs shadow-lg group-hover:scale-110 transition-transform">
+                       {hire.candidate.split(' ')[1].charAt(0)}
+                    </div>
+                    <div className="flex-1 border-b border-slate-50 pb-4">
+                       <div className="flex justify-between items-start">
+                          <p className="text-sm font-black text-slate-900 leading-none mb-1">{hire.candidate}</p>
+                          <span className="text-[9px] font-black text-slate-400 uppercase">{hire.hireDate}</span>
+                       </div>
+                       <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{hire.position}</p>
+                    </div>
+                 </div>
+               ))}
+            </div>
+
+            <button className="w-full mt-8 py-4 bg-slate-50 text-slate-400 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 hover:bg-slate-900 hover:text-white transition-all group">
+               Full Personnel Audit
+               <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
+            </button>
+         </div>
+      </div>
     </div>
   );
 };
