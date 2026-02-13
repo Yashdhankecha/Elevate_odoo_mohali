@@ -278,7 +278,7 @@ const CompanyManagement = () => {
                     <div className="text-sm text-gray-900">
                       {company.address?.city}, {company.address?.state}
                     </div>
-                    <div className="text-sm text-gray-500">{company.address?.country}</div>
+                    <div className="text-sm text-gray-500">{typeof company.address?.country === 'object' ? (company.address.country.name || JSON.stringify(company.address.country)) : company.address?.country}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(company.status)}`}>
@@ -474,7 +474,7 @@ const CompanyManagement = () => {
                     <div>
                       <p className="text-gray-800">{selectedCompany.address.street}</p>
                       <p className="text-gray-800">{selectedCompany.address.city}, {selectedCompany.address.state}</p>
-                      <p className="text-gray-800">{selectedCompany.address.country} - {selectedCompany.address.zipCode}</p>
+                      <p className="text-gray-800">{(typeof selectedCompany.address.country === 'object' ? (selectedCompany.address.country.name || JSON.stringify(selectedCompany.address.country)) : selectedCompany.address.country)} - {selectedCompany.address.zipCode}</p>
                     </div>
                   </div>
                 </div>

@@ -97,7 +97,10 @@ const ResumeBuilder = () => {
   const [saving, setSaving] = useState(false);
   
   const { toPDF, targetRef } = usePDF({ 
-    filename: `${formData.personalInfo.fullName.replace(/\s+/g, '_') || 'resume'}_elevate.pdf` 
+    filename: `${formData.personalInfo.fullName.replace(/\s+/g, '_') || 'resume'}_elevate.pdf`,
+    method: 'save',
+    page: { margin: 10 },
+    canvas: { mimeType: 'image/jpeg', quality: 0.98, useCORS: true }
   });
 
   useEffect(() => {
@@ -111,12 +114,21 @@ const ResumeBuilder = () => {
       
       if (response.success && response.data) {
         const p = response.data;
+        const formatAddress = (addr) => {
+          if (!addr) return '';
+          if (typeof addr === 'string') return addr;
+          if (typeof addr === 'object') {
+            return [addr.city, addr.state, addr.country].filter(Boolean).join(', ') || JSON.stringify(addr);
+          }
+          return String(addr);
+        };
+
         setFormData({
           personalInfo: {
             fullName: p.name || '',
             email: p.email || '',
             phone: p.phone || '',
-            address: p.address || '',
+            address: formatAddress(p.address),
             linkedin: p.linkedin || '',
             summary: p.summary || ''
           },
@@ -134,6 +146,7 @@ const ResumeBuilder = () => {
         });
       }
     } catch (error) {
+      console.error(error);
       toast.error('Failed to load profile intelligence');
     } finally {
       setLoading(false);
@@ -178,7 +191,42 @@ const ResumeBuilder = () => {
     { id: 5, title: 'Awards', icon: Award, color: 'rose' }
   ];
 
-  const nextStep = () => setCurrentStep(s => Math.min(s + 1, steps.length - 1));
+  const validateStep = (step) => {
+    switch (step) {
+      case 0: // Personal Info
+        if (!formData.personalInfo.fullName?.trim()) { toast.error('Full Name is required'); return false; }
+        if (!formData.personalInfo.email?.trim()) { toast.error('Email is required'); return false; }
+        if (!formData.personalInfo.phone?.trim()) { toast.error('Phone number is required'); return false; }
+        if (!formData.personalInfo.address) { toast.error('Address is required'); return false; }
+        return true;
+      case 1: // Education
+        const validEdu = formData.education.some(edu => edu.degree?.trim() && edu.institution?.trim() && edu.year?.trim());
+        if (!validEdu) { toast.error('Please add at least one education qualification'); return false; }
+        return true;
+      case 2: // Experience
+        // Optional, but if filled, must be complete
+        const filledExp = formData.experience.filter(exp => exp.title || exp.company);
+        const validExp = filledExp.every(exp => exp.title?.trim() && exp.company?.trim());
+        if (!validExp) { toast.error('Please complete the details for all added experience entries'); return false; }
+        return true;
+      case 3: // Skills
+        if (!formData.skills?.trim()) { toast.error('Please add your skills'); return false; }
+        return true;
+      case 4: // Projects
+        const filledProj = formData.projects.filter(p => p.name || p.description);
+        const validProj = filledProj.every(p => p.name?.trim() && p.description?.trim());
+        if (filledProj.length > 0 && !validProj) { toast.error('Please complete the details for all added projects'); return false; }
+        return true;
+      default:
+        return true;
+    }
+  };
+
+  const nextStep = () => {
+    if (validateStep(currentStep)) {
+      setCurrentStep(s => Math.min(s + 1, steps.length - 1));
+    }
+  };
   const prevStep = () => setCurrentStep(s => Math.max(s - 1, 0));
 
   if (loading) {
@@ -210,13 +258,15 @@ const ResumeBuilder = () => {
              {showPreview ? <FileText size={18} /> : <Eye size={18} />}
              {showPreview ? 'Edit Assets' : 'Live Preview'}
            </button>
-           <button 
-             onClick={toPDF}
-             className="flex items-center gap-2 px-6 py-3 bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-2xl shadow-xl shadow-blue-200 hover:shadow-2xl transition-all font-bold text-sm active:scale-95"
-           >
-             <Download size={18} />
-             Export PDF
-           </button>
+           {showPreview && (
+             <button 
+               onClick={toPDF}
+               className="flex items-center gap-2 px-6 py-3 bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-2xl shadow-xl shadow-blue-200 hover:shadow-2xl transition-all font-bold text-sm active:scale-95"
+             >
+               <Download size={18} />
+               Export PDF
+             </button>
+           )}
         </div>
       </div>
 
@@ -471,16 +521,7 @@ const ResumeBuilder = () => {
         </div>
       ) : (
         <div className="animate-fade-in space-y-8">
-           <div className="flex justify-center">
-              <div className="bg-white p-2 rounded-2xl shadow-xl border border-gray-50 flex gap-2">
-                 <button onClick={toPDF} className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-xl font-bold text-sm hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100">
-                    <Download size={16} /> Download
-                 </button>
-                 <button onClick={() => setShowPreview(false)} className="px-6 py-3 bg-gray-50 text-gray-600 rounded-xl font-bold text-sm hover:bg-gray-100 transition-all">
-                    Return to Blueprint
-                 </button>
-              </div>
-           </div>
+
 
            {/* High Fidelity Resume Preview Canvas */}
            <div className="flex justify-center">

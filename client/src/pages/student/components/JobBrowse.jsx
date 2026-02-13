@@ -20,11 +20,13 @@ import {
 } from 'react-icons/fa';
 import { studentApi } from '../../../services/studentApi';
 
-// Safely extract a displayable string from location (API may return {country: "..."} object)
 const formatLocation = (loc) => {
   if (!loc) return 'Not specified';
   if (typeof loc === 'string') return loc;
-  if (typeof loc === 'object') return loc.country || loc.city || loc.state || JSON.stringify(loc);
+  if (typeof loc === 'object') {
+    const val = loc.country || loc.city || loc.state;
+    return typeof val === 'object' ? JSON.stringify(val) : String(val || JSON.stringify(loc));
+  }
   return String(loc);
 };
 
@@ -199,7 +201,7 @@ const JobBrowse = ({ setActiveSection }) => {
                 className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-xs font-bold text-gray-700 focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Global Reach</option>
-                {filters.locations.map((loc, i) => <option key={i} value={typeof loc === 'object' ? loc.country || '' : loc}>{formatLocation(loc)}</option>)}
+                {filters.locations.map((loc, i) => <option key={i} value={typeof loc === 'object' ? (typeof loc.country === 'object' ? JSON.stringify(loc.country) : loc.country) || '' : loc}>{formatLocation(loc)}</option>)}
               </select>
             </div>
             <div className="space-y-3">

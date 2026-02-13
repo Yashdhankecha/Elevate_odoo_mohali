@@ -67,10 +67,23 @@ const PracticeHub = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData(prev => {
+      const newData = { ...prev, [name]: value };
+      
+      if (name === 'totalQuestions' || name === 'correctAnswers') {
+        const total = parseFloat(name === 'totalQuestions' ? value : prev.totalQuestions);
+        const correct = parseFloat(name === 'correctAnswers' ? value : prev.correctAnswers);
+        
+        if (total > 0 && !isNaN(correct)) {
+          // Calculate percentage and cap at 100
+          const calcScore = Math.round((correct / total) * 100);
+          newData.score = Math.min(100, Math.max(0, calcScore)); 
+        } else if (!value) {
+           newData.score = ''; // Clear score if inputs are empty
+        }
+      }
+      return newData;
+    });
   };
 
   const categories = [
@@ -241,94 +254,164 @@ const PracticeHub = () => {
         </div>
       </div>
 
-      {/* Form Modal */}
+      {/* Premium Form Modal */}
       {showForm && (
-        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-fade-in">
-          <div className="glass-morphism bg-white rounded-[2.5rem] max-w-lg w-full overflow-hidden shadow-2xl flex flex-col p-8">
-            <div className="flex justify-between items-center mb-8">
-               <div>
-                  <h3 className="text-2xl font-black text-gray-800 uppercase">Log Session</h3>
-                  <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Record your practice performance</p>
-               </div>
-               <button onClick={() => setShowForm(false)} className="w-10 h-10 rounded-xl bg-gray-50 text-gray-400 hover:text-rose-500 hover:bg-rose-50 flex items-center justify-center transition-colors">
-                  <FaTimes size={18} />
-               </button>
-            </div>
+        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-md flex items-center justify-center z-[100] p-4 animate-fade-in">
+          <div className="relative w-full max-w-2xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-white/50">
             
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <label className="block text-xs font-bold text-gray-800 uppercase tracking-widest mb-2 px-1">Topic Name</label>
-                <input
-                  type="text"
-                  name="topic"
-                  value={formData.topic}
-                  onChange={handleInputChange}
-                  className="w-full bg-gray-50/50 border border-gray-100 rounded-2xl px-5 py-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all duration-300 shadow-inner"
-                  placeholder="e.g. Graph Algorithms"
-                  required
-                />
-              </div>
+            {/* Modal Header with decorative background */}
+            <div className="relative px-8 py-6 bg-gradient-to-br from-indigo-600 to-blue-600">
+               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-16 -mt-16 pointer-events-none"></div>
+               <div className="flex justify-between items-center relative z-10">
+                  <div>
+                     <h3 className="text-2xl font-black text-white tracking-tight uppercase">Log Session</h3>
+                     <p className="text-indigo-100/80 font-bold text-[10px] uppercase tracking-widest mt-1">Record your practice performance</p>
+                  </div>
+                  <button 
+                    onClick={() => setShowForm(false)} 
+                    className="w-10 h-10 rounded-xl bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm flex items-center justify-center transition-all"
+                  >
+                     <FaTimes size={16} />
+                  </button>
+               </div>
+            </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                 <div>
-                    <label className="block text-xs font-bold text-gray-800 uppercase tracking-widest mb-2 px-1">Category</label>
-                    <select
-                      name="category"
-                      value={formData.category}
-                      onChange={handleInputChange}
-                      className="w-full bg-gray-50/50 border border-gray-100 rounded-2xl px-5 py-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none cursor-pointer"
-                    >
-                      {categories.slice(1).map(cat => (
-                        <option key={cat.value} value={cat.value}>{cat.label}</option>
-                      ))}
-                    </select>
-                 </div>
-                 <div>
-                    <label className="block text-xs font-bold text-gray-800 uppercase tracking-widest mb-2 px-1">Difficulty</label>
-                    <select
-                      name="difficulty"
-                      value={formData.difficulty}
-                      onChange={handleInputChange}
-                      className="w-full bg-gray-50/50 border border-gray-100 rounded-2xl px-5 py-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none cursor-pointer"
-                    >
-                      <option value="easy">Easy</option>
-                      <option value="medium">Medium</option>
-                      <option value="hard">Hard</option>
-                    </select>
-                 </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                 <div>
-                    <label className="block text-xs font-bold text-gray-800 uppercase tracking-widest mb-2 px-1">Score Accuracy (%)</label>
-                    <input
-                      type="number"
-                      name="score"
-                      value={formData.score}
-                      onChange={handleInputChange}
-                      className="w-full bg-gray-50/50 border border-gray-100 rounded-2xl px-5 py-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-inner"
-                      required
-                    />
-                 </div>
-                 <div>
-                    <label className="block text-xs font-bold text-gray-800 uppercase tracking-widest mb-2 px-1">Time Spent (Min)</label>
-                    <input
-                      type="number"
-                      name="timeSpent"
-                      value={formData.timeSpent}
-                      onChange={handleInputChange}
-                      className="w-full bg-gray-50/50 border border-gray-100 rounded-2xl px-5 py-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-inner"
-                      required
-                    />
-                 </div>
-              </div>
-              
-              <button
-                type="submit"
-                className="w-full py-5 bg-indigo-600 text-white rounded-[1.8rem] font-bold uppercase tracking-widest text-[11px] shadow-xl shadow-indigo-200 hover:bg-indigo-700 transition-all duration-300 mt-4"
-              >
-                Save Practice Session
-              </button>
+            <form onSubmit={handleSubmit} className="p-8 space-y-6">
+               <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2">Focus Topic</label>
+                  <div className="relative group">
+                     <FaBookOpen className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-600 transition-colors" size={14} />
+                     <input
+                        type="text"
+                        name="topic"
+                        value={formData.topic}
+                        onChange={handleInputChange}
+                        className="w-full bg-gray-50 border-none rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-gray-700 focus:ring-2 focus:ring-indigo-100 focus:bg-white transition-all"
+                        placeholder="e.g. Advanced Graph Algorithms"
+                        required
+                     />
+                  </div>
+               </div>
+
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2">Domain Category</label>
+                     <div className="relative group">
+                        <select
+                           name="category"
+                           value={formData.category}
+                           onChange={handleInputChange}
+                           className="w-full bg-gray-50 border-none rounded-2xl px-4 py-4 text-sm font-bold text-gray-700 focus:ring-2 focus:ring-indigo-100 focus:bg-white transition-all appearance-none cursor-pointer"
+                        >
+                           {categories.slice(1).map(cat => (
+                           <option key={cat.value} value={cat.value}>{cat.label}</option>
+                           ))}
+                        </select>
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                           <FaFilter size={12} />
+                        </div>
+                     </div>
+                  </div>
+
+                  <div className="space-y-2">
+                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2">Complexity Level</label>
+                     <div className="grid grid-cols-3 gap-2 bg-gray-50 p-1 rounded-2xl">
+                        {['easy', 'medium', 'hard'].map((level) => (
+                           <button
+                              key={level}
+                              type="button"
+                              onClick={() => setFormData(prev => ({ ...prev, difficulty: level }))}
+                              className={`py-3 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${
+                                 formData.difficulty === level
+                                 ? level === 'easy' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-200'
+                                 : level === 'medium' ? 'bg-amber-500 text-white shadow-lg shadow-amber-200'
+                                 : 'bg-rose-500 text-white shadow-lg shadow-rose-200'
+                                 : 'text-gray-400 hover:bg-gray-200/50'
+                              }`}
+                           >
+                              {level}
+                           </button>
+                        ))}
+                     </div>
+                  </div>
+               </div>
+
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2">Total Questions</label>
+                     <div className="relative group">
+                        <FaBookOpen className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-600 transition-colors" size={14} />
+                        <input
+                           type="number"
+                           name="totalQuestions"
+                           value={formData.totalQuestions}
+                           onChange={handleInputChange}
+                           className="w-full bg-gray-50 border-none rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-gray-700 focus:ring-2 focus:ring-indigo-100 focus:bg-white transition-all"
+                           placeholder="20"
+                           required
+                        />
+                     </div>
+                  </div>
+
+                  <div className="space-y-2">
+                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2">Correct Answers</label>
+                     <div className="relative group">
+                        <FaTrophy className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-600 transition-colors" size={14} />
+                        <input
+                           type="number"
+                           name="correctAnswers"
+                           value={formData.correctAnswers}
+                           onChange={handleInputChange}
+                           className="w-full bg-gray-50 border-none rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-gray-700 focus:ring-2 focus:ring-indigo-100 focus:bg-white transition-all"
+                           placeholder="18"
+                           required
+                        />
+                     </div>
+                  </div>
+               </div>
+
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2">Accuracy Score %</label>
+                     <div className="relative group">
+                        <FaChartBar className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-600 transition-colors" size={14} />
+                        <input
+                           type="number"
+                           name="score"
+                           value={formData.score}
+                           onChange={handleInputChange}
+                           min="0"
+                           max="100"
+                           className="w-full bg-gray-100 border-none rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-gray-500 focus:ring-0 cursor-not-allowed"
+                           placeholder="Calculated automatically"
+                           readOnly
+                        />
+                     </div>
+                  </div>
+
+                  <div className="space-y-2">
+                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2">Time Dedicated (Min)</label>
+                     <div className="relative group">
+                        <FaClock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-600 transition-colors" size={14} />
+                        <input
+                           type="number"
+                           name="timeSpent"
+                           value={formData.timeSpent}
+                           onChange={handleInputChange}
+                           className="w-full bg-gray-50 border-none rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-gray-700 focus:ring-2 focus:ring-indigo-100 focus:bg-white transition-all"
+                           placeholder="45"
+                           required
+                        />
+                     </div>
+                  </div>
+               </div>
+
+               <button
+                  type="submit"
+                  className="w-full py-5 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-[1.8rem] font-black uppercase tracking-widest text-xs shadow-xl shadow-indigo-200 hover:shadow-2xl hover:scale-[1.01] active:scale-[0.98] transition-all duration-300 mt-6"
+               >
+                  Verify & Log Session
+               </button>
             </form>
           </div>
         </div>

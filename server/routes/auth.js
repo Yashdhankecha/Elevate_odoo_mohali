@@ -650,11 +650,20 @@ router.post('/login', [
     let isUserActive = false;
 
     if (user.constructor.modelName === 'Student') {
+      // For students, check if they are active and verified
       isUserActive = user.isActive;
-      userStatus = user.isActive ? 'active' : 'pending';
+      // If student has verificationStatus (schema update), check that too
+      if (user.verificationStatus && user.verificationStatus !== 'verified') {
+        userStatus = user.verificationStatus;
+        // If pending/rejected, marks as inactive for login purposes unless we want to allow login but restricted access
+        // For now, let's stick to the existing behavior but ensure status is tracked
+      } else {
+        userStatus = user.isActive ? 'active' : 'pending';
+      }
     } else if (user.constructor.modelName === 'Company') {
-      isUserActive = user.isActive;
-      userStatus = user.isActive ? 'active' : 'pending';
+      // Company uses 'status' field ('pending', 'active', 'rejected')
+      userStatus = user.status;
+      isUserActive = user.status === 'active';
     } else if (user.constructor.modelName === 'TPO') {
       userStatus = user.status;
       isUserActive = user.status === 'active';
