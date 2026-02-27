@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  FaBuilding, 
-  FaPlus, 
-  FaSearch, 
-  FaFilter, 
-  FaEdit, 
-  FaEye, 
+import {
+  FaBuilding,
+  FaPlus,
+  FaSearch,
+  FaFilter,
+  FaEdit,
+  FaEye,
   FaTrash,
   FaCheckCircle,
   FaTimesCircle,
@@ -48,18 +48,46 @@ const CompanyManagement = () => {
     try {
       setLoading(true);
       setError(null);
-      
-      const params = {
-        page: pagination.currentPage,
-        limit: 10
-      };
+
+      const params = {};
 
       if (searchQuery) params.search = searchQuery;
       if (filterStatus !== 'All') params.status = filterStatus;
 
       const response = await tpoApi.getCompanies(params);
-      setCompanies(response.companies);
-      setPagination(response.pagination);
+
+      // Handle both response formats:
+      // 1. Array of companies (current API)
+      // 2. Object with { companies, pagination } (future API)
+      let companiesList = [];
+      let paginationData = null;
+
+      if (Array.isArray(response)) {
+        companiesList = response;
+      } else if (response && Array.isArray(response.companies)) {
+        companiesList = response.companies;
+        paginationData = response.pagination;
+      } else if (response && typeof response === 'object') {
+        companiesList = Object.values(response).find(Array.isArray) || [];
+      }
+
+      setCompanies(companiesList);
+
+      // Use server pagination if available, otherwise build from full list
+      if (paginationData) {
+        setPagination(paginationData);
+      } else {
+        const page = pagination.currentPage || 1;
+        const limit = 10;
+        const total = companiesList.length;
+        setPagination({
+          currentPage: page,
+          totalPages: Math.max(1, Math.ceil(total / limit)),
+          totalCompanies: total,
+          hasNext: page * limit < total,
+          hasPrev: page > 1
+        });
+      }
     } catch (err) {
       console.error('Error fetching companies:', err);
       setError(err.message || 'Failed to load companies');
@@ -148,7 +176,7 @@ const CompanyManagement = () => {
           <p className="text-gray-600">Manage and track company partnerships</p>
         </div>
         <div className="flex items-center space-x-3">
-          <button 
+          <button
             onClick={exportCompanyData}
             className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center space-x-2"
           >
@@ -214,7 +242,7 @@ const CompanyManagement = () => {
             <div>
               <h3 className="text-red-800 font-medium">Error Loading Companies</h3>
               <p className="text-red-600 text-sm mt-1">{error}</p>
-              <button 
+              <button
                 onClick={fetchCompanies}
                 className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
               >
@@ -294,7 +322,7 @@ const CompanyManagement = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex space-x-2">
-                      <button 
+                      <button
                         onClick={() => handleViewCompany(company)}
                         className="text-blue-600 hover:text-blue-900"
                         title="View Details"
@@ -353,26 +381,25 @@ const CompanyManagement = () => {
                   >
                     <FaChevronLeft className="w-4 h-4" />
                   </button>
-                  
+
                   {[...Array(pagination.totalPages)].map((_, index) => {
                     const pageNumber = index + 1;
                     const isCurrentPage = pageNumber === pagination.currentPage;
-                    
+
                     return (
                       <button
                         key={pageNumber}
                         onClick={() => handlePageChange(pageNumber)}
-                        className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                          isCurrentPage
+                        className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${isCurrentPage
                             ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
                             : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                        }`}
+                          }`}
                       >
                         {pageNumber}
                       </button>
                     );
                   })}
-                  
+
                   <button
                     onClick={() => handlePageChange(pagination.currentPage + 1)}
                     disabled={!pagination.hasNext}
@@ -402,7 +429,7 @@ const CompanyManagement = () => {
                 </button>
               </div>
             </div>
-            
+
             <div className="p-6 space-y-6">
               {/* Basic Information */}
               <div>

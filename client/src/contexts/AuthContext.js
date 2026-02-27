@@ -203,16 +203,19 @@ export const AuthProvider = ({ children }) => {
 
       // Check if account requires approval (for TPO/Company)
       if (error.response?.data?.requiresApproval) {
-        navigate('/approval-pending', {
-          state: {
-            role: error.response.data.role || 'user',
-            email: email,
-            message: message
-          }
-        });
         return {
           success: false,
           requiresApproval: true,
+          role: error.response.data.role || 'user',
+          message
+        };
+      }
+
+      // Check if account was rejected
+      if (error.response?.data?.registrationRejected) {
+        return {
+          success: false,
+          registrationRejected: true,
           message
         };
       }

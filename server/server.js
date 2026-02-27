@@ -16,8 +16,12 @@ app.use(cors({
   credentials: true
 }));
 
-// Database connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://tripod:karanharshyash@clustercgc.lb9dcwd.mongodb.net/elevate_odoo_mohali?retryWrites=true&w=majority&appName=ClusterCGC')
+// Database connection — using direct connection string to bypass SRV DNS lookup issues
+const MONGODB_DIRECT_URI = 'mongodb://tripod:karanharshyash@ac-kauqk1j-shard-00-00.lb9dcwd.mongodb.net:27017,ac-kauqk1j-shard-00-01.lb9dcwd.mongodb.net:27017,ac-kauqk1j-shard-00-02.lb9dcwd.mongodb.net:27017/elevate_odoo_mohali?ssl=true&replicaSet=atlas-rh3iy8-shard-0&authSource=admin&retryWrites=true&w=majority&appName=ClusterCGC';
+
+mongoose.connect(process.env.MONGODB_URI || MONGODB_DIRECT_URI, {
+  family: 4,  // Force IPv4
+})
   .then(() => console.log('✅ Connected to MongoDB - Elevate Placement Tracker'))
   .catch(err => console.error('❌ MongoDB connection error:', err));
 
