@@ -1,11 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const { authenticateToken: auth } = require('../middleware/auth');
-const JobPosting = require('../models/JobPosting'); // Changed from Job
-const JobApplication = require('../models/JobApplication'); // Changed from Application
+const JobPosting = require('../models/JobPosting');
+const JobApplication = require('../models/JobApplication');
 const Interview = require('../models/Interview');
 const Company = require('../models/Company');
 const Student = require('../models/Student');
+const Notification = require('../models/Notification');
+const TPOAction = require('../models/TPOAction');
+const TPO = require('../models/TPO');
 
 // Middleware to ensure user is a company
 const ensureCompany = async (req, res, next) => {
@@ -22,11 +25,10 @@ const ensureCompany = async (req, res, next) => {
 // ==================== JOB MANAGEMENT ====================
 
 // Get all jobs for the company
-// Get all jobs for the company
 router.get('/jobs', auth, ensureCompany, async (req, res) => {
   try {
     const jobs = await JobPosting.find({ company: req.user._id })
-      .sort({ postedAt: -1 });
+      .sort({ createdAt: -1 });
 
     // Calculate application counts for each job
     const jobsWithCounts = await Promise.all(jobs.map(async (job) => {
@@ -44,28 +46,75 @@ router.get('/jobs', auth, ensureCompany, async (req, res) => {
   }
 });
 
-// Create a new job
-// Create a new job
+// Get a single job posting with full details
+router.get('/jobs/:id', auth, ensureCompany, async (req, res) => {
+  try {
+    const job = await JobPosting.findOne({ _id: req.params.id, company: req.user._id });
+    if (!job) {
+      return res.status(404).json({ message: 'Job not found' });
+    }
+    const applicationCount = await JobApplication.countDocuments({ jobPosting: job._id });
+    res.json({ ...job.toObject(), applicationCount });
+  } catch (error) {
+    console.error('Error fetching job:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Create a new job (supports both legacy simple form and new comprehensive form)
 router.post('/jobs', auth, ensureCompany, async (req, res) => {
   try {
-    const {
-      title,
-      department, // Map to category? or keep if you added it to schema?
-      description,
-      requirements,
-      location,
-      salary, // Map to package
-      type,
-      deadline,
-      skills,
-      experience
-    } = req.body;
+    const body = req.body;
 
-    // Parse salary if string "5-10 LPA" to separate numbers for package
+    // Detect if this is a comprehensive form submission (has jobTitle field)
+    if (body.jobTitle) {
+      // Comprehensive job posting form
+      const job = new JobPosting({
+        ...body,
+        company: req.user._id,
+        createdBy: req.user._id,
+        status: body.status || 'draft',
+        isActive: false
+      });
+      // If saving as draft, bypass validation so partial forms work
+      if (job.status === 'draft') {
+        await job.save({ validateBeforeSave: false });
+      } else {
+        await job.save();
+      }
+
+      // If submitting for on-campus, set pending approval and notify TPOs
+      if (body.status === 'pending_approval' && body.driveType === 'on_campus') {
+        // Find all TPOs to notify
+        const tpos = await TPO.find({ status: 'active' }).limit(50);
+        for (const tpo of tpos) {
+          await Notification.createNotification({
+            recipient: tpo._id,
+            title: 'New On-Campus Job Posting Pending Approval',
+            message: `${body.companyName} has submitted a new on-campus job posting for "${body.jobTitle}". Review and approve.`,
+            type: 'job',
+            priority: 'high',
+            relatedData: { jobPostingId: job._id, jobId: job.jobId }
+          });
+        }
+      }
+
+      // If off-campus, auto-publish
+      if (body.status === 'active' && body.driveType === 'off_campus') {
+        job.isActive = true;
+        job.postedAt = new Date();
+        await job.save();
+      }
+
+      return res.status(201).json(job);
+    }
+
+    // Legacy simple form
+    const { title, department, description, requirements, location, salary, type, deadline, skills, experience } = body;
+
     let packageMin = 0;
     let packageMax = 0;
     if (salary && typeof salary === 'string') {
-      // Simple extraction logic, refine as needed
       const matches = salary.match(/(\d+)/g);
       if (matches) {
         packageMin = matches[0] ? parseInt(matches[0]) * 100000 : 0;
@@ -82,15 +131,11 @@ router.post('/jobs', auth, ensureCompany, async (req, res) => {
       description,
       requirements: Array.isArray(requirements) ? requirements : [requirements],
       location,
-      package: {
-        min: packageMin,
-        max: packageMax,
-        currency: 'INR'
-      },
+      package: { min: packageMin, max: packageMax, currency: 'INR' },
       type: type || 'full-time',
       deadline: new Date(deadline),
       skills: Array.isArray(skills) ? skills : [],
-      category: department || 'software-engineering', // Fallback or mapping
+      category: department || 'software-engineering',
       isActive: true,
       experience: experience || { min: 0, max: 2 }
     });
@@ -99,12 +144,81 @@ router.post('/jobs', auth, ensureCompany, async (req, res) => {
     res.status(201).json(job);
   } catch (error) {
     console.error('Error creating job:', error);
+    require('fs').appendFileSync('job_create_error.log', new Date().toISOString() + ': ' + error.stack + '\n');
+    res.status(500).json({ message: 'Server error', details: error.message });
+  }
+});
+
+// Save job as draft (partial data ok)
+router.patch('/jobs/:id/draft', auth, ensureCompany, async (req, res) => {
+  try {
+    const job = await JobPosting.findOne({ _id: req.params.id, company: req.user._id });
+    if (!job) {
+      return res.status(404).json({ message: 'Job not found' });
+    }
+    if (!['draft', 'changes_requested'].includes(job.status)) {
+      return res.status(400).json({ message: 'Can only save drafts for draft or changes-requested jobs' });
+    }
+
+    // Merge partial data
+    Object.keys(req.body).forEach(key => {
+      if (key !== '_id' && key !== 'company' && key !== 'jobId') {
+        job[key] = req.body[key];
+      }
+    });
+    job.status = 'draft';
+    await job.save({ validateBeforeSave: false });
+    res.json(job);
+  } catch (error) {
+    console.error('Error saving draft:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
 
-// Update a job
-// Update a job
+// Submit job for approval (on-campus) or publish (off-campus)
+router.post('/jobs/:id/submit', auth, ensureCompany, async (req, res) => {
+  try {
+    const job = await JobPosting.findOne({ _id: req.params.id, company: req.user._id });
+    if (!job) {
+      return res.status(404).json({ message: 'Job not found' });
+    }
+    if (!['draft', 'changes_requested'].includes(job.status)) {
+      return res.status(400).json({ message: 'Job cannot be submitted in its current state' });
+    }
+
+    if (job.driveType === 'on_campus') {
+      job.status = 'pending_approval';
+      await job.save();
+
+      // Notify TPOs
+      const tpos = await TPO.find({ status: 'active' }).limit(50);
+      for (const tpo of tpos) {
+        await Notification.createNotification({
+          recipient: tpo._id,
+          title: 'Job Posting Pending Approval',
+          message: `${job.companyName || 'A company'} submitted "${job.jobTitle || job.title}" for on-campus drive review.`,
+          type: 'job',
+          priority: 'high',
+          relatedData: { jobPostingId: job._id, jobId: job.jobId }
+        });
+      }
+
+      res.json({ message: 'Job submitted for TPO approval', job });
+    } else {
+      // Off-campus: auto-publish
+      job.status = 'active';
+      job.isActive = true;
+      job.postedAt = new Date();
+      await job.save();
+      res.json({ message: 'Job published successfully', job });
+    }
+  } catch (error) {
+    console.error('Error submitting job:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Update a job (supports both legacy and comprehensive form)
 router.put('/jobs/:id', auth, ensureCompany, async (req, res) => {
   try {
     const job = await JobPosting.findOne({ _id: req.params.id, company: req.user._id });
@@ -113,18 +227,22 @@ router.put('/jobs/:id', auth, ensureCompany, async (req, res) => {
       return res.status(404).json({ message: 'Job not found' });
     }
 
-    const {
-      title,
-      department,
-      description,
-      requirements,
-      location,
-      salary,
-      type,
-      deadline,
-      status, // 'Active'/'Draft' mapped to isActive
-      skills
-    } = req.body;
+    const body = req.body;
+
+    // Comprehensive form update (has jobTitle)
+    if (body.jobTitle) {
+      const protectedFields = ['_id', 'company', 'jobId', 'createdBy', 'createdAt'];
+      Object.keys(body).forEach(key => {
+        if (!protectedFields.includes(key)) {
+          job[key] = body[key];
+        }
+      });
+      await job.save();
+      return res.json(job);
+    }
+
+    // Legacy form update
+    const { title, department, description, requirements, location, salary, type, deadline, status, skills } = body;
 
     if (title) job.title = title;
     if (department) job.category = department;
@@ -133,7 +251,6 @@ router.put('/jobs/:id', auth, ensureCompany, async (req, res) => {
     if (location) job.location = location;
 
     if (salary) {
-      // Re-parse logic similar to create
       let packageMin = 0;
       let packageMax = 0;
       if (typeof salary === 'string') {
@@ -457,35 +574,19 @@ router.get('/profile', auth, ensureCompany, async (req, res) => {
 // Update company profile
 router.put('/profile', auth, ensureCompany, async (req, res) => {
   try {
-    const {
-      companyName,
-      contactNumber,
-      industry,
-      companySize,
-      website,
-      address,
-      description
-    } = req.body;
+    const updateData = req.body;
+    let company = await Company.findById(req.user._id);
 
-    // Use req.user directly if it's a Mongoose document, or fetch fresh
-    let company = req.user;
-
-    // In case req.user is a plain object or detached
-    if (!company.save) {
-      company = await Company.findById(req.user._id);
+    if (!company) {
+      return res.status(404).json({ message: 'Company not found' });
     }
 
-    if (companyName) company.companyName = companyName;
-    if (contactNumber) company.contactNumber = contactNumber;
-    if (industry) company.industry = industry;
-    // Map to schema - check schema for extra fields
-    // Company Schema has: companyName, contactNumber, email, etc.
-    // It doesn't seem to have industry/companySize/website in the snippet I saw earlier (lines 1-50 of Company.js)
-    // But assuming they exist or we need to add them. 
-    // IF the schema is flat and these fields missing, we can't save them.
-    // Let's assume standard fields.
-
-    if (description) company.description = description;
+    const protectedFields = ['_id', 'email', 'password', 'role', 'status', 'isVerified'];
+    Object.keys(updateData).forEach(key => {
+      if (!protectedFields.includes(key)) {
+        company[key] = updateData[key];
+      }
+    });
 
     await company.save();
 

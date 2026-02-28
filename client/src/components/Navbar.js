@@ -37,9 +37,6 @@ const Navbar = () => {
                                 <Link to="/dashboard" className="text-sm font-semibold text-gray-600 hover:text-blue-600 transition-colors">
                                     Dashboard
                                 </Link>
-                                <Link to="/profile" className="text-sm font-semibold text-gray-600 hover:text-blue-600 transition-colors">
-                                    Profile
-                                </Link>
                                 <button
                                     onClick={handleLogout}
                                     className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-red-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all duration-300"
@@ -82,9 +79,6 @@ const Navbar = () => {
                             <>
                                 <Link to="/dashboard" onClick={() => setMobileMenuOpen(false)} className="block px-4 py-3 text-sm font-semibold text-gray-600 hover:bg-gray-50 rounded-xl">
                                     Dashboard
-                                </Link>
-                                <Link to="/profile" onClick={() => setMobileMenuOpen(false)} className="block px-4 py-3 text-sm font-semibold text-gray-600 hover:bg-gray-50 rounded-xl">
-                                    Profile
                                 </Link>
                                 <button onClick={handleLogout} className="w-full text-left px-4 py-3 text-sm font-semibold text-red-500 hover:bg-red-50 rounded-xl">
                                     Logout

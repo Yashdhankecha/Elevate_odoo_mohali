@@ -1,31 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Briefcase, 
-  Plus, 
-  Edit3, 
-  Trash2, 
-  Eye, 
-  Clock, 
-  Users,
-  MapPin,
-  CircleDollarSign,
-  Calendar,
-  Loader2,
-  Search,
-  Filter,
-  ArrowUpRight,
-  MoreVertical,
-  ChevronRight,
-  AlertCircle,
-  CheckCircle2,
-  X
+  Briefcase, Plus, Edit3, Trash2, Eye, Clock, Users,
+  MapPin, CircleDollarSign, Calendar, Loader2, Search,
+  Filter, ArrowUpRight, MoreVertical, ChevronRight,
+  AlertCircle, CheckCircle2, X
 } from 'lucide-react';
-import { 
-  getCompanyJobs, 
-  createJob, 
-  updateJob, 
-  deleteJob 
-} from '../../../services/companyApi';
+import { getCompanyJobs, deleteJob } from '../../../services/companyApi';
+import JobPostingForm from './JobPostingForm';
 
 const JobManagement = () => {
   const [jobs, setJobs] = useState([]);
@@ -35,7 +16,6 @@ const JobManagement = () => {
   const [selectedJob, setSelectedJob] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterDepartment, setFilterDepartment] = useState('');
-  const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState(null);
 
   useEffect(() => {
@@ -70,29 +50,13 @@ const JobManagement = () => {
     }
   };
 
-  const handleSubmitJob = async (formData) => {
-    try {
-      setSubmitting(true);
-      if (selectedJob) {
-        const updatedJob = await updateJob(selectedJob._id, formData);
-        setJobs(jobs.map(job => job._id === selectedJob._id ? updatedJob : job));
-        showToast('Posting manifest updated');
-      } else {
-        const newJob = await createJob(formData);
-        setJobs([...jobs, newJob]);
-        showToast('New position deployed to market');
-      }
-      setShowJobModal(false);
-    } catch (err) {
-      showToast('Strategic manifest update failed', 'error');
-    } finally {
-      setSubmitting(false);
-    }
-  };
+
 
   const filteredJobs = jobs.filter(job => {
-    const statusMatch = filterStatus === 'all' || job.status.toLowerCase() === filterStatus.toLowerCase();
-    const deptMatch = !filterDepartment || job.department.toLowerCase() === filterDepartment.toLowerCase();
+    const jobStatus = (job.status || (job.isActive ? 'active' : 'draft')).toLowerCase();
+    const statusMatch = filterStatus === 'all' || jobStatus === filterStatus.toLowerCase();
+    const jobDept = (job.department || job.category || '').toLowerCase();
+    const deptMatch = !filterDepartment || jobDept === filterDepartment.toLowerCase();
     return statusMatch && deptMatch;
   });
 
@@ -132,7 +96,7 @@ const JobManagement = () => {
           className="flex items-center gap-2 px-6 py-3.5 bg-slate-900 text-white rounded-2xl shadow-xl shadow-slate-200 hover:shadow-2xl transition-all font-black uppercase text-[10px] tracking-widest active:scale-95 group"
         >
           <Plus size={16} className="group-hover:rotate-90 transition-transform" />
-          Deploy New Position
+          New Requirement
         </button>
       </div>
 
@@ -150,9 +114,11 @@ const JobManagement = () => {
               className="bg-transparent border-none text-sm font-bold text-slate-900 focus:ring-0 cursor-pointer"
             >
               <option value="all">All Statuses</option>
-              <option value="active">Active Market</option>
-              <option value="draft">Draft Protocol</option>
-              <option value="closed">Closed Legacy</option>
+              <option value="active">Active</option>
+              <option value="draft">Draft</option>
+              <option value="pending_approval">Pending Approval</option>
+              <option value="approved">Approved</option>
+              <option value="closed">Closed</option>
             </select>
 
             <select 
@@ -160,8 +126,8 @@ const JobManagement = () => {
               onChange={(e) => setFilterDepartment(e.target.value)}
               className="bg-transparent border-none text-sm font-bold text-slate-900 focus:ring-0 cursor-pointer"
             >
-              <option value="">Global Depts</option>
-              {['Engineering', 'Data Science', 'Product', 'Marketing', 'Sales'].map(d => (
+              <option value="">All Depts</option>
+              {['Engineering', 'Sales', 'Marketing', 'HR', 'Finance', 'Operations', 'Product', 'Design', 'Other'].map(d => (
                 <option key={d} value={d.toLowerCase()}>{d}</option>
               ))}
             </select>
@@ -186,18 +152,37 @@ const JobManagement = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-          {filteredJobs.map((job) => (
+          {filteredJobs.map((job) => {
+            const jobTitle = job.jobTitle || job.title || 'Untitled';
+            const jobDept = job.department || job.category || '';
+            const jobLocation = job.companyLocation || job.location || '';
+            const jobSalary = job.ctc ? `₹${(job.ctc / 100000).toFixed(1)} LPA` : (job.salary || job.stipend ? `₹${job.stipend}/mo` : '—');
+            const jobDeadline = job.applicationDeadline || job.deadline;
+            const jobDesc = job.jobDescription || job.description || '';
+            const jobStatus = (job.status || (job.isActive ? 'active' : 'draft')).toLowerCase();
+            const statusColors = {
+              active: { bg: 'bg-emerald-50', border: 'border-emerald-100', dot: 'bg-emerald-500 animate-pulse', text: 'text-emerald-700' },
+              approved: { bg: 'bg-emerald-50', border: 'border-emerald-100', dot: 'bg-emerald-500', text: 'text-emerald-700' },
+              draft: { bg: 'bg-amber-50', border: 'border-amber-100', dot: 'bg-amber-500', text: 'text-amber-700' },
+              pending_approval: { bg: 'bg-blue-50', border: 'border-blue-100', dot: 'bg-blue-500 animate-pulse', text: 'text-blue-700' },
+              rejected: { bg: 'bg-rose-50', border: 'border-rose-100', dot: 'bg-rose-500', text: 'text-rose-700' },
+              changes_requested: { bg: 'bg-orange-50', border: 'border-orange-100', dot: 'bg-orange-500', text: 'text-orange-700' },
+              closed: { bg: 'bg-slate-50', border: 'border-slate-200', dot: 'bg-slate-400', text: 'text-slate-500' },
+            };
+            const sc = statusColors[jobStatus] || statusColors.draft;
+
+            return (
             <div key={job._id} className="group glass-card p-8 rounded-[2.5rem] hover-lift border-white/50 relative overflow-hidden flex flex-col justify-between min-h-[400px]">
               <div className="space-y-6">
                 <div className="flex justify-between items-start">
                    <div className="space-y-1">
-                      <span className="text-[9px] font-black uppercase bg-blue-50 text-blue-600 px-2 py-0.5 rounded tracking-widest">{job.department}</span>
-                      <h3 className="text-xl font-black text-slate-900 tracking-tight leading-tight group-hover:text-blue-600 transition-colors">{job.title}</h3>
+                      <span className="text-[9px] font-black uppercase bg-blue-50 text-blue-600 px-2 py-0.5 rounded tracking-widest">{jobDept}</span>
+                      {job.jobId && <span className="text-[9px] font-bold text-slate-400 ml-2">{job.jobId}</span>}
+                      <h3 className="text-xl font-black text-slate-900 tracking-tight leading-tight group-hover:text-blue-600 transition-colors">{jobTitle}</h3>
                    </div>
-                   <div className={`p-2 rounded-xl border ${
-                     job.status === 'Active' ? 'bg-emerald-50 border-emerald-100' : 'bg-amber-50 border-amber-100'
-                   }`}>
-                      <div className={`w-2 h-2 rounded-full ${job.status === 'Active' ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`}></div>
+                   <div className={`px-2.5 py-1 rounded-xl border flex items-center gap-1.5 ${sc.bg} ${sc.border}`}>
+                      <div className={`w-2 h-2 rounded-full ${sc.dot}`}></div>
+                      <span className={`text-[9px] font-bold uppercase ${sc.text}`}>{jobStatus.replace('_', ' ')}</span>
                    </div>
                 </div>
 
@@ -205,16 +190,16 @@ const JobManagement = () => {
                    <div className="space-y-1">
                       <div className="flex items-center gap-1.5 text-slate-400">
                          <MapPin size={12} />
-                         <span className="text-[9px] font-black uppercase tracking-tighter">Coordinates</span>
+                         <span className="text-[9px] font-black uppercase tracking-tighter">Location</span>
                       </div>
-                      <p className="text-xs font-bold text-slate-700 truncate">{job.location}</p>
+                      <p className="text-xs font-bold text-slate-700 truncate">{jobLocation}</p>
                    </div>
                    <div className="space-y-1">
                       <div className="flex items-center gap-1.5 text-slate-400">
                          <CircleDollarSign size={12} />
-                         <span className="text-[9px] font-black uppercase tracking-tighter">Treasury</span>
+                         <span className="text-[9px] font-black uppercase tracking-tighter">Package</span>
                       </div>
-                      <p className="text-xs font-bold text-slate-700 truncate">{job.salary}</p>
+                      <p className="text-xs font-bold text-slate-700 truncate">{jobSalary}</p>
                    </div>
                    <div className="space-y-1">
                       <div className="flex items-center gap-1.5 text-slate-400">
@@ -222,25 +207,25 @@ const JobManagement = () => {
                          <span className="text-[9px] font-black uppercase tracking-tighter">Applied</span>
                       </div>
                       <div className="flex items-center gap-2">
-                         <p className="text-xs font-bold text-slate-700">{job.applications || 0}</p>
+                         <p className="text-xs font-bold text-slate-700">{job.applicationCount || 0}</p>
                          <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden min-w-[60px]">
-                            <div className="h-full bg-blue-500" style={{ width: `${Math.min((job.applications || 0) * 10, 100)}%` }}></div>
+                            <div className="h-full bg-blue-500" style={{ width: `${Math.min((job.applicationCount || 0) * 10, 100)}%` }}></div>
                          </div>
                       </div>
                    </div>
                    <div className="space-y-1">
                       <div className="flex items-center gap-1.5 text-slate-400">
                          <Calendar size={12} />
-                         <span className="text-[9px] font-black uppercase tracking-tighter">Expiry</span>
+                         <span className="text-[9px] font-black uppercase tracking-tighter">Deadline</span>
                       </div>
-                      <p className="text-xs font-bold text-slate-700 truncate">{new Date(job.deadline).toLocaleDateString()}</p>
+                      <p className="text-xs font-bold text-slate-700 truncate">{jobDeadline ? new Date(jobDeadline).toLocaleDateString() : '—'}</p>
                    </div>
                 </div>
 
                 <div className="h-px bg-slate-50 w-full my-6"></div>
 
                 <p className="text-xs text-slate-500 line-clamp-3 leading-relaxed">
-                   {job.description}
+                   {jobDesc}
                 </p>
               </div>
 
@@ -263,192 +248,21 @@ const JobManagement = () => {
                 </button>
               </div>
             </div>
-          ))}
+          )})}
         </div>
       )}
 
-      {/* Modern Modal */}
+      {/* Job Posting Form Modal */}
       {showJobModal && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-6 overflow-hidden">
-           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-fade-in" onClick={() => !submitting && setShowJobModal(false)}></div>
-           
-           <div className="bg-white rounded-[3rem] w-full max-w-3xl max-h-[90vh] overflow-y-auto custom-scrollbar relative z-10 animate-slide-up shadow-2xl">
-              <JobForm 
-                job={selectedJob} 
-                onClose={() => setShowJobModal(false)}
-                onSubmit={handleSubmitJob}
-                submitting={submitting}
-              />
-           </div>
-        </div>
+        <JobPostingForm
+          job={selectedJob}
+          onClose={() => setShowJobModal(false)}
+          onSuccess={() => { setShowJobModal(false); fetchJobs(); }}
+        />
       )}
-    </div>
-  );
-};
-
-const JobForm = ({ job, onClose, onSubmit, submitting }) => {
-  const [formData, setFormData] = useState({
-    title: job?.title || '',
-    department: job?.department || '',
-    location: job?.location || '',
-    salary: job?.salary || '',
-    deadline: job?.deadline ? job.deadline.split('T')[0] : '',
-    description: job?.description || '',
-    requirements: job?.requirements?.join(', ') || '',
-    status: job?.status || 'Active'
-  });
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onSubmit({
-      ...formData,
-      requirements: formData.requirements.split(',').map(req => req.trim()).filter(req => req)
-    });
-  };
-
-  return (
-    <div className="relative">
-      <div className="p-8 md:p-12 border-b border-slate-50 flex justify-between items-center sticky top-0 bg-white/80 backdrop-blur-xl z-20">
-         <div>
-            <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-               {job ? 'Modify Vector' : 'Initiate Position'}
-            </h2>
-            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Strategic Manifesto</p>
-         </div>
-         <button onClick={onClose} className="w-12 h-12 flex items-center justify-center rounded-2xl hover:bg-slate-50 transition-all text-slate-400">
-            <X size={24} />
-         </button>
-      </div>
-      
-      <form onSubmit={handleSubmit} className="p-8 md:p-12 space-y-8">
-         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-2">
-               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Designation Title</label>
-               <input
-                 type="text"
-                 value={formData.title}
-                 onChange={(e) => setFormData({...formData, title: e.target.value})}
-                 className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-900 focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all"
-                 placeholder="e.g., Sr. Systems Architect"
-                 required
-               />
-            </div>
-            <div className="space-y-2">
-               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Organization Sector</label>
-               <select
-                 value={formData.department}
-                 onChange={(e) => setFormData({...formData, department: e.target.value})}
-                 className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-900 focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all appearance-none cursor-pointer"
-                 required
-               >
-                 <option value="">Global Assignment</option>
-                 {['Engineering', 'Data Science', 'Product', 'Marketing', 'Sales'].map(d => (
-                   <option key={d} value={d}>{d}</option>
-                 ))}
-               </select>
-            </div>
-         </div>
-
-         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-2">
-               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Physical/Remote Coords</label>
-               <input
-                 type="text"
-                 value={formData.location}
-                 onChange={(e) => setFormData({...formData, location: e.target.value})}
-                 className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-900 focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all"
-                 placeholder="e.g., Remote / Tokyo, JP"
-                 required
-               />
-            </div>
-            <div className="space-y-2">
-               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Compensation Range</label>
-               <input
-                 type="text"
-                 value={formData.salary}
-                 onChange={(e) => setFormData({...formData, salary: e.target.value})}
-                 className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-900 focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all"
-                 placeholder="e.g., $120k - $160k"
-                 required
-               />
-            </div>
-         </div>
-
-         <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Market Expiration (Deadline)</label>
-            <input
-              type="date"
-              value={formData.deadline}
-              onChange={(e) => setFormData({...formData, deadline: e.target.value})}
-              className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-900 focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all"
-              required
-            />
-         </div>
-
-         <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Role Manifesto (Description)</label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({...formData, description: e.target.value})}
-              className="w-full bg-slate-50 border border-slate-100 rounded-[2rem] px-6 py-6 text-sm font-medium text-slate-700 min-h-[200px] focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all"
-              placeholder="Synthesize the primary objectives and expectations..."
-              required
-            />
-         </div>
-
-         <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Neural Stack (Requirements - comma separated)</label>
-            <input
-              type="text"
-              value={formData.requirements}
-              onChange={(e) => setFormData({...formData, requirements: e.target.value})}
-              className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-900 focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all"
-              placeholder="React, Distributed Systems, Rust..."
-            />
-         </div>
-
-         <div className="space-y-2 pb-6">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Lifecycle Status</label>
-            <div className="grid grid-cols-3 gap-3">
-               {['Draft', 'Active', 'Closed'].map(s => (
-                 <button
-                   key={s}
-                   type="button"
-                   onClick={() => setFormData({...formData, status: s})}
-                   className={`p-4 rounded-2xl border font-black text-[10px] uppercase tracking-widest transition-all ${
-                     formData.status === s ? 'bg-slate-900 text-white border-slate-900 shadow-xl shadow-slate-200' : 'bg-white text-slate-400 border-slate-100 hover:border-slate-300'
-                   }`}
-                 >
-                   {s} Protocol
-                 </button>
-               ))}
-            </div>
-         </div>
-
-         <div className="flex gap-4 pt-8 sticky bottom-0 bg-white/90 backdrop-blur-md pb-8 z-20">
-            <button
-              type="submit"
-              disabled={submitting}
-              className="flex-1 bg-slate-900 text-white py-5 rounded-[1.8rem] font-black uppercase text-xs tracking-widest hover:shadow-2xl transition-all disabled:opacity-50 flex items-center justify-center gap-3 group"
-            >
-              {submitting ? <Loader2 className="animate-spin w-5 h-5" /> : (
-                <>
-                   {job ? 'Execute Modification' : 'Deploy Deployment'}
-                   <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                </>
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-8 py-5 border border-slate-100 rounded-[1.8rem] text-slate-400 font-black uppercase text-xs tracking-widest hover:bg-slate-50 transition-all"
-            >
-              Abort
-            </button>
-         </div>
-      </form>
     </div>
   );
 };
 
 export default JobManagement;
+

@@ -6,7 +6,7 @@ import CompanyDashboard from '../pages/company/CompanyDashboard';
 import TPODashboard from '../pages/tpo/TPODashboard';
 import SuperadminDashboard from '../pages/superadmin/SuperadminDashboard';
 
-const RoleBasedRoute = ({ allowedRoles = null }) => {
+const RoleBasedRoute = ({ allowedRoles = null, component: Component = null }) => {
   const { user, isAuthenticated, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -15,33 +15,29 @@ const RoleBasedRoute = ({ allowedRoles = null }) => {
     // Wait for authentication to load
     if (loading) return;
 
-    // If not authenticated, redirect to login
+    // ... existing redirects ...
     if (!isAuthenticated) {
       navigate('/login', { replace: true });
       return;
     }
 
-    // Check if user is not verified
     if (user && !user.isVerified) {
-      navigate('/not-verified', { 
+      navigate('/not-verified', {
         replace: true,
-        state: { 
+        state: {
           email: user.email,
           role: user.role,
-          message: 'Please verify your email address to access your dashboard.' 
-        } 
+          message: 'Please verify your email address to access your dashboard.'
+        }
       });
       return;
     }
 
-    // If specific roles are allowed, check if user has access
     if (allowedRoles && !allowedRoles.includes(user?.role)) {
-      // User doesn't have access to this specific route, redirect to their dashboard
       redirectToUserDashboard(user?.role);
       return;
     }
 
-    // If accessing /dashboard (main dashboard route), redirect based on role
     if (location.pathname === '/dashboard') {
       redirectToUserDashboard(user?.role);
       return;
@@ -50,26 +46,14 @@ const RoleBasedRoute = ({ allowedRoles = null }) => {
 
   const redirectToUserDashboard = (role) => {
     switch (role) {
-      case 'student':
-        navigate('/student-dashboard', { replace: true });
-        break;
-      case 'company':
-        navigate('/company-dashboard', { replace: true });
-        break;
-      case 'tpo':
-        navigate('/tpo-dashboard', { replace: true });
-        break;
-      case 'superadmin':
-        navigate('/superadmin-dashboard', { replace: true });
-        break;
-      default:
-        // Unknown role, redirect to profile
-        navigate('/profile', { replace: true });
-        break;
+      case 'student': navigate('/student-dashboard', { replace: true }); break;
+      case 'company': navigate('/company-dashboard', { replace: true }); break;
+      case 'tpo': navigate('/tpo-dashboard', { replace: true }); break;
+      case 'superadmin': navigate('/superadmin-dashboard', { replace: true }); break;
+      default: navigate('/', { replace: true }); break; // Changed fallback to avoid routing to /profile since it's removed
     }
   };
 
-  // Show loading while determining route
   if (loading || !user) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -81,8 +65,10 @@ const RoleBasedRoute = ({ allowedRoles = null }) => {
     );
   }
 
-  // If specific roles are allowed, render the appropriate dashboard
   if (allowedRoles) {
+    if (Component) {
+      return <Component />;
+    }
     switch (user.role) {
       case 'student':
         return <StudentDashboard />;
@@ -99,8 +85,8 @@ const RoleBasedRoute = ({ allowedRoles = null }) => {
               <div className="text-red-500 text-6xl mb-4">⚠️</div>
               <h2 className="text-2xl font-bold text-gray-800 mb-2">Access Denied</h2>
               <p className="text-gray-600 mb-4">You don't have permission to access this dashboard.</p>
-              <button 
-                onClick={() => redirectToUserDashboard(user.role)} 
+              <button
+                onClick={() => redirectToUserDashboard(user.role)}
                 className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
               >
                 Go to My Dashboard

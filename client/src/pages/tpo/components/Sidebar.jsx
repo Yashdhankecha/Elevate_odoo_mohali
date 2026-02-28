@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
 import { getUserDisplayName, getUserInitials } from '../../../utils/helpers';
-import { 
-  BarChart3, 
-  Users, 
-  Building2, 
-  Briefcase, 
-  Calendar, 
-  FilePieChart, 
+import {
+  BarChart3,
+  Users,
+  Building2,
+  Briefcase,
+  Calendar,
+  FilePieChart,
   LogOut,
   User,
   ChevronLeft,
@@ -20,13 +20,13 @@ import {
   X
 } from 'lucide-react';
 
-const Sidebar = ({ 
-  activeSection, 
-  setActiveSection, 
-  isCollapsed, 
+const Sidebar = ({
+  activeSection,
+  setActiveSection,
+  isCollapsed,
   setSidebarCollapsed,
   isMobileOpen,
-  setIsMobileOpen 
+  setIsMobileOpen
 }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -60,7 +60,7 @@ const Sidebar = ({
             </div>
           )}
         </div>
-        
+
         {isMobileOpen && (
           <button onClick={() => setIsMobileOpen(false)} className="lg:hidden p-2 text-slate-400 hover:text-slate-900">
             <X size={20} />
@@ -82,7 +82,7 @@ const Sidebar = ({
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeSection === item.id;
-          
+
           return (
             <button
               key={item.id}
@@ -92,8 +92,8 @@ const Sidebar = ({
               }}
               className={`
                 w-full flex items-center gap-4 px-4 py-4 rounded-[1.2rem] font-bold text-[13px] transition-all duration-500 group relative
-                ${isActive 
-                  ? 'bg-slate-900 text-white shadow-2xl shadow-indigo-100' 
+                ${isActive
+                  ? 'bg-slate-900 text-white shadow-2xl shadow-indigo-100'
                   : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
                 }
                 ${isCollapsed && !isMobileOpen ? 'justify-center px-0' : ''}
@@ -108,7 +108,7 @@ const Sidebar = ({
               </div>
               {(!isCollapsed || isMobileOpen) && <span className="flex-1 text-left truncate">{item.label}</span>}
               {isActive && (!isCollapsed || isMobileOpen) && (
-                 <div className="absolute right-4 w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
+                <div className="absolute right-4 w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
               )}
             </button>
           );
@@ -118,24 +118,24 @@ const Sidebar = ({
 
       {/* Footer Navigation */}
       <div className={`p-6 border-t border-slate-50 ${isCollapsed && !isMobileOpen ? 'px-6' : ''}`}>
-        <button 
+        <button
           onClick={() => {
-            navigate('/profile');
+            navigate('/tpo-profile');
             if (isMobileOpen) setIsMobileOpen(false);
           }}
           className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl font-bold text-[13px] text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-all group mb-2 ${isCollapsed && !isMobileOpen ? 'justify-center px-0 mb-4' : ''}`}
         >
           <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center flex-shrink-0 group-hover:bg-white shadow-sm border border-transparent group-hover:border-slate-100 transition-all">
-             <User size={14} />
+            <User size={14} />
           </div>
           {(!isCollapsed || isMobileOpen) && <span className="flex-1 text-left">My Profile</span>}
         </button>
-        <button 
+        <button
           onClick={handleLogout}
           className={`w-full flex items-center gap-4 px-4 py-4 rounded-[1.2rem] font-bold text-[13px] text-rose-500 hover:bg-rose-50 transition-all active:scale-95 group ${isCollapsed && !isMobileOpen ? 'justify-center px-0' : ''}`}
         >
           <div className="w-10 h-10 rounded-xl bg-rose-50 flex items-center justify-center flex-shrink-0 group-hover:bg-rose-500 group-hover:text-white transition-all shadow-sm">
-             <LogOut size={16} strokeWidth={3} />
+            <LogOut size={16} strokeWidth={3} />
           </div>
           {(!isCollapsed || isMobileOpen) && <span className="flex-1 text-left">Log out</span>}
         </button>
@@ -144,11 +144,11 @@ const Sidebar = ({
       {/* Desktop Collapse Trigger */}
       {!isMobileOpen && (
         <button
-           onClick={() => setSidebarCollapsed(!isCollapsed)}
-           className={`hidden lg:flex fixed top-10 w-8 h-8 items-center justify-center rounded-xl bg-white border border-slate-100 text-slate-400 hover:bg-slate-900 hover:text-white transition-all z-[80] shadow-xl hover:scale-110 active:scale-95 mb-4`}
-           style={{ left: isCollapsed ? '80px' : '272px' }}
+          onClick={() => setSidebarCollapsed(!isCollapsed)}
+          className={`hidden lg:flex fixed top-10 w-8 h-8 items-center justify-center rounded-xl bg-white border border-slate-100 text-slate-400 hover:bg-slate-900 hover:text-white transition-all z-[80] shadow-xl hover:scale-110 active:scale-95 mb-4`}
+          style={{ left: isCollapsed ? '80px' : '272px' }}
         >
-           {isCollapsed ? <ChevronRight size={14} strokeWidth={3} /> : <ChevronLeft size={14} strokeWidth={3} />}
+          {isCollapsed ? <ChevronRight size={14} strokeWidth={3} /> : <ChevronLeft size={14} strokeWidth={3} />}
         </button>
       )}
     </>
@@ -158,7 +158,7 @@ const Sidebar = ({
     <>
       {/* Mobile Sidebar Overlay */}
       {isMobileOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[60] lg:hidden animate-fade-in"
           onClick={() => setIsMobileOpen(false)}
         />

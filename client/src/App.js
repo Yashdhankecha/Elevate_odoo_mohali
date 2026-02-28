@@ -11,7 +11,9 @@ import Signup from './pages/Signup';
 import VerifyOTP from './pages/VerifyOTP';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
-import Profile from './pages/Profile';
+import StudentProfilePage from './pages/student/StudentProfilePage';
+import CompanyProfilePage from './pages/company/CompanyProfilePage';
+import TPOProfilePage from './pages/tpo/TPOProfilePage';
 import ApprovalInProcess from './pages/ApprovalInProcess';
 import NotVerified from './pages/NotVerified';
 import StudentDashboard from './pages/student/StudentDashboard';
@@ -24,6 +26,7 @@ import Home from './pages/Home';
 function ConditionalNavbar() {
   const location = useLocation();
   const isDashboardPage = location.pathname.includes('-dashboard') ||
+    location.pathname.includes('-profile') ||
     location.pathname === '/dashboard' ||
     location.pathname === '/approval-pending' ||
     location.pathname === '/not-verified';
@@ -45,6 +48,7 @@ function ConditionalNavbar() {
 function ConditionalMain({ children }) {
   const location = useLocation();
   const isDashboardPage = location.pathname.includes('-dashboard') ||
+    location.pathname.includes('-profile') ||
     location.pathname === '/dashboard' ||
     location.pathname === '/not-verified' ||
     location.pathname === '/';
@@ -123,10 +127,28 @@ function App() {
                 />
 
                 <Route
-                  path="/profile"
+                  path="/student-profile"
                   element={
                     <PrivateRoute>
-                      <Profile />
+                      <RoleBasedRoute allowedRoles={['student']} component={StudentProfilePage} />
+                    </PrivateRoute>
+                  }
+                />
+
+                <Route
+                  path="/company-profile"
+                  element={
+                    <PrivateRoute>
+                      <RoleBasedRoute allowedRoles={['company']} component={CompanyProfilePage} />
+                    </PrivateRoute>
+                  }
+                />
+
+                <Route
+                  path="/tpo-profile"
+                  element={
+                    <PrivateRoute>
+                      <RoleBasedRoute allowedRoles={['tpo']} component={TPOProfilePage} />
                     </PrivateRoute>
                   }
                 />

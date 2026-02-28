@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useNotifications } from '../../../contexts/NotificationContext';
 import { getUserDisplayName, getUserInitials } from '../../../utils/helpers';
-import { 
-  FaSearch, 
-  FaBell, 
-  FaUser, 
+import {
+  FaSearch,
+  FaBell,
+  FaUser,
   FaSignOutAlt,
   FaBars,
   FaTimes,
@@ -28,7 +28,7 @@ const TopNavbar = ({ toggleSidebar, isMobileSidebarOpen }) => {
 
   const handleProfile = () => {
     setIsProfileOpen(false);
-    navigate('/profile');
+    navigate('/student-profile');
   };
 
   const handleLogout = async () => {
@@ -54,13 +54,13 @@ const TopNavbar = ({ toggleSidebar, isMobileSidebarOpen }) => {
     const time = new Date(timeString);
     const now = new Date();
     const diffInMinutes = Math.floor((now - time) / (1000 * 60));
-    
+
     if (diffInMinutes < 1) return 'Just now';
     if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
-    
+
     const diffInHours = Math.floor(diffInMinutes / 60);
     if (diffInHours < 24) return `${diffInHours}h ago`;
-    
+
     const diffInDays = Math.floor(diffInHours / 24);
     return `${diffInDays}d ago`;
   };
@@ -91,7 +91,7 @@ const TopNavbar = ({ toggleSidebar, isMobileSidebarOpen }) => {
             >
               {isMobileSidebarOpen ? <FaTimes size={18} /> : <FaBars size={18} />}
             </button>
-            
+
             {/* Logo - visible on mobile when sidebar closed */}
             <div className="lg:hidden flex items-center gap-2">
               <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-200/50">
@@ -124,7 +124,7 @@ const TopNavbar = ({ toggleSidebar, isMobileSidebarOpen }) => {
 
             {/* Notifications */}
             <div className="relative" ref={notificationRef}>
-              <button 
+              <button
                 onClick={() => setShowNotifications(!showNotifications)}
                 className="relative w-10 h-10 flex items-center justify-center rounded-xl bg-gray-50 text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition-all"
               >
@@ -145,7 +145,7 @@ const TopNavbar = ({ toggleSidebar, isMobileSidebarOpen }) => {
                       <p className="text-xs text-gray-500 mt-0.5">{unreadCount} unread</p>
                     </div>
                     {unreadCount > 0 && (
-                      <button 
+                      <button
                         onClick={handleMarkAllRead}
                         className="text-xs text-blue-600 hover:text-blue-700 font-bold px-3 py-1.5 bg-white rounded-lg hover:bg-blue-50 transition-all"
                       >
@@ -159,9 +159,8 @@ const TopNavbar = ({ toggleSidebar, isMobileSidebarOpen }) => {
                         <div
                           key={notification.id}
                           onClick={() => handleNotificationClick(notification)}
-                          className={`p-4 border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-all ${
-                            !notification.isRead ? 'bg-blue-50/30' : ''
-                          }`}
+                          className={`p-4 border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-all ${!notification.isRead ? 'bg-blue-50/30' : ''
+                            }`}
                         >
                           <div className="flex items-start gap-3">
                             <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${!notification.isRead ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
@@ -183,7 +182,7 @@ const TopNavbar = ({ toggleSidebar, isMobileSidebarOpen }) => {
                   </div>
                   {notifications.length > 0 && (
                     <div className="p-3 bg-gray-50 border-t border-gray-100">
-                      <button 
+                      <button
                         onClick={() => { navigate('/notifications'); setShowNotifications(false); }}
                         className="text-sm text-blue-600 hover:text-blue-700 font-bold w-full text-center py-2 hover:bg-white rounded-lg transition-all"
                       >
@@ -222,9 +221,9 @@ const TopNavbar = ({ toggleSidebar, isMobileSidebarOpen }) => {
                     <p className="text-sm font-bold text-gray-900">{getUserDisplayName(user)}</p>
                     <p className="text-xs text-gray-600 mt-0.5 truncate">{user?.email || 'user@example.com'}</p>
                   </div>
-                  
+
                   <div className="p-2">
-                    <button 
+                    <button
                       onClick={handleProfile}
                       className="w-full text-left px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 rounded-xl flex items-center gap-3 transition-all"
                     >
@@ -233,10 +232,10 @@ const TopNavbar = ({ toggleSidebar, isMobileSidebarOpen }) => {
                       </div>
                       <span>My Profile</span>
                     </button>
-                    
+
                     <div className="my-2 border-t border-gray-100"></div>
-                    
-                    <button 
+
+                    <button
                       onClick={handleLogout}
                       className="w-full text-left px-4 py-3 text-sm font-semibold text-red-600 hover:bg-red-50 rounded-xl flex items-center gap-3 transition-all"
                     >

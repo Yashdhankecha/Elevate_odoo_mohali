@@ -3,11 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useNotifications } from '../../../contexts/NotificationContext';
 import { getUserDisplayName, getUserInitials } from '../../../utils/helpers';
-import { 
-  Search, 
-  Bell, 
-  User, 
-  Settings, 
+import {
+  Search,
+  Bell,
+  User,
+  Settings,
   LogOut,
   Menu,
   ChevronDown,
@@ -31,7 +31,7 @@ const TopNavbar = ({ toggleSidebar, sidebarCollapsed, isMobileSidebarOpen }) => 
 
   const handleProfile = () => {
     setIsProfileOpen(false);
-    navigate('/profile');
+    navigate('/tpo-profile');
   };
 
   const handleLogout = async () => {
@@ -57,13 +57,13 @@ const TopNavbar = ({ toggleSidebar, sidebarCollapsed, isMobileSidebarOpen }) => 
     const time = new Date(timeString);
     const now = new Date();
     const diffInMinutes = Math.floor((now - time) / (1000 * 60));
-    
+
     if (diffInMinutes < 1) return 'Just now';
     if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
-    
+
     const diffInHours = Math.floor(diffInMinutes / 60);
     if (diffInHours < 24) return `${diffInHours}h ago`;
-    
+
     const diffInDays = Math.floor(diffInHours / 24);
     return `${diffInDays}d ago`;
   };
@@ -94,11 +94,11 @@ const TopNavbar = ({ toggleSidebar, sidebarCollapsed, isMobileSidebarOpen }) => 
             >
               {isMobileSidebarOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
-            
+
             <div className="hidden lg:flex items-center gap-2">
-               <span className="text-sm font-semibold text-gray-500 uppercase tracking-widest text-[10px]">TPO Admin Console</span>
-               <span className="text-gray-300">/</span>
-               <span className="text-sm font-bold text-gray-800">Placement Hub</span>
+              <span className="text-sm font-semibold text-gray-500 uppercase tracking-widest text-[10px]">TPO Admin Console</span>
+              <span className="text-gray-300">/</span>
+              <span className="text-sm font-bold text-gray-800">Placement Hub</span>
             </div>
 
             {/* Mobile Logo Context */}
@@ -124,7 +124,7 @@ const TopNavbar = ({ toggleSidebar, sidebarCollapsed, isMobileSidebarOpen }) => 
           {/* Right: Actions */}
           <div className="flex items-center gap-2 sm:gap-4">
             {/* Mobile Search Trigger */}
-            <button 
+            <button
               onClick={() => setShowMobileSearch(!showMobileSearch)}
               className="md:hidden w-10 h-10 flex items-center justify-center rounded-xl bg-gray-50 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 transition-all"
             >
@@ -133,11 +133,10 @@ const TopNavbar = ({ toggleSidebar, sidebarCollapsed, isMobileSidebarOpen }) => 
 
             {/* Notifications */}
             <div className="relative" ref={notificationRef}>
-              <button 
+              <button
                 onClick={() => setShowNotifications(!showNotifications)}
-                className={`relative w-10 h-10 flex items-center justify-center rounded-xl transition-all active:scale-95 ${
-                  showNotifications ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'bg-gray-50 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600'
-                }`}
+                className={`relative w-10 h-10 flex items-center justify-center rounded-xl transition-all active:scale-95 ${showNotifications ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'bg-gray-50 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600'
+                  }`}
               >
                 <Bell size={18} />
                 {unreadCount > 0 && (
@@ -156,7 +155,7 @@ const TopNavbar = ({ toggleSidebar, sidebarCollapsed, isMobileSidebarOpen }) => 
                       <p className="text-xs text-gray-500 mt-0.5">{unreadCount} pending tasks</p>
                     </div>
                     {unreadCount > 0 && (
-                      <button 
+                      <button
                         onClick={handleMarkAllRead}
                         className="text-xs text-indigo-600 hover:text-indigo-700 font-bold px-3 py-1.5 bg-white rounded-lg transition-all shadow-sm"
                       >
@@ -170,9 +169,8 @@ const TopNavbar = ({ toggleSidebar, sidebarCollapsed, isMobileSidebarOpen }) => 
                         <div
                           key={notification._id}
                           onClick={() => handleNotificationClick(notification)}
-                          className={`p-4 border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-all ${
-                            !notification.isRead ? 'bg-indigo-50/30' : ''
-                          }`}
+                          className={`p-4 border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-all ${!notification.isRead ? 'bg-indigo-50/30' : ''
+                            }`}
                         >
                           <div className="flex items-start gap-3">
                             <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${!notification.isRead ? 'bg-indigo-500' : 'bg-gray-300'}`}></div>
@@ -198,9 +196,8 @@ const TopNavbar = ({ toggleSidebar, sidebarCollapsed, isMobileSidebarOpen }) => 
             <div className="relative" ref={profileRef}>
               <button
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
-                className={`flex items-center gap-1 sm:gap-3 pl-1 pr-1 sm:pr-3 py-1 rounded-xl transition-all ${
-                  isProfileOpen ? 'bg-indigo-50' : 'hover:bg-gray-50'
-                }`}
+                className={`flex items-center gap-1 sm:gap-3 pl-1 pr-1 sm:pr-3 py-1 rounded-xl transition-all ${isProfileOpen ? 'bg-indigo-50' : 'hover:bg-gray-50'
+                  }`}
               >
                 <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-100">
                   <span className="text-white text-sm font-bold">
@@ -219,17 +216,17 @@ const TopNavbar = ({ toggleSidebar, sidebarCollapsed, isMobileSidebarOpen }) => 
                     <p className="text-sm font-bold text-gray-900 truncate">{getUserDisplayName(user)}</p>
                     <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest mt-1 truncate">{user?.collegeName || 'Placement Office'}</p>
                   </div>
-                  
+
                   <div className="p-2">
-                    <button 
+                    <button
                       onClick={handleProfile}
                       className="w-full text-left px-4 py-3 text-sm font-bold text-gray-700 hover:bg-gray-50 rounded-xl flex items-center gap-3 transition-all"
                     >
                       <User size={16} className="text-indigo-600" />
                       <span>Institute Settings</span>
                     </button>
-                    
-                    <button 
+
+                    <button
                       onClick={handleLogout}
                       className="w-full text-left px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 rounded-xl flex items-center gap-3 transition-all mt-1"
                     >
@@ -256,7 +253,7 @@ const TopNavbar = ({ toggleSidebar, sidebarCollapsed, isMobileSidebarOpen }) => 
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:bg-white transition-all"
               />
-              <button 
+              <button
                 onClick={() => setShowMobileSearch(false)}
                 className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-400"
               >

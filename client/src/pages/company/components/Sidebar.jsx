@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
 import { getUserDisplayName, getUserInitials } from '../../../utils/helpers';
-import { 
-  LayoutDashboard, 
-  Users, 
-  FileText, 
-  Settings, 
+import {
+  LayoutDashboard,
+  Users,
+  FileText,
+  Settings,
   LogOut,
   User,
   Building,
@@ -54,7 +54,7 @@ const Sidebar = ({ activeSection, setActiveSection, isCollapsed, setSidebarColla
             </div>
           </div>
         )}
-        
+
         <button
           onClick={() => setSidebarCollapsed(!isCollapsed)}
           className={`w-8 h-8 flex items-center justify-center rounded-lg bg-gray-50 text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition-all ${isCollapsed ? 'mx-auto' : ''}`}
@@ -68,15 +68,15 @@ const Sidebar = ({ activeSection, setActiveSection, isCollapsed, setSidebarColla
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeSection === item.id;
-          
+
           return (
             <button
               key={item.id}
               onClick={() => setActiveSection(item.id)}
               className={`
                 w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all duration-300 group
-                ${isActive 
-                  ? 'bg-gradient-to-r ' + item.gradient + ' text-white shadow-lg shadow-blue-200/50' 
+                ${isActive
+                  ? 'bg-gradient-to-r ' + item.gradient + ' text-white shadow-lg shadow-blue-200/50'
                   : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                 }
                 ${isCollapsed ? 'justify-center px-2' : ''}
@@ -97,21 +97,21 @@ const Sidebar = ({ activeSection, setActiveSection, isCollapsed, setSidebarColla
 
       {/* Footer */}
       <div className={`p-4 border-t border-gray-50 space-y-1 ${isCollapsed ? 'px-2' : ''}`}>
-        <button 
-          onClick={() => navigate('/profile')}
+        <button
+          onClick={() => navigate('/company-profile')}
           className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm text-gray-600 hover:bg-gray-50 transition-all ${isCollapsed ? 'justify-center px-2' : ''}`}
         >
           <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-             <User size={14} className="text-gray-600" />
+            <User size={14} className="text-gray-600" />
           </div>
           {!isCollapsed && <span className="flex-1 text-left">Profile</span>}
         </button>
-        <button 
+        <button
           onClick={handleLogout}
           className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm text-red-600 hover:bg-red-50 transition-all ${isCollapsed ? 'justify-center px-2' : ''}`}
         >
           <div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center flex-shrink-0">
-             <LogOut size={14} className="text-red-600" />
+            <LogOut size={14} className="text-red-600" />
           </div>
           {!isCollapsed && <span className="flex-1 text-left">Sign Out</span>}
         </button>

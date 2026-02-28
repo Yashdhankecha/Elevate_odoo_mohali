@@ -80,7 +80,86 @@ const companySchema = new mongoose.Schema({
   },
   description: {
     type: String,
-    maxlength: [1000, 'Description cannot exceed 1000 characters']
+    maxlength: [5000, 'Description cannot exceed 5000 characters']
+  },
+  headquartersLocation: {
+    type: String,
+    trim: true,
+  },
+  // Default Eligibility Criteria
+  defaultMinCGPA: {
+    type: Number,
+    min: 0,
+    max: 100
+  },
+  backlogsAllowed: {
+    type: Boolean,
+    default: false
+  },
+  maxBacklogs: {
+    type: Number,
+    default: 0
+  },
+  gapYearsAllowed: {
+    type: Boolean,
+    default: false
+  },
+  maxGapYears: {
+    type: Number,
+    default: 0
+  },
+  preferredDegrees: [{
+    type: String
+  }],
+  preferredBranches: [{
+    type: String
+  }],
+  // Standard Job Details
+  standardWorkLocations: [{
+    type: String
+  }],
+  defaultWorkMode: {
+    type: String,
+    enum: ['Office', 'Hybrid', 'Remote']
+  },
+  standardBenefitsPackage: {
+    type: String
+  },
+  // Default Contact Info
+  hrName: {
+    type: String,
+    trim: true
+  },
+  hrEmail: {
+    type: String,
+    trim: true,
+    lowercase: true,
+    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email']
+  },
+  hrPhone: {
+    type: String,
+    trim: true
+  },
+  alternateEmail: {
+    type: String,
+    trim: true,
+    lowercase: true
+  },
+  alternatePhone: {
+    type: String,
+    trim: true
+  },
+  // Application Preferences
+  resumeFormatPreference: {
+    type: String,
+    enum: ['Any', 'PDF only', 'DOC only'],
+    default: 'Any'
+  },
+  standardRequiredDocuments: [{
+    type: String
+  }],
+  defaultSpecialInstructions: {
+    type: String
   },
   // Placement related fields
   jobPostings: [{
@@ -114,9 +193,9 @@ const companySchema = new mongoose.Schema({
 });
 
 // Hash password before saving
-companySchema.pre('save', async function(next) {
+companySchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
-  
+
   try {
     const salt = await bcrypt.genSalt(12);
     this.password = await bcrypt.hash(this.password, salt);
@@ -127,12 +206,12 @@ companySchema.pre('save', async function(next) {
 });
 
 // Method to compare password
-companySchema.methods.comparePassword = async function(candidatePassword) {
+companySchema.methods.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
 // Method to generate OTP
-companySchema.methods.generateOTP = function() {
+companySchema.methods.generateOTP = function () {
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
   this.emailVerificationOTP = {
     code: otp,
@@ -142,7 +221,7 @@ companySchema.methods.generateOTP = function() {
 };
 
 // Method to generate password reset token
-companySchema.methods.generatePasswordResetToken = function() {
+companySchema.methods.generatePasswordResetToken = function () {
   const token = require('crypto').randomBytes(32).toString('hex');
   this.passwordResetToken = {
     token: token,
@@ -152,22 +231,22 @@ companySchema.methods.generatePasswordResetToken = function() {
 };
 
 // Method to check if OTP is expired
-companySchema.methods.isOTPExpired = function() {
+companySchema.methods.isOTPExpired = function () {
   return this.emailVerificationOTP && this.emailVerificationOTP.expiresAt < new Date();
 };
 
 // Method to check if password reset token is expired
-companySchema.methods.isPasswordResetTokenExpired = function() {
+companySchema.methods.isPasswordResetTokenExpired = function () {
   return this.passwordResetToken && this.passwordResetToken.expiresAt < new Date();
 };
 
 // Method to get display name
-companySchema.methods.getDisplayName = function() {
+companySchema.methods.getDisplayName = function () {
   return this.companyName || 'Company';
 };
 
 // Method to get role data
-companySchema.methods.getRoleData = function() {
+companySchema.methods.getRoleData = function () {
   return {
     companyName: this.companyName,
     contactNumber: this.contactNumber,
@@ -181,7 +260,7 @@ companySchema.methods.getRoleData = function() {
 };
 
 // Remove sensitive fields when converting to JSON
-companySchema.methods.toJSON = function() {
+companySchema.methods.toJSON = function () {
   const company = this.toObject();
   delete company.password;
   delete company.emailVerificationOTP;
