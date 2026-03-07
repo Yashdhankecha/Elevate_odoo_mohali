@@ -354,7 +354,44 @@ export const tpoApi = {
     } catch (error) {
       throw error.response?.data || error.message;
     }
-  }
+  },
+
+  // Drive Requests (On-campus job postings awaiting TPO approval)
+  getDriveRequests: async (params = {}) => {
+    try {
+      const response = await api.get('/tpo/drive-requests', { params });
+      return response.data.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  getDriveRequestDetail: async (id) => {
+    try {
+      const response = await api.get(`/tpo/drive-requests/${id}`);
+      return response.data.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  getDriveApplicants: async (id) => {
+    try {
+      const response = await api.get(`/tpo/drive-requests/${id}/applicants`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  updateDriveRequestStatus: async (id, status, comment = '') => {
+    try {
+      const response = await api.patch(`/tpo/drive-requests/${id}/status`, { status, comment });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
 };
 
 export default tpoApi;

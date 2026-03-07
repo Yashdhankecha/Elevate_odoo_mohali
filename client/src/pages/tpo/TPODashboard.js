@@ -4,7 +4,7 @@ import TopNavbar from './components/TopNavbar';
 import DashboardOverview from './components/DashboardOverview';
 import StudentManagement from './components/StudentManagement';
 import InterviewManagement from './components/InterviewManagement';
-import JobManagement from './components/JobManagement';
+import DriveRequests from './components/DriveRequests';
 import ReportsAnalytics from './components/ReportsAnalytics';
 import ApprovalPending from './components/ApprovalPending';
 import CompanyManagement from './components/CompanyManagement';
@@ -38,8 +38,8 @@ const TPODashboard = () => {
         return <CompanyManagement />;
       case 'interviews':
         return <InterviewManagement />;
-      case 'jobs':
-        return <JobManagement />;
+      case 'drive-requests':
+        return <DriveRequests />;
       case 'reports':
         return <ReportsAnalytics />;
       default:

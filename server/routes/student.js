@@ -138,6 +138,7 @@ router.get('/dashboard', authenticateToken, ensureStudent, async (req, res) => {
 
 // @route   GET /api/student/jobs
 // @desc    Get available jobs for students to browse
+//          On-campus drives are filtered based on the student's college name.
 // @access  Private (Student)
 router.get('/jobs', authenticateToken, ensureStudent, async (req, res) => {
   try {
@@ -155,115 +156,174 @@ router.get('/jobs', authenticateToken, ensureStudent, async (req, res) => {
       sortOrder = 'desc'
     } = req.query;
 
-    // Build query
+    // Get the student's college name for on-campus drive filtering
+    const student = await Student.findById(req.user._id).select('collegeName cgpa branch graduationYear currentBacklogs');
+    const studentCollege = student?.collegeName || '';
+
+    // Build base query — only active jobs
     const query = { isActive: true };
 
+    // ── On-campus drives: only show if student's college is in targetColleges ──
+    // Off-campus drives: visible to all students
+    // We build an $or: off-campus OR (on_campus AND college matches)
+    const collegeFilter = {
+      $or: [
+        { driveType: { $ne: 'on_campus' } },
+        { driveType: 'on_campus', targetColleges: { $elemMatch: { $regex: new RegExp(`^${studentCollege.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } } }
+      ]
+    };
+    Object.assign(query, collegeFilter);
+
     if (search) {
-      query.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } }
-      ];
+      query.$and = query.$and || [];
+      query.$and.push({
+        $or: [
+          { title: { $regex: search, $options: 'i' } },
+          { jobTitle: { $regex: search, $options: 'i' } },
+          { description: { $regex: search, $options: 'i' } },
+          { jobDescription: { $regex: search, $options: 'i' } }
+        ]
+      });
     }
 
-    if (location) {
-      query.location = { $regex: location, $options: 'i' };
-    }
+    if (location) { query.location = { $regex: location, $options: 'i' }; }
+    if (category) { query.$or = undefined; query.category = category; }
+    if (type) { query.type = type; }
+    if (minSalary) { query['package.min'] = { $gte: parseInt(minSalary) * 100000 }; }
+    if (maxSalary) { query['package.max'] = { $lte: parseInt(maxSalary) * 100000 }; }
+    if (experience) { query['experience.max'] = { $lte: parseInt(experience) }; }
 
-    if (category) {
-      query.category = category;
-    }
-
-    if (type) {
-      query.type = type;
-    }
-
-    if (minSalary) {
-      query['package.min'] = { $gte: parseInt(minSalary) * 100000 }; // Convert LPA to actual amount
-    }
-
-    if (maxSalary) {
-      query['package.max'] = { $lte: parseInt(maxSalary) * 100000 };
-    }
-
-    if (experience) {
-      query['experience.max'] = { $lte: parseInt(experience) };
-    }
-
-    // Build sort object
     const sort = {};
-    sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
+    sort[sortBy === 'postedAt' ? 'createdAt' : sortBy] = sortOrder === 'desc' ? -1 : 1;
 
     const jobs = await JobPosting.find(query)
-      .populate('company', 'companyName company email')
+      .populate('company', 'companyName company email profilePicture')
       .sort(sort)
-      .limit(limit * 1)
-      .skip((page - 1) * limit);
+      .limit(parseInt(limit))
+      .skip((parseInt(page) - 1) * parseInt(limit));
 
     const total = await JobPosting.countDocuments(query);
 
-    // Get unique values for filters
     const locations = await JobPosting.distinct('location', { isActive: true });
     const categories = await JobPosting.distinct('category', { isActive: true });
     const types = await JobPosting.distinct('type', { isActive: true });
 
+    // Helper to compute eligibility for the current student
+    const computeEligibility = (job) => {
+      if (job.driveType !== 'on_campus') return null; // N/A for off-campus
+      const issues = [];
+      const ec = job.eligibilityCriteria || {};
+
+      // CGPA / percentage
+      if (ec.minCgpaPercentage?.value > 0) {
+        if ((student.cgpa || 0) < ec.minCgpaPercentage.value) {
+          issues.push(`Min ${ec.minCgpaPercentage.type?.toUpperCase() || 'CGPA'} ${ec.minCgpaPercentage.value} required`);
+        }
+      }
+      // Branch
+      if (job.eligibleBranches?.length > 0) {
+        if (!job.eligibleBranches.some(b => b.toLowerCase() === (student.branch || '').toLowerCase())) {
+          issues.push(`Branch not eligible`);
+        }
+      }
+      // Batch (graduationYear)
+      if (job.targetBatches?.length > 0) {
+        if (!job.targetBatches.some(b => String(b) === String(student.graduationYear))) {
+          issues.push(`Batch ${student.graduationYear} not targeted`);
+        }
+      }
+      // Backlogs
+      if (!ec.backlogsAllowed && (student.currentBacklogs || 0) > 0) {
+        issues.push('Active backlogs not allowed');
+      } else if (ec.backlogsAllowed && ec.maxActiveBacklogs != null) {
+        if ((student.currentBacklogs || 0) > ec.maxActiveBacklogs) {
+          issues.push(`Max ${ec.maxActiveBacklogs} backlog(s) allowed`);
+        }
+      }
+
+      return { eligible: issues.length === 0, issues };
+    };
+
     res.json({
       success: true,
       data: {
-        jobs: jobs.map(job => ({
-          id: job._id,
-          title: job.title,
-          company: job.company?.companyName || job.company?.company?.companyName || 'Company',
-          companyLogo: job.company?.profilePicture || job.company?.company?.logo || null,
-          location: job.location,
-          salary: job.package ?
-            `₹${job.package.min / 100000}-${job.package.max / 100000} LPA` :
-            'Not specified',
-          experience: job.experience ?
-            `${job.experience.min}-${job.experience.max} years` :
-            'Not specified',
-          jobType: job.type.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()),
-          department: job.category.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()),
-          description: job.description,
-          requirements: job.requirements || [],
-          responsibilities: job.responsibilities || [],
-          skills: job.skills || [],
-          postedDate: job.postedAt,
-          deadline: job.deadline,
-          applications: job.applicationCount,
-          views: job.views,
-          isRemote: job.location?.toLowerCase().includes('remote') || false
-        })),
+        jobs: jobs.map(job => {
+          const eligibility = computeEligibility(job);
+          const companyDoc = job.company;
+          return {
+            id: job._id,
+            // Legacy fields (existing UI)
+            title: job.jobTitle || job.title,
+            company: job.companyName || companyDoc?.companyName || companyDoc?.company?.companyName || 'Company',
+            companyLogo: job.companyLogo || companyDoc?.profilePicture || companyDoc?.company?.logo || null,
+            location: job.companyLocation || job.location,
+            salary: job.ctc
+              ? `₹${(job.ctc / 100000).toFixed(1)} LPA`
+              : job.stipend
+                ? `₹${Number(job.stipend).toLocaleString()}/mo`
+                : (job.package ? `₹${job.package.min / 100000}-${job.package.max / 100000} LPA` : 'Not specified'),
+            experience: job.experience ? `${job.experience.min}-${job.experience.max} years` : 'Fresher',
+            jobType: (job.employmentType || job.type || '').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+            department: (job.department || job.category || '').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+            description: job.jobDescription || job.description,
+            requirements: job.requiredSkills || job.requirements || [],
+            responsibilities: job.responsibilities || [],
+            skills: job.requiredSkills || job.skills || [],
+            postedDate: job.createdAt || job.postedAt,
+            deadline: job.applicationDeadline || job.deadline,
+            applications: job.applicationCount,
+            views: job.views,
+            isRemote: (job.workMode || job.location || '').toLowerCase().includes('remote'),
+            benefits: job.otherBenefits ? [job.otherBenefits] : [],
+
+            // ── Drive-specific fields ──
+            driveType: job.driveType,
+            isOnCampus: job.driveType === 'on_campus',
+            tentativeDriveDate: job.tentativeDriveDate,
+            applicationDeadline: job.applicationDeadline,
+            selectionRounds: job.selectionRounds || [],
+            totalRounds: job.totalRounds || (job.selectionRounds || []).length,
+            pptRequired: job.pptRequired,
+            pptDetails: job.pptDetails,
+            eligibilityCriteria: job.eligibilityCriteria,
+            eligibleBranches: job.eligibleBranches,
+            eligibleDegrees: job.eligibleDegrees,
+            targetBatches: job.targetBatches,
+            workLocations: job.workLocations,
+            jobId: job.jobId,
+
+            // ── Eligibility chip ──
+            eligibility, // null for off-campus; { eligible: bool, issues: [] } for on-campus
+          };
+        }),
         filters: {
-          locations: locations.filter(loc => loc).sort(),
-          categories: categories.map(cat => ({
+          locations: locations.filter(Boolean).sort(),
+          categories: categories.filter(Boolean).map(cat => ({
             value: cat,
-            label: cat.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())
+            label: cat.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
           })),
-          types: types.map(type => ({
-            value: type,
-            label: type.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())
+          types: types.filter(Boolean).map(t => ({
+            value: t,
+            label: t.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
           }))
         },
         pagination: {
           current: parseInt(page),
-          total: Math.ceil(total / limit),
-          hasNext: page * limit < total,
-          hasPrev: page > 1
+          total: Math.ceil(total / parseInt(limit)),
+          hasNext: parseInt(page) * parseInt(limit) < total,
+          hasPrev: parseInt(page) > 1
         }
       }
     });
 
   } catch (error) {
     console.error('Jobs error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error'
-    });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 
 // @route   POST /api/student/jobs/:jobId/apply
-// @desc    Apply for a job
+// @desc    Apply for a job — with eligibility gate for on-campus drives
 // @access  Private (Student)
 router.post('/jobs/:jobId/apply', authenticateToken, ensureStudent, async (req, res) => {
   try {
@@ -274,60 +334,103 @@ router.post('/jobs/:jobId/apply', authenticateToken, ensureStudent, async (req, 
     // Check if job exists and is active
     const job = await JobPosting.findOne({ _id: jobId, isActive: true });
     if (!job) {
-      return res.status(404).json({
-        success: false,
-        message: 'Job not found or inactive'
-      });
+      return res.status(404).json({ success: false, message: 'Job not found or no longer active' });
     }
 
-    // Check if already applied
-    const existingApplication = await JobApplication.findOne({
-      student: studentId,
-      jobPosting: jobId
-    });
+    // ── Eligibility gate for on-campus drives ──────────────────────────
+    if (job.driveType === 'on_campus') {
+      const student = await Student.findById(studentId)
+        .select('collegeName cgpa branch graduationYear currentBacklogs');
 
+      if (!student) {
+        return res.status(404).json({ success: false, message: 'Student profile not found' });
+      }
+
+      // 1. College check — student must belong to one of the target colleges
+      if (job.targetColleges?.length > 0) {
+        const normalise = s => (s || '').toLowerCase().trim();
+        const collegeMatch = job.targetColleges.some(
+          tc => normalise(tc) === normalise(student.collegeName)
+        );
+        if (!collegeMatch) {
+          return res.status(403).json({
+            success: false,
+            message: 'This drive is not available for your college.'
+          });
+        }
+      }
+
+      const ec = job.eligibilityCriteria || {};
+      const issues = [];
+
+      // 2. CGPA / percentage
+      if (ec.minCgpaPercentage?.value > 0 && (student.cgpa || 0) < ec.minCgpaPercentage.value) {
+        issues.push(`Your CGPA (${student.cgpa}) is below the minimum required (${ec.minCgpaPercentage.value}).`);
+      }
+
+      // 3. Branch eligibility
+      if (job.eligibleBranches?.length > 0) {
+        const branchMatch = job.eligibleBranches.some(
+          b => b.toLowerCase() === (student.branch || '').toLowerCase()
+        );
+        if (!branchMatch) {
+          issues.push(`Your branch (${student.branch}) is not eligible for this drive.`);
+        }
+      }
+
+      // 4. Batch / graduation year
+      if (job.targetBatches?.length > 0) {
+        const batchMatch = job.targetBatches.some(b => String(b) === String(student.graduationYear));
+        if (!batchMatch) {
+          issues.push(`Your graduation batch (${student.graduationYear}) is not targeted by this drive.`);
+        }
+      }
+
+      // 5. Active backlogs
+      const activeBacklogs = student.currentBacklogs || 0;
+      if (!ec.backlogsAllowed && activeBacklogs > 0) {
+        issues.push(`Active backlogs (${activeBacklogs}) are not allowed for this drive.`);
+      } else if (ec.backlogsAllowed && ec.maxActiveBacklogs != null && activeBacklogs > ec.maxActiveBacklogs) {
+        issues.push(`You have ${activeBacklogs} active backlog(s); maximum allowed is ${ec.maxActiveBacklogs}.`);
+      }
+
+      if (issues.length > 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'You do not meet the eligibility criteria for this drive.',
+          issues
+        });
+      }
+    }
+    // ───────────────────────────────────────────────────────────────────
+
+    // Duplicate application check
+    const existingApplication = await JobApplication.findOne({ student: studentId, jobPosting: jobId });
     if (existingApplication) {
-      return res.status(400).json({
-        success: false,
-        message: 'You have already applied for this job'
-      });
+      return res.status(400).json({ success: false, message: 'You have already applied for this position.' });
     }
 
-    // Create application
     const application = new JobApplication({
       student: studentId,
       jobPosting: jobId,
       company: job.company,
       coverLetter,
-      portfolio,
-      availability,
-      expectedSalary: salary,
       status: 'applied',
       appliedDate: new Date()
     });
 
     await application.save();
-
-    // Update job application count
-    await JobPosting.findByIdAndUpdate(jobId, {
-      $inc: { applicationCount: 1 }
-    });
+    await JobPosting.findByIdAndUpdate(jobId, { $inc: { applicationCount: 1 } });
 
     res.json({
       success: true,
       message: 'Application submitted successfully',
-      data: {
-        applicationId: application._id,
-        status: 'applied'
-      }
+      data: { applicationId: application._id, status: 'applied' }
     });
 
   } catch (error) {
     console.error('Job application error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error'
-    });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 

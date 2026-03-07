@@ -1,14 +1,26 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-hot-toast';
-import { getCompanyProfile, updateCompanyProfile } from '../../../services/companyApi';
+import { getCompanyProfile, updateCompanyProfile, uploadCompanyLogo } from '../../../services/companyApi';
 import {
   FaBuilding, FaGlobe, FaMapMarkerAlt, FaUsers, FaIndustry,
-  FaSave, FaTimes, FaGraduationCap, FaBriefcase, FaAddressCard, FaFileAlt, FaEdit
+  FaSave, FaTimes, FaGraduationCap, FaBriefcase, FaAddressCard, FaFileAlt, FaEdit,
+  FaCamera, FaSpinner
 } from 'react-icons/fa';
 
 const MOCK_DEGREES = ['B.Tech', 'M.Tech', 'MBA', 'MCA', 'BCA', 'BBA'];
 const MOCK_BRANCHES = ['CSE', 'IT', 'ECE', 'MECH', 'CIVIL', 'EEE', 'Finance', 'HR', 'Marketing'];
 const MOCK_DOCS = ['Portfolio', 'Certificates', 'Cover Letter', 'Recommendation Letter'];
+
+// Validates that a string is a proper URL (http/https)
+const isValidUrl = (str) => {
+  if (!str) return true; // empty is ok (not required here)
+  try {
+    const url = new URL(str);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
 
 const SectionWrapper = ({ title, icon: Icon, children }) => (
   <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-6 transition-all hover:shadow-md">
@@ -27,7 +39,11 @@ const SectionWrapper = ({ title, icon: Icon, children }) => (
 const CompanyProfile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [savingLogo, setSavingLogo] = useState(false);
   const [profile, setProfile] = useState(null);
+  const [urlErrors, setUrlErrors] = useState({});
+  const logoInputRef = useRef(null);
+
   const [formData, setFormData] = useState({
     // Basic Info
     companyName: '',
@@ -49,14 +65,14 @@ const CompanyProfile = () => {
 
     // Standard Job Details
     standardWorkLocations: [],
-    workLocationInput: '', // Temporary state for multi-input
+    workLocationInput: '',
     defaultWorkMode: 'Office',
     standardBenefitsPackage: '',
 
-    // Contact Info
-    hrName: '',
-    hrEmail: '',
-    hrPhone: '',
+    // Default Company Contact (Receptionist)
+    receptionistName: '',
+    receptionistEmail: '',
+    receptionistPhone: '',
     alternateEmail: '',
     alternatePhone: '',
 
@@ -98,9 +114,10 @@ const CompanyProfile = () => {
           defaultWorkMode: data.defaultWorkMode || 'Office',
           standardBenefitsPackage: data.standardBenefitsPackage || '',
 
-          hrName: data.hrName || '',
-          hrEmail: data.hrEmail || '',
-          hrPhone: data.hrPhone || '',
+          // Map legacy hrName/hrEmail/hrPhone → receptionist fields
+          receptionistName: data.receptionistName || data.hrName || '',
+          receptionistEmail: data.receptionistEmail || data.hrEmail || '',
+          receptionistPhone: data.receptionistPhone || data.hrPhone || '',
           alternateEmail: data.alternateEmail || '',
           alternatePhone: data.alternatePhone || '',
 
@@ -118,10 +135,17 @@ const CompanyProfile = () => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
+    const newValue = type === 'checkbox' ? checked : value;
+    setFormData(prev => ({ ...prev, [name]: newValue }));
+
+    // Live URL validation for URL fields
+    if (name === 'website' || name === 'linkedinUrl' || name === 'portfolioUrl') {
+      if (value && !isValidUrl(value)) {
+        setUrlErrors(prev => ({ ...prev, [name]: 'Please enter a valid URL (e.g. https://example.com)' }));
+      } else {
+        setUrlErrors(prev => { const next = { ...prev }; delete next[name]; return next; });
+      }
+    }
   };
 
   const handleArrayToggle = (field, value) => {
@@ -155,11 +179,60 @@ const CompanyProfile = () => {
     }));
   };
 
+  // Cloudinary logo upload handler
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Basic file validation
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be under 5MB');
+      return;
+    }
+
+    setSavingLogo(true);
+    try {
+      const uploadedUrl = await uploadCompanyLogo(file);
+      setFormData(prev => ({ ...prev, profilePicture: uploadedUrl }));
+      setProfile(prev => prev ? { ...prev, profilePicture: uploadedUrl } : prev);
+      toast.success('Company logo uploaded successfully!');
+    } catch (error) {
+      toast.error('Failed to upload logo. Please try again.');
+    } finally {
+      setSavingLogo(false);
+    }
+  };
+
   const handleSave = async () => {
+    // Validate all URL fields before saving
+    const urlFields = ['website'];
+    let hasUrlErrors = false;
+    const newUrlErrors = {};
+    urlFields.forEach(field => {
+      if (formData[field] && !isValidUrl(formData[field])) {
+        newUrlErrors[field] = 'Please enter a valid URL (e.g. https://example.com)';
+        hasUrlErrors = true;
+      }
+    });
+    if (hasUrlErrors) {
+      setUrlErrors(newUrlErrors);
+      toast.error('Please fix URL errors before saving.');
+      return;
+    }
+
     try {
       const loadingToast = toast.loading('Saving profile...');
       const payload = { ...formData };
       delete payload.workLocationInput;
+
+      // Map receptionist fields to also update legacy hrName/hrEmail/hrPhone for backward compat
+      payload.hrName = payload.receptionistName;
+      payload.hrEmail = payload.receptionistEmail;
+      payload.hrPhone = payload.receptionistPhone;
 
       const updatedProfile = await updateCompanyProfile(payload);
       setProfile(updatedProfile);
@@ -183,14 +256,48 @@ const CompanyProfile = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 bg-blue-100 rounded-xl flex items-center justify-center text-3xl">
-            {profile?.profilePicture ? (
-              <img src={profile.profilePicture} alt="Logo" className="w-full h-full object-cover rounded-xl" />
-            ) : "🏢"}
+          {/* Company Logo with Upload Button */}
+          <div className="relative group">
+            <div className="w-20 h-20 bg-blue-100 rounded-xl flex items-center justify-center overflow-hidden border-2 border-blue-100 shadow-sm">
+              {(formData.profilePicture || profile?.profilePicture) ? (
+                <img
+                  src={formData.profilePicture || profile?.profilePicture}
+                  alt="Company Logo"
+                  className="w-full h-full object-contain p-1"
+                />
+              ) : (
+                <span className="text-3xl">🏢</span>
+              )}
+              {savingLogo && (
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center rounded-xl">
+                  <FaSpinner className="text-white animate-spin" size={20} />
+                </div>
+              )}
+            </div>
+            {/* Upload trigger — always visible */}
+            <button
+              type="button"
+              onClick={() => logoInputRef.current?.click()}
+              disabled={savingLogo}
+              className="absolute -bottom-2 -right-2 p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md transition-all hover:scale-110 active:scale-95 disabled:opacity-60"
+              title="Upload company logo"
+            >
+              <FaCamera size={12} />
+            </button>
+            <input
+              ref={logoInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleLogoUpload}
+              className="hidden"
+              aria-label="Upload company logo"
+            />
           </div>
+
           <div>
             <h1 className="text-2xl font-bold text-gray-800">{formData.companyName || 'Set up your Company Profile'}</h1>
             <p className="text-gray-500 text-sm mt-1">This information will be used to auto-fill your job postings.</p>
+            <p className="text-blue-500 text-xs mt-0.5">Click the camera icon to upload your company logo</p>
           </div>
         </div>
         <div className="flex gap-2">
@@ -205,7 +312,7 @@ const CompanyProfile = () => {
           ) : (
             <>
               <button
-                onClick={() => setIsEditing(false)}
+                onClick={() => { setIsEditing(false); setUrlErrors({}); }}
                 className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-5 py-2.5 rounded-xl flex items-center gap-2 transition-colors font-medium border border-gray-200"
               >
                 <FaTimes className="w-4 h-4" />
@@ -233,8 +340,20 @@ const CompanyProfile = () => {
               <input type="text" name="companyName" value={formData.companyName} onChange={handleChange} className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50/50" placeholder="e.g. Acme Corp" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Company Website *</label>
-              <input type="text" name="website" value={formData.website} onChange={handleChange} className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50/50" placeholder="e.g. https://acme.com" />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Company Website</label>
+              <input
+                type="url"
+                name="website"
+                value={formData.website}
+                onChange={handleChange}
+                className={`w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50/50 ${urlErrors.website ? 'border-red-400 bg-red-50/30 focus:ring-red-400/30' : 'border-gray-300'}`}
+                placeholder="e.g. https://acme.com"
+              />
+              {urlErrors.website && (
+                <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                  <span>⚠</span> {urlErrors.website}
+                </p>
+              )}
             </div>
 
             <div>
@@ -246,6 +365,10 @@ const CompanyProfile = () => {
                 <option value="Healthcare">Healthcare</option>
                 <option value="Manufacturing">Manufacturing</option>
                 <option value="Education">Education</option>
+                <option value="E-Commerce">E-Commerce</option>
+                <option value="Consulting">Consulting</option>
+                <option value="Telecommunications">Telecommunications</option>
+                <option value="Other">Other</option>
               </select>
             </div>
 
@@ -374,29 +497,34 @@ const CompanyProfile = () => {
           </div>
         </SectionWrapper>
 
-        {/* Section 4: Default Contact Info */}
-        <SectionWrapper title="Default Contact Info" icon={FaAddressCard}>
+        {/* Section 4: Default Company Contact (Receptionist) */}
+        <SectionWrapper title="Default Company Contact" icon={FaAddressCard}>
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-100 rounded-xl">
+            <p className="text-blue-700 text-sm font-medium">
+              📞 These are the company's main front-desk / receptionist contact details — not HR-specific. They will appear as the primary contact in job postings.
+            </p>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">HR Name *</label>
-              <input type="text" name="hrName" value={formData.hrName} onChange={handleChange} className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50/50" />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Receptionist / Front Desk Name</label>
+              <input type="text" name="receptionistName" value={formData.receptionistName} onChange={handleChange} className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50/50" placeholder="e.g. Ms. Priya Verma" />
             </div>
             <div></div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">HR Email *</label>
-              <input type="email" name="hrEmail" value={formData.hrEmail} onChange={handleChange} className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50/50" />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Receptionist / Contact Email</label>
+              <input type="email" name="receptionistEmail" value={formData.receptionistEmail} onChange={handleChange} className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50/50" placeholder="e.g. reception@company.com" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">HR Phone *</label>
-              <input type="text" name="hrPhone" value={formData.hrPhone} onChange={handleChange} className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50/50" />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Receptionist / Contact Phone</label>
+              <input type="text" name="receptionistPhone" value={formData.receptionistPhone} onChange={handleChange} className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50/50" placeholder="e.g. +91 9876543210" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Alternate Contact Email</label>
-              <input type="email" name="alternateEmail" value={formData.alternateEmail} onChange={handleChange} className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50/50" />
+              <input type="email" name="alternateEmail" value={formData.alternateEmail} onChange={handleChange} className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50/50" placeholder="e.g. info@company.com" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Alternate Contact Phone</label>
-              <input type="text" name="alternatePhone" value={formData.alternatePhone} onChange={handleChange} className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50/50" />
+              <input type="text" name="alternatePhone" value={formData.alternatePhone} onChange={handleChange} className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50/50" placeholder="e.g. +91 9876543210" />
             </div>
           </div>
         </SectionWrapper>

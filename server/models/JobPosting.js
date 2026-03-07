@@ -72,21 +72,21 @@ const jobPostingSchema = new mongoose.Schema({
   targetBatches: {
     type: [String],
     validate: {
-      validator: function(v) { return v && v.length > 0; },
+      validator: function (v) { return v && v.length > 0; },
       message: 'At least one target batch is required'
     }
   },
   eligibleDegrees: {
     type: [String],
     validate: {
-      validator: function(v) { return v && v.length > 0; },
+      validator: function (v) { return v && v.length > 0; },
       message: 'At least one eligible degree is required'
     }
   },
   eligibleBranches: {
     type: [String],
     validate: {
-      validator: function(v) { return v && v.length > 0; },
+      validator: function (v) { return v && v.length > 0; },
       message: 'At least one eligible branch is required'
     }
   },
@@ -125,7 +125,7 @@ const jobPostingSchema = new mongoose.Schema({
   requiredSkills: {
     type: [String],
     validate: {
-      validator: function(v) { return v && v.length > 0; },
+      validator: function (v) { return v && v.length > 0; },
       message: 'At least one required skill is needed'
     }
   },
@@ -135,7 +135,7 @@ const jobPostingSchema = new mongoose.Schema({
     enum: ['0', '0-1', '1-2', '2-3', 'other'],
     default: '0'
   },
-  numberOfOpenings: { type: Number, required: true, min: 1 },
+  numberOfOpenings: { type: Number, min: 1 },
   workMode: {
     type: String,
     enum: ['office', 'hybrid', 'remote'],
@@ -144,7 +144,7 @@ const jobPostingSchema = new mongoose.Schema({
   workLocations: {
     type: [String],
     validate: {
-      validator: function(v) { return v && v.length > 0; },
+      validator: function (v) { return v && v.length > 0; },
       message: 'At least one work location is required'
     }
   },
@@ -171,7 +171,7 @@ const jobPostingSchema = new mongoose.Schema({
     end: Date
   },
   venueRequirements: { type: String, trim: true },
-  expectedStudents: { type: Number, min: 0 },
+  expectedStudents: { type: Number, min: 0 }, // optional - not always known upfront
   pptRequired: { type: Boolean, default: false },
   pptDetails: {
     dateTime: Date,
@@ -257,7 +257,7 @@ const jobPostingSchema = new mongoose.Schema({
 });
 
 // Auto-generate Job ID before saving
-jobPostingSchema.pre('save', async function(next) {
+jobPostingSchema.pre('save', async function (next) {
   if (this.isNew && !this.jobId) {
     try {
       const year = new Date().getFullYear();
@@ -284,10 +284,14 @@ jobPostingSchema.pre('save', async function(next) {
 });
 
 // Indexes
+// NOTE: MongoDB cannot create a compound index across multiple array fields (parallel arrays error).
+// Each array field needs its own index.
 jobPostingSchema.index({ company: 1, status: 1 });
 jobPostingSchema.index({ driveType: 1, status: 1 });
 jobPostingSchema.index({ status: 1, applicationDeadline: 1 });
-jobPostingSchema.index({ targetBatches: 1, eligibleDegrees: 1, eligibleBranches: 1 });
+jobPostingSchema.index({ targetBatches: 1 });      // split from compound to avoid parallel arrays error
+jobPostingSchema.index({ eligibleDegrees: 1 });    // split from compound
+jobPostingSchema.index({ eligibleBranches: 1 });   // split from compound
 jobPostingSchema.index({ isActive: 1, category: 1 });
 jobPostingSchema.index({ type: 1, isActive: 1 });
 jobPostingSchema.index({ targetColleges: 1, isActive: 1 });

@@ -35,7 +35,7 @@ const Sidebar = ({
     { id: 'dashboard', label: 'Dashboard', icon: LayoutGrid },
     { id: 'students', label: 'Student Management', icon: Users },
     { id: 'companies', label: 'Company Partners', icon: Building2 },
-    { id: 'jobs', label: 'Job Postings', icon: Briefcase },
+    { id: 'drive-requests', label: 'Drive Requests', icon: Briefcase },
     { id: 'interviews', label: 'Interview Desk', icon: Calendar },
     { id: 'reports', label: 'Reports & Analytics', icon: FilePieChart },
   ];

@@ -22,6 +22,28 @@ const ensureCompany = async (req, res, next) => {
   }
 };
 
+// ==================== TPO LIST (for on-campus drive college selector) ====================
+
+// Get all active TPOs so company can select target colleges for on-campus drives
+router.get('/tpo-list', auth, ensureCompany, async (req, res) => {
+  try {
+    const tpos = await TPO.find({ status: 'active' })
+      .select('_id name instituteName email contactNumber')
+      .sort({ instituteName: 1 });
+
+    res.json(tpos.map(t => ({
+      _id: t._id,
+      name: t.name,
+      instituteName: t.instituteName,
+      email: t.email,
+      contactNumber: t.contactNumber,
+    })));
+  } catch (error) {
+    console.error('Error fetching TPO list:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // ==================== JOB MANAGEMENT ====================
 
 // Get all jobs for the company
@@ -548,23 +570,16 @@ router.patch('/applications/:id/status', auth, ensureCompany, async (req, res) =
 
 // ==================== COMPANY PROFILE ====================
 
-// Get company profile
-// Get company profile
+// Get company profile — always fetch fresh from DB so all fields are present
 router.get('/profile', auth, ensureCompany, async (req, res) => {
   try {
-    // req.user is already the Company document
-    const company = req.user;
+    const company = await Company.findById(req.user._id).select('-password -emailVerificationOTP -passwordResetToken');
 
-    // Safety check
     if (!company) {
-      const dbCompany = await Company.findById(req.user._id).select('-password');
-      return res.json(dbCompany);
+      return res.status(404).json({ message: 'Company not found' });
     }
 
-    const companyObj = company.toObject ? company.toObject() : company;
-    if (companyObj.password) delete companyObj.password;
-
-    res.json(companyObj);
+    res.json(company.toObject());
   } catch (error) {
     console.error('Error fetching company profile:', error);
     res.status(500).json({ message: 'Server error' });
@@ -575,28 +590,117 @@ router.get('/profile', auth, ensureCompany, async (req, res) => {
 router.put('/profile', auth, ensureCompany, async (req, res) => {
   try {
     const updateData = req.body;
-    let company = await Company.findById(req.user._id);
 
-    if (!company) {
-      return res.status(404).json({ message: 'Company not found' });
-    }
-
-    const protectedFields = ['_id', 'email', 'password', 'role', 'status', 'isVerified'];
+    // Strip protected/internal fields from the update payload
+    const protectedFields = ['_id', 'email', 'password', 'role', 'status', 'isVerified',
+      'emailVerificationOTP', 'passwordResetToken', '__v'];
+    const safeUpdate = {};
     Object.keys(updateData).forEach(key => {
-      if (!protectedFields.includes(key)) {
-        company[key] = updateData[key];
+      if (!protectedFields.includes(key) && updateData[key] !== undefined) {
+        safeUpdate[key] = updateData[key];
       }
     });
 
-    await company.save();
+    // Use findByIdAndUpdate with $set so all fields (including description) are saved reliably
+    const updatedCompany = await Company.findByIdAndUpdate(
+      req.user._id,
+      { $set: safeUpdate },
+      { new: true, runValidators: false, select: '-password -emailVerificationOTP -passwordResetToken' }
+    );
 
-    const companyResponse = company.toObject();
-    delete companyResponse.password;
+    if (!updatedCompany) {
+      return res.status(404).json({ message: 'Company not found' });
+    }
 
-    res.json(companyResponse);
+    res.json(updatedCompany.toObject());
   } catch (error) {
     console.error('Error updating company profile:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Server error', details: error.message });
+  }
+});
+
+// ==================== COMPANY LOGO UPLOAD (Cloudinary) ====================
+
+// Upload company logo to Cloudinary
+router.post('/upload-logo', auth, ensureCompany, async (req, res) => {
+  try {
+    const multer = require('multer');
+    const cloudinary = require('cloudinary').v2;
+
+    // Configure Cloudinary (uses env vars)
+    cloudinary.config({
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+      api_key: process.env.CLOUDINARY_API_KEY,
+      api_secret: process.env.CLOUDINARY_API_SECRET
+    });
+
+    // Check if Cloudinary is configured
+    if (
+      !process.env.CLOUDINARY_CLOUD_NAME ||
+      process.env.CLOUDINARY_CLOUD_NAME === 'your_cloud_name'
+    ) {
+      return res.status(503).json({
+        message: 'Cloudinary is not configured yet. Please add CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET to your .env file.'
+      });
+    }
+
+    // Use memory storage so file is in req.file.buffer
+    const upload = multer({
+      storage: multer.memoryStorage(),
+      limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+      fileFilter: (req, file, cb) => {
+        if (file.mimetype.startsWith('image/')) {
+          cb(null, true);
+        } else {
+          cb(new Error('Only image files are allowed'), false);
+        }
+      }
+    }).single('logo');
+
+    // Run multer as a promise
+    await new Promise((resolve, reject) => {
+      upload(req, res, (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+
+    // Upload to Cloudinary using stream
+    const uploadResult = await new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          folder: 'company_logos',
+          public_id: `company_${req.user._id}`,
+          overwrite: true,
+          resource_type: 'image',
+          transformation: [{ width: 400, height: 400, crop: 'limit', quality: 'auto' }]
+        },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      );
+      uploadStream.end(req.file.buffer);
+    });
+
+    // Save Cloudinary URL to company profile
+    const company = await Company.findById(req.user._id);
+    if (company) {
+      company.profilePicture = uploadResult.secure_url;
+      await company.save();
+    }
+
+    res.json({
+      url: uploadResult.secure_url,
+      message: 'Logo uploaded successfully'
+    });
+  } catch (error) {
+    console.error('Error uploading logo:', error);
+    res.status(500).json({ message: 'Failed to upload logo', details: error.message });
   }
 });
 

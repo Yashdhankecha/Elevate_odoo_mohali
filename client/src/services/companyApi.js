@@ -185,6 +185,20 @@ export const updateCompanyProfile = async (profileData) => {
   }
 };
 
+export const uploadCompanyLogo = async (file) => {
+  try {
+    const formData = new FormData();
+    formData.append('logo', file);
+    const response = await apiCall('POST', '/company/upload-logo', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return response.data.url;
+  } catch (error) {
+    console.error('Error uploading company logo:', error);
+    throw error;
+  }
+};
+
 // Applications Tracking APIs
 export const getAllApplications = async (filters = {}) => {
   try {
@@ -216,3 +230,15 @@ export const getApplicationDetails = async (applicationId) => {
     throw error;
   }
 };
+
+// Fetch list of all active TPOs (colleges) for on-campus drive targeting
+export const getTPOList = async () => {
+  try {
+    const response = await apiCall('GET', '/company/tpo-list');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching TPO list:', error);
+    throw error;
+  }
+};
+

@@ -124,127 +124,128 @@ const CompanyProfilePage = () => {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 lg:gap-8">
-                        {/* Nav Tabs */}
-                        <div className="xl:col-span-1 space-y-2 flex flex-row xl:flex-col overflow-x-auto xl:overflow-x-visible pb-2 xl:pb-0 scrollbar-hide shrink-0">
-                            {tabs.map((tab) => {
-                                const Icon = tab.icon;
-                                const isActive = activeTab === tab.id;
-                                return (
-                                    <button
-                                        key={tab.id} onClick={() => setActiveTab(tab.id)}
-                                        className={`flex items-center gap-2 sm:gap-3 px-4 sm:px-6 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-bold transition-all duration-300 shrink-0 ${isActive ? 'bg-blue-600 text-white shadow-lg shadow-blue-200 xl:translate-x-1' : 'bg-white border border-gray-100 text-slate-500 hover:bg-slate-50'
-                                            }`}
-                                    >
-                                        <Icon className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
-                                        <span className="text-sm sm:text-base whitespace-nowrap">{tab.name}</span>
-                                    </button>
-                                );
-                            })}
-                        </div>
+                    {/* Horizontal Tab Navigation */}
+                    <div className="flex flex-row gap-2 mb-6 overflow-x-auto pb-1 scrollbar-hide">
+                        {tabs.map((tab) => {
+                            const Icon = tab.icon;
+                            const isActive = activeTab === tab.id;
+                            return (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={`flex items-center gap-2 sm:gap-3 px-5 sm:px-7 py-3 sm:py-3.5 rounded-2xl font-bold transition-all duration-300 shrink-0 ${isActive
+                                            ? tab.id === 'danger'
+                                                ? 'bg-rose-600 text-white shadow-lg shadow-rose-200'
+                                                : 'bg-blue-600 text-white shadow-lg shadow-blue-200'
+                                            : 'bg-white border border-gray-100 text-slate-500 hover:bg-slate-50 shadow-sm'
+                                        }`}
+                                >
+                                    <Icon className={`w-4 h-4 sm:w-5 sm:h-5 shrink-0 ${isActive && tab.id === 'danger' ? 'text-white' : ''}`} />
+                                    <span className="text-sm sm:text-base whitespace-nowrap">{tab.name}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
 
-                        {/* Content Area */}
-                        <div className="xl:col-span-3 min-w-0">
-                            <div className="bg-white border border-gray-100 shadow-sm rounded-2xl sm:rounded-[2.5rem] p-4 sm:p-6 lg:p-8 xl:p-10 animate-fade-in h-full overflow-hidden">
-                                {activeTab === 'company-details' && (
-                                    <div className="animate-fade-in -mx-4 sm:-mx-6 lg:-mx-8 xl:-mx-10 px-4 sm:px-6 lg:px-8 xl:px-10">
-                                        <CompanyProfileComponent />
+                    {/* Content Area */}
+                    <div className="bg-white border border-gray-100 shadow-sm rounded-2xl sm:rounded-[2.5rem] p-4 sm:p-6 lg:p-8 xl:p-10 animate-fade-in overflow-hidden">
+                        {activeTab === 'company-details' && (
+                            <div className="animate-fade-in -mx-4 sm:-mx-6 lg:-mx-8 xl:-mx-10 px-4 sm:px-6 lg:px-8 xl:px-10">
+                                <CompanyProfileComponent />
+                            </div>
+                        )}
+
+                        {activeTab === 'security' && (
+                            <div className="space-y-6 sm:space-y-8 animate-fade-in">
+                                <div className="flex items-center gap-3 text-slate-900">
+                                    <div className="p-2 sm:p-3 bg-blue-50 rounded-xl sm:rounded-2xl shrink-0">
+                                        <Key className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
                                     </div>
-                                )}
+                                    <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight">Access Security</h2>
+                                </div>
 
-                                {activeTab === 'security' && (
-                                    <div className="space-y-6 sm:space-y-8 animate-fade-in">
-                                        <div className="flex items-center gap-3 text-slate-900">
-                                            <div className="p-2 sm:p-3 bg-blue-50 rounded-xl sm:rounded-2xl shrink-0">
-                                                <Key className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
-                                            </div>
-                                            <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight">Access Security</h2>
+                                {user?.googleId ? (
+                                    <div className="p-6 bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl text-center">
+                                        <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm">
+                                            <HiShieldCheck className="w-8 h-8 text-blue-500" />
                                         </div>
-
-                                        {user?.googleId ? (
-                                            <div className="p-6 bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl text-center">
-                                                <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm">
-                                                    <HiShieldCheck className="w-8 h-8 text-blue-500" />
+                                        <h4 className="text-slate-900 font-bold mb-2 text-sm sm:text-base">Google Managed Security</h4>
+                                        <p className="text-slate-500 text-xs sm:text-sm max-w-xs mx-auto">Password management is handled by Google. To change your security settings, please visit your Google Account.</p>
+                                    </div>
+                                ) : (
+                                    <form onSubmit={handlePasswordSubmit} className="space-y-5 sm:space-y-6">
+                                        <div className="space-y-3 sm:space-y-4">
+                                            <div className="space-y-1.5 sm:space-y-2">
+                                                <label className="block text-xs sm:text-sm font-bold text-slate-600 uppercase tracking-widest px-1">Current Password</label>
+                                                <input
+                                                    type="password" name="currentPassword" required
+                                                    value={passwordForm.currentPassword} onChange={(e) => setPasswordForm(p => ({ ...p, currentPassword: e.target.value }))}
+                                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400" placeholder="Enter existing password"
+                                                />
+                                            </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                                                <div className="space-y-1.5 sm:space-y-2">
+                                                    <label className="block text-xs sm:text-sm font-bold text-slate-600 uppercase tracking-widest px-1">New Password</label>
+                                                    <input
+                                                        type="password" name="newPassword" required
+                                                        value={passwordForm.newPassword} onChange={(e) => setPasswordForm(p => ({ ...p, newPassword: e.target.value }))}
+                                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400" placeholder="At least 6 chars"
+                                                    />
                                                 </div>
-                                                <h4 className="text-slate-900 font-bold mb-2 text-sm sm:text-base">Google Managed Security</h4>
-                                                <p className="text-slate-500 text-xs sm:text-sm max-w-xs mx-auto">Password management is handled by Google. To change your security settings, please visit your Google Account.</p>
-                                            </div>
-                                        ) : (
-                                            <form onSubmit={handlePasswordSubmit} className="space-y-5 sm:space-y-6">
-                                                <div className="space-y-3 sm:space-y-4">
-                                                    <div className="space-y-1.5 sm:space-y-2">
-                                                        <label className="block text-xs sm:text-sm font-bold text-slate-600 uppercase tracking-widest px-1">Current Password</label>
-                                                        <input
-                                                            type="password" name="currentPassword" required
-                                                            value={passwordForm.currentPassword} onChange={(e) => setPasswordForm(p => ({ ...p, currentPassword: e.target.value }))}
-                                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400" placeholder="Enter existing password"
-                                                        />
-                                                    </div>
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                                                        <div className="space-y-1.5 sm:space-y-2">
-                                                            <label className="block text-xs sm:text-sm font-bold text-slate-600 uppercase tracking-widest px-1">New Password</label>
-                                                            <input
-                                                                type="password" name="newPassword" required
-                                                                value={passwordForm.newPassword} onChange={(e) => setPasswordForm(p => ({ ...p, newPassword: e.target.value }))}
-                                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400" placeholder="At least 6 chars"
-                                                            />
-                                                        </div>
-                                                        <div className="space-y-1.5 sm:space-y-2">
-                                                            <label className="block text-xs sm:text-sm font-bold text-slate-600 uppercase tracking-widest px-1">Confirm Password</label>
-                                                            <input
-                                                                type="password" name="confirmPassword" required
-                                                                value={passwordForm.confirmPassword} onChange={(e) => setPasswordForm(p => ({ ...p, confirmPassword: e.target.value }))}
-                                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400" placeholder="Verify new password"
-                                                            />
-                                                        </div>
-                                                    </div>
+                                                <div className="space-y-1.5 sm:space-y-2">
+                                                    <label className="block text-xs sm:text-sm font-bold text-slate-600 uppercase tracking-widest px-1">Confirm Password</label>
+                                                    <input
+                                                        type="password" name="confirmPassword" required
+                                                        value={passwordForm.confirmPassword} onChange={(e) => setPasswordForm(p => ({ ...p, confirmPassword: e.target.value }))}
+                                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400" placeholder="Verify new password"
+                                                    />
                                                 </div>
-                                                <button type="submit" disabled={loading} className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-200 flex items-center justify-center sm:justify-start gap-2 font-bold transition-all disabled:opacity-50 sm:ml-auto">
-                                                    {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><HiKey className="w-4 h-4 sm:w-5 sm:h-5" /> <span className="text-sm sm:text-base">Update My Password</span></>}
-                                                </button>
-                                            </form>
-                                        )}
-                                    </div>
-                                )}
-
-                                {activeTab === 'danger' && (
-                                    <div className="space-y-6 sm:space-y-8 animate-fade-in">
-                                        <div className="flex items-center gap-3 text-rose-600">
-                                            <div className="p-2 sm:p-3 bg-rose-50 rounded-xl sm:rounded-2xl shrink-0">
-                                                <HiShieldExclamation className="w-5 h-5 sm:w-6 sm:h-6" />
                                             </div>
-                                            <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight">Danger Zone</h2>
                                         </div>
-
-                                        <div className="p-5 sm:p-8 bg-rose-50 border border-rose-100 rounded-2xl sm:rounded-[2rem] space-y-4 sm:space-y-6">
-                                            <div className="space-y-1 sm:space-y-2">
-                                                <h4 className="text-rose-900 font-extrabold text-lg sm:text-xl">Deactivate & Delete Account</h4>
-                                                <p className="text-rose-700/80 font-medium text-sm sm:text-base leading-relaxed">
-                                                    This action will permanently delete your profile, job postings, applications, and all associated data. This cannot be undone.
-                                                </p>
-                                            </div>
-
-                                            <form onSubmit={handleDeleteSubmit} className="space-y-3 sm:space-y-4">
-                                                {!user?.googleId && (
-                                                    <div className="space-y-1.5 sm:space-y-2">
-                                                        <label className="block text-xs sm:text-sm font-bold text-rose-900/60 uppercase tracking-wide">Confirm with Password</label>
-                                                        <input
-                                                            type="password" name="password" required
-                                                            value={deleteForm.password} onChange={(e) => setDeleteForm({ password: e.target.value })}
-                                                            className="w-full bg-white border-2 border-rose-100 rounded-xl sm:rounded-2xl px-4 sm:px-6 py-3 sm:py-4 text-sm sm:text-base focus:outline-none focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500 transition-all text-rose-900 font-bold placeholder:text-rose-200"
-                                                            placeholder="Type your password to verify"
-                                                        />
-                                                    </div>
-                                                )}
-                                                <button type="submit" disabled={loading} className="w-full bg-rose-600 text-white font-black py-3 sm:py-4 rounded-xl sm:rounded-2xl shadow-xl shadow-rose-200 hover:bg-rose-700 transition-all active:scale-[0.98] flex items-center justify-center gap-2 text-sm sm:text-base">
-                                                    <Trash2 className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" /> {loading ? 'Deleting...' : 'PERMANENTLY DELETE ACCOUNT'}
-                                                </button>
-                                            </form>
-                                        </div>
-                                    </div>
+                                        <button type="submit" disabled={loading} className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-200 flex items-center justify-center sm:justify-start gap-2 font-bold transition-all disabled:opacity-50 sm:ml-auto">
+                                            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><HiKey className="w-4 h-4 sm:w-5 sm:h-5" /> <span className="text-sm sm:text-base">Update My Password</span></>}
+                                        </button>
+                                    </form>
                                 )}
                             </div>
-                        </div>
+                        )}
+
+                        {activeTab === 'danger' && (
+                            <div className="space-y-6 sm:space-y-8 animate-fade-in">
+                                <div className="flex items-center gap-3 text-rose-600">
+                                    <div className="p-2 sm:p-3 bg-rose-50 rounded-xl sm:rounded-2xl shrink-0">
+                                        <HiShieldExclamation className="w-5 h-5 sm:w-6 sm:h-6" />
+                                    </div>
+                                    <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight">Danger Zone</h2>
+                                </div>
+
+                                <div className="p-5 sm:p-8 bg-rose-50 border border-rose-100 rounded-2xl sm:rounded-[2rem] space-y-4 sm:space-y-6">
+                                    <div className="space-y-1 sm:space-y-2">
+                                        <h4 className="text-rose-900 font-extrabold text-lg sm:text-xl">Deactivate & Delete Account</h4>
+                                        <p className="text-rose-700/80 font-medium text-sm sm:text-base leading-relaxed">
+                                            This action will permanently delete your profile, job postings, applications, and all associated data. This cannot be undone.
+                                        </p>
+                                    </div>
+
+                                    <form onSubmit={handleDeleteSubmit} className="space-y-3 sm:space-y-4">
+                                        {!user?.googleId && (
+                                            <div className="space-y-1.5 sm:space-y-2">
+                                                <label className="block text-xs sm:text-sm font-bold text-rose-900/60 uppercase tracking-wide">Confirm with Password</label>
+                                                <input
+                                                    type="password" name="password" required
+                                                    value={deleteForm.password} onChange={(e) => setDeleteForm({ password: e.target.value })}
+                                                    className="w-full bg-white border-2 border-rose-100 rounded-xl sm:rounded-2xl px-4 sm:px-6 py-3 sm:py-4 text-sm sm:text-base focus:outline-none focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500 transition-all text-rose-900 font-bold placeholder:text-rose-200"
+                                                    placeholder="Type your password to verify"
+                                                />
+                                            </div>
+                                        )}
+                                        <button type="submit" disabled={loading} className="w-full bg-rose-600 text-white font-black py-3 sm:py-4 rounded-xl sm:rounded-2xl shadow-xl shadow-rose-200 hover:bg-rose-700 transition-all active:scale-[0.98] flex items-center justify-center gap-2 text-sm sm:text-base">
+                                            <Trash2 className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" /> {loading ? 'Deleting...' : 'PERMANENTLY DELETE ACCOUNT'}
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </main>
             </div>

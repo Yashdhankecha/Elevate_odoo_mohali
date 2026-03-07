@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   X, ChevronRight, ChevronLeft, Save, Send, Loader2, CheckCircle2,
   AlertCircle, Building2, Briefcase, Users, Award, Calendar, FileText,
   Plus, Trash2, Upload, Eye, Info, Tag
 } from 'lucide-react';
-import { createJobPosting, updateJobPosting, saveJobDraft, getCompanyProfile } from '../../../services/companyApi';
+import { createJobPosting, updateJobPosting, saveJobDraft, getCompanyProfile, getTPOList } from '../../../services/companyApi';
 
 // ===== CONSTANTS =====
 const STEPS = [
@@ -91,7 +91,8 @@ const INITIAL_FORM = {
   additionalDocuments: [], specialInstructions: '',
   hrName: '', contactEmail: '', contactPhone: '', alternateEmail: '', alternatePhone: '',
   // Meta
-  termsAccepted: false
+  termsAccepted: false,
+  targetTPOs: [],   // array of TPO _ids (for on-campus drives)
 };
 
 // ===== REUSABLE FORM ELEMENTS =====
@@ -285,81 +286,163 @@ const Step1 = ({ form, setField, isUploadingTitle }) => {
   );
 };
 
-const Step2 = ({ form, setField, setNested }) => (
-  <div className="space-y-6">
-    <div className={sectionClass}>
-      <h3 className="text-base font-bold text-slate-800">Drive Type</h3>
-      <RadioGroup options={[
-        { value: 'on_campus', label: 'On-Campus (requires TPO approval)' },
-        { value: 'off_campus', label: 'Off-Campus (directly visible to students)' }
-      ]} value={form.driveType} onChange={v => setField('driveType', v)} name="driveType" />
-    </div>
-    <div className={sectionClass}>
-      <h3 className="text-base font-bold text-slate-800">Target Audience</h3>
-      <FormField label="Target Batch / Year" required>
-        <CheckboxGroup options={BATCHES} selected={form.targetBatches} onChange={v => setField('targetBatches', v)} />
-      </FormField>
-      <FormField label="Eligible Degrees" required>
-        <CheckboxGroup options={DEGREES} selected={form.eligibleDegrees} onChange={v => setField('eligibleDegrees', v)} />
-      </FormField>
-      <FormField label="Eligible Branches" required>
-        <CheckboxGroup options={BRANCHES} selected={form.eligibleBranches} onChange={v => setField('eligibleBranches', v)} />
-      </FormField>
-    </div>
-    <div className={sectionClass}>
-      <h3 className="text-base font-bold text-slate-800">Eligibility Criteria</h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <FormField label="Minimum CGPA / Percentage" required>
-          <div className="flex gap-2">
-            <select value={form.eligibilityCriteria.minCgpaPercentage.type} onChange={e => setNested('eligibilityCriteria.minCgpaPercentage.type', e.target.value)} className={`${inputClass} w-32`}>
-              <option value="cgpa">CGPA</option><option value="percentage">Percentage</option>
-            </select>
-            <input type="number" value={form.eligibilityCriteria.minCgpaPercentage.value || ''} onChange={e => setNested('eligibilityCriteria.minCgpaPercentage.value', parseFloat(e.target.value) || 0)}
-              className={inputClass} placeholder={form.eligibilityCriteria.minCgpaPercentage.type === 'cgpa' ? '0-10' : '0-100'}
-              min="0" max={form.eligibilityCriteria.minCgpaPercentage.type === 'cgpa' ? 10 : 100} step="0.1" />
-          </div>
+const Step2 = ({ form, setField, setNested }) => {
+  const [tpoList, setTpoList] = useState([]);
+  const [tpoSearch, setTpoSearch] = useState('');
+  const [tpoLoading, setTpoLoading] = useState(false);
+
+  useEffect(() => {
+    if (form.driveType === 'on_campus') {
+      setTpoLoading(true);
+      getTPOList()
+        .then(data => setTpoList(Array.isArray(data) ? data : []))
+        .catch(() => setTpoList([]))
+        .finally(() => setTpoLoading(false));
+    }
+  }, [form.driveType]);
+
+  const filteredTPOs = tpoList.filter(t =>
+    (t.instituteName || '').toLowerCase().includes(tpoSearch.toLowerCase()) ||
+    (t.email || '').toLowerCase().includes(tpoSearch.toLowerCase())
+  );
+
+  const toggleTPO = (id) => {
+    const sel = form.targetTPOs || [];
+    setField('targetTPOs', sel.includes(id) ? sel.filter(x => x !== id) : [...sel, id]);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className={sectionClass}>
+        <h3 className="text-base font-bold text-slate-800">Drive Type</h3>
+        <RadioGroup options={[
+          { value: 'on_campus', label: 'On-Campus (requires TPO approval)' },
+          { value: 'off_campus', label: 'Off-Campus (directly visible to students)' }
+        ]} value={form.driveType} onChange={v => setField('driveType', v)} name="driveType" />
+      </div>
+      <div className={sectionClass}>
+        <h3 className="text-base font-bold text-slate-800">Target Audience</h3>
+        <FormField label="Target Batch / Year" required>
+          <CheckboxGroup options={BATCHES} selected={form.targetBatches} onChange={v => setField('targetBatches', v)} />
         </FormField>
-        <FormField label="Minimum 10th %">
-          <input type="number" value={form.eligibilityCriteria.min10thPercentage || ''} onChange={e => setNested('eligibilityCriteria.min10thPercentage', parseFloat(e.target.value) || 0)}
-            className={inputClass} min="0" max="100" placeholder="e.g., 60" />
+        <FormField label="Eligible Degrees" required>
+          <CheckboxGroup options={DEGREES} selected={form.eligibleDegrees} onChange={v => setField('eligibleDegrees', v)} />
         </FormField>
-        <FormField label="Minimum 12th / Diploma %">
-          <input type="number" value={form.eligibilityCriteria.min12thPercentage || ''} onChange={e => setNested('eligibilityCriteria.min12thPercentage', parseFloat(e.target.value) || 0)}
-            className={inputClass} min="0" max="100" placeholder="e.g., 60" />
-        </FormField>
-        <FormField label="Minimum Age">
-          <input type="number" value={form.eligibilityCriteria.minAge} onChange={e => setNested('eligibilityCriteria.minAge', parseInt(e.target.value) || '')} className={inputClass} placeholder="e.g., 18" min="15" max="60" />
-        </FormField>
-        <FormField label="Maximum Age">
-          <input type="number" value={form.eligibilityCriteria.maxAge} onChange={e => setNested('eligibilityCriteria.maxAge', parseInt(e.target.value) || '')} className={inputClass} placeholder="e.g., 25" min="15" max="60" />
+        <FormField label="Eligible Branches" required>
+          <CheckboxGroup options={BRANCHES} selected={form.eligibleBranches} onChange={v => setField('eligibleBranches', v)} />
         </FormField>
       </div>
-      <FormField label="Active Backlogs Allowed" required>
-        <RadioGroup options={[{ value: 'yes', label: 'Yes' }, { value: 'no', label: 'No' }]}
-          value={form.eligibilityCriteria.backlogsAllowed ? 'yes' : 'no'}
-          onChange={v => setNested('eligibilityCriteria.backlogsAllowed', v === 'yes')} name="backlogs" />
-      </FormField>
-      {form.eligibilityCriteria.backlogsAllowed && (
-        <FormField label="Maximum Active Backlogs">
-          <input type="number" value={form.eligibilityCriteria.maxActiveBacklogs || ''} onChange={e => setNested('eligibilityCriteria.maxActiveBacklogs', parseInt(e.target.value) || 0)} className={inputClass} min="0" />
+      <div className={sectionClass}>
+        <h3 className="text-base font-bold text-slate-800">Eligibility Criteria</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <FormField label="Minimum CGPA / Percentage" required>
+            <div className="flex gap-2">
+              <select value={form.eligibilityCriteria.minCgpaPercentage.type} onChange={e => setNested('eligibilityCriteria.minCgpaPercentage.type', e.target.value)} className={`${inputClass} w-32`}>
+                <option value="cgpa">CGPA</option><option value="percentage">Percentage</option>
+              </select>
+              <input type="number" value={form.eligibilityCriteria.minCgpaPercentage.value || ''} onChange={e => setNested('eligibilityCriteria.minCgpaPercentage.value', parseFloat(e.target.value) || 0)}
+                className={inputClass} placeholder={form.eligibilityCriteria.minCgpaPercentage.type === 'cgpa' ? '0-10' : '0-100'}
+                min="0" max={form.eligibilityCriteria.minCgpaPercentage.type === 'cgpa' ? 10 : 100} step="0.1" />
+            </div>
+          </FormField>
+          <FormField label="Minimum 10th %">
+            <input type="number" value={form.eligibilityCriteria.min10thPercentage || ''} onChange={e => setNested('eligibilityCriteria.min10thPercentage', parseFloat(e.target.value) || 0)}
+              className={inputClass} min="0" max="100" placeholder="e.g., 60" />
+          </FormField>
+          <FormField label="Minimum 12th / Diploma %">
+            <input type="number" value={form.eligibilityCriteria.min12thPercentage || ''} onChange={e => setNested('eligibilityCriteria.min12thPercentage', parseFloat(e.target.value) || 0)}
+              className={inputClass} min="0" max="100" placeholder="e.g., 60" />
+          </FormField>
+          <FormField label="Minimum Age">
+            <input type="number" value={form.eligibilityCriteria.minAge} onChange={e => setNested('eligibilityCriteria.minAge', parseInt(e.target.value) || '')} className={inputClass} placeholder="e.g., 18" min="15" max="60" />
+          </FormField>
+          <FormField label="Maximum Age">
+            <input type="number" value={form.eligibilityCriteria.maxAge} onChange={e => setNested('eligibilityCriteria.maxAge', parseInt(e.target.value) || '')} className={inputClass} placeholder="e.g., 25" min="15" max="60" />
+          </FormField>
+        </div>
+        <FormField label="Active Backlogs Allowed" required>
+          <RadioGroup options={[{ value: 'yes', label: 'Yes' }, { value: 'no', label: 'No' }]}
+            value={form.eligibilityCriteria.backlogsAllowed ? 'yes' : 'no'}
+            onChange={v => setNested('eligibilityCriteria.backlogsAllowed', v === 'yes')} name="backlogs" />
         </FormField>
-      )}
-      <FormField label="Gap Years Allowed" required>
-        <RadioGroup options={[{ value: 'yes', label: 'Yes' }, { value: 'no', label: 'No' }]}
-          value={form.eligibilityCriteria.gapYearsAllowed ? 'yes' : 'no'}
-          onChange={v => setNested('eligibilityCriteria.gapYearsAllowed', v === 'yes')} name="gapYears" />
-      </FormField>
-      {form.eligibilityCriteria.gapYearsAllowed && (
-        <FormField label="Maximum Gap Years">
-          <input type="number" value={form.eligibilityCriteria.maxGapYears || ''} onChange={e => setNested('eligibilityCriteria.maxGapYears', parseInt(e.target.value) || 0)} className={inputClass} min="0" />
+        {form.eligibilityCriteria.backlogsAllowed && (
+          <FormField label="Maximum Active Backlogs">
+            <input type="number" value={form.eligibilityCriteria.maxActiveBacklogs || ''} onChange={e => setNested('eligibilityCriteria.maxActiveBacklogs', parseInt(e.target.value) || 0)} className={inputClass} min="0" />
+          </FormField>
+        )}
+        <FormField label="Gap Years Allowed" required>
+          <RadioGroup options={[{ value: 'yes', label: 'Yes' }, { value: 'no', label: 'No' }]}
+            value={form.eligibilityCriteria.gapYearsAllowed ? 'yes' : 'no'}
+            onChange={v => setNested('eligibilityCriteria.gapYearsAllowed', v === 'yes')} name="gapYears" />
         </FormField>
+        {form.eligibilityCriteria.gapYearsAllowed && (
+          <FormField label="Maximum Gap Years">
+            <input type="number" value={form.eligibilityCriteria.maxGapYears || ''} onChange={e => setNested('eligibilityCriteria.maxGapYears', parseInt(e.target.value) || 0)} className={inputClass} min="0" />
+          </FormField>
+        )}
+        <FormField label="Other Eligibility Criteria">
+          <textarea value={form.eligibilityCriteria.otherCriteria} onChange={e => setNested('eligibilityCriteria.otherCriteria', e.target.value)} className={`${inputClass} min-h-[60px]`} placeholder="Any additional criteria..." />
+        </FormField>
+      </div>
+
+      {/* Target Colleges - On-Campus only */}
+      {form.driveType === 'on_campus' && (
+        <div className={sectionClass}>
+          <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
+            <Building2 size={17} className="text-indigo-500" />
+            Target Colleges
+            <span className="text-xs font-medium text-slate-400 ml-1">(select which colleges to approach)</span>
+          </h3>
+          <input
+            type="text"
+            value={tpoSearch}
+            onChange={e => setTpoSearch(e.target.value)}
+            placeholder="Search by college name..."
+            className={inputClass}
+          />
+          {tpoLoading ? (
+            <p className="text-sm text-slate-400 flex items-center gap-2">
+              <Loader2 size={14} className="animate-spin" /> Loading colleges...
+            </p>
+          ) : filteredTPOs.length === 0 ? (
+            <p className="text-sm text-slate-400 italic">
+              {tpoSearch ? 'No colleges match your search.' : 'No active TPOs registered on this portal yet.'}
+            </p>
+          ) : (
+            <div className="max-h-60 overflow-y-auto space-y-1.5 pr-1">
+              {filteredTPOs.map(tpo => {
+                const isSel = (form.targetTPOs || []).includes(tpo._id);
+                return (
+                  <label
+                    key={tpo._id}
+                    className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer border transition-all ${isSel ? 'bg-indigo-50 border-indigo-200 text-indigo-800' : 'bg-slate-50 border-slate-100 hover:bg-slate-100 text-slate-700'}`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isSel}
+                      onChange={() => toggleTPO(tpo._id)}
+                      className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold truncate">{tpo.instituteName}</p>
+                      <p className="text-xs text-slate-400 truncate">{tpo.email}</p>
+                    </div>
+                    {isSel && <CheckCircle2 size={16} className="text-indigo-500 flex-shrink-0" />}
+                  </label>
+                );
+              })}
+            </div>
+          )}
+          {(form.targetTPOs || []).length > 0 && (
+            <p className="text-xs font-semibold text-indigo-600">
+              {'\u2713'} {form.targetTPOs.length} college{form.targetTPOs.length !== 1 ? 's' : ''} selected
+            </p>
+          )}
+        </div>
       )}
-      <FormField label="Other Eligibility Criteria">
-        <textarea value={form.eligibilityCriteria.otherCriteria} onChange={e => setNested('eligibilityCriteria.otherCriteria', e.target.value)} className={`${inputClass} min-h-[60px]`} placeholder="Any additional criteria..." />
-      </FormField>
     </div>
-  </div>
-);
+  );
+};
 
 const Step3 = ({ form, setField }) => {
   const updateRound = (idx, key, val) => {
@@ -367,32 +450,63 @@ const Step3 = ({ form, setField }) => {
     rounds[idx] = { ...rounds[idx], [key]: val };
     setField('selectionRounds', rounds);
   };
-  const handleTotalRoundsChange = (num) => {
-    const n = Math.max(1, Math.min(10, num));
-    setField('totalRounds', n);
-    const current = form.selectionRounds;
-    if (n > current.length) {
-      const added = Array.from({ length: n - current.length }, (_, i) => ({
-        roundNumber: current.length + i + 1, roundName: '', roundType: 'aptitude_test', duration: '', mode: 'online', platform: '', topics: ''
-      }));
-      setField('selectionRounds', [...current, ...added]);
-    } else {
-      setField('selectionRounds', current.slice(0, n));
-    }
+
+  const addRound = () => {
+    const next = form.selectionRounds.length + 1;
+    if (next > 10) return;
+    setField('selectionRounds', [
+      ...form.selectionRounds,
+      { roundNumber: next, roundName: '', roundType: 'aptitude_test', duration: '', mode: 'online', platform: '', topics: '' }
+    ]);
+    setField('totalRounds', next);
+  };
+
+  const removeRound = (idx) => {
+    if (form.selectionRounds.length <= 1) return;
+    const updated = form.selectionRounds
+      .filter((_, i) => i !== idx)
+      .map((r, i) => ({ ...r, roundNumber: i + 1 }));
+    setField('selectionRounds', updated);
+    setField('totalRounds', updated.length);
   };
 
   return (
     <div className="space-y-6">
       <div className={sectionClass}>
-        <h3 className="text-base font-bold text-slate-800 flex items-center gap-2"><Award size={18} className="text-purple-600" /> Selection Process</h3>
-        <FormField label="Total Number of Rounds" required>
-          <input type="number" value={form.totalRounds} onChange={e => handleTotalRoundsChange(parseInt(e.target.value) || 1)} className={`${inputClass} w-32`} min="1" max="10" />
-        </FormField>
+        <div className="flex items-center justify-between">
+          <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
+            <Award size={18} className="text-purple-600" />
+            Selection Process
+            <span className="text-xs font-semibold text-slate-400 ml-1">({form.selectionRounds.length} round{form.selectionRounds.length !== 1 ? 's' : ''})</span>
+          </h3>
+          <button
+            type="button"
+            onClick={addRound}
+            disabled={form.selectionRounds.length >= 10}
+            className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
+          >
+            <Plus size={14} /> Add Round
+          </button>
+        </div>
       </div>
+
       {form.selectionRounds.map((round, idx) => (
         <div key={idx} className={`${sectionClass} relative`}>
-          <div className="absolute -top-3 left-4 bg-blue-600 text-white text-[10px] font-bold uppercase px-3 py-1 rounded-full tracking-wider">Round {idx + 1}</div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
+          <div className="flex items-center justify-between mb-3">
+            <div className="bg-blue-600 text-white text-[10px] font-bold uppercase px-3 py-1 rounded-full tracking-wider">
+              Round {idx + 1}
+            </div>
+            {form.selectionRounds.length > 1 && (
+              <button
+                type="button"
+                onClick={() => removeRound(idx)}
+                className="flex items-center gap-1 px-3 py-1.5 text-rose-500 hover:bg-rose-50 rounded-lg text-xs font-bold transition-all border border-rose-100 hover:border-rose-200"
+              >
+                <Trash2 size={13} /> Remove
+              </button>
+            )}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-1">
             <FormField label="Round Name" required>
               <input type="text" value={round.roundName} onChange={e => updateRound(idx, 'roundName', e.target.value)} className={inputClass} placeholder="e.g., Online Aptitude Test" />
             </FormField>
@@ -416,6 +530,16 @@ const Step3 = ({ form, setField }) => {
           </FormField>
         </div>
       ))}
+
+      {form.selectionRounds.length < 10 && (
+        <button
+          type="button"
+          onClick={addRound}
+          className="w-full py-3 border-2 border-dashed border-blue-200 rounded-2xl text-blue-500 hover:bg-blue-50 hover:border-blue-400 text-sm font-bold flex items-center justify-center gap-2 transition-all"
+        >
+          <Plus size={16} /> Add Another Round
+        </button>
+      )}
     </div>
   );
 };
@@ -474,8 +598,8 @@ const Step4 = ({ form, setField }) => {
               {EXPERIENCE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </FormField>
-          <FormField label="Number of Openings" required>
-            <input type="number" value={form.numberOfOpenings} onChange={e => setField('numberOfOpenings', parseInt(e.target.value) || 1)} className={inputClass} min="1" />
+          <FormField label="Number of Openings" hint="Optional if not pre-decided">
+            <input type="number" value={form.numberOfOpenings} onChange={e => setField('numberOfOpenings', parseInt(e.target.value) || '')} className={inputClass} min="1" placeholder="e.g. 5" />
           </FormField>
         </div>
         <FormField label="Work Mode" required>
@@ -566,28 +690,44 @@ const Step5 = ({ form, setField, setNested }) => {
             <FormField label="Preferred Drive Date - End" required>
               <input type="date" value={form.preferredDriveDateRange.end} onChange={e => setNested('preferredDriveDateRange.end', e.target.value)} className={inputClass} />
             </FormField>
-            <FormField label="Expected # of Students" required>
-              <input type="number" value={form.expectedStudents} onChange={e => setField('expectedStudents', e.target.value)} className={inputClass} min="0" />
+            <FormField label="Expected # of Students" hint="Optional — if not pre-decided, leave blank">
+              <input type="number" value={form.expectedStudents} onChange={e => setField('expectedStudents', e.target.value)} className={inputClass} min="0" placeholder="e.g. 100" />
             </FormField>
           </div>
           <FormField label="Venue Requirements">
             <textarea value={form.venueRequirements} onChange={e => setField('venueRequirements', e.target.value)} className={`${inputClass} min-h-[60px]`} placeholder="e.g., Seminar hall with projector" />
           </FormField>
-          <FormField label="Pre-Placement Talk Required" required>
+          <FormField label="Pre-Placement Talk Required">
             <RadioGroup options={[{ value: 'yes', label: 'Yes' }, { value: 'no', label: 'No' }]}
               value={form.pptRequired ? 'yes' : 'no'} onChange={v => setField('pptRequired', v === 'yes')} name="ppt" />
           </FormField>
           {form.pptRequired && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <FormField label="PPT Date & Time" required>
-                <input type="datetime-local" value={form.pptDetails.dateTime} onChange={e => setNested('pptDetails.dateTime', e.target.value)} className={inputClass} />
-              </FormField>
-              <FormField label="PPT Duration">
-                <input type="text" value={form.pptDetails.duration} onChange={e => setNested('pptDetails.duration', e.target.value)} className={inputClass} placeholder="e.g., 30 minutes" />
-              </FormField>
-              <FormField label="PPT Venue / Mode" required>
-                <input type="text" value={form.pptDetails.venue} onChange={e => setNested('pptDetails.venue', e.target.value)} className={inputClass} placeholder="e.g., Auditorium / Online via Zoom" />
-              </FormField>
+            <div className="space-y-4">
+              {/* Option to use same date as placement drive */}
+              {form.tentativeDriveDate && (
+                <label className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-100 rounded-xl cursor-pointer hover:bg-blue-100 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={form.pptDetails.dateTime === form.tentativeDriveDate}
+                    onChange={e => setNested('pptDetails.dateTime', e.target.checked ? form.tentativeDriveDate : '')}
+                    className="w-4 h-4 text-blue-600 rounded border-blue-300 focus:ring-blue-500"
+                  />
+                  <span className="text-sm font-medium text-blue-700">
+                    Same as Placement Drive Date ({new Date(form.tentativeDriveDate).toLocaleDateString()})
+                  </span>
+                </label>
+              )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <FormField label="PPT Date &amp; Time" required>
+                  <input type="datetime-local" value={form.pptDetails.dateTime} onChange={e => setNested('pptDetails.dateTime', e.target.value)} className={inputClass} />
+                </FormField>
+                <FormField label="PPT Duration">
+                  <input type="text" value={form.pptDetails.duration} onChange={e => setNested('pptDetails.duration', e.target.value)} className={inputClass} placeholder="e.g., 30 minutes" />
+                </FormField>
+                <FormField label="PPT Venue / Mode" required>
+                  <input type="text" value={form.pptDetails.venue} onChange={e => setNested('pptDetails.venue', e.target.value)} className={inputClass} placeholder="e.g., Auditorium / Online via Zoom" />
+                </FormField>
+              </div>
             </div>
           )}
         </div>
@@ -851,7 +991,7 @@ const JobPostingForm = ({ job, onClose, onSuccess }) => {
       if (!form.workMode) errs.workMode = 'Work mode is required';
       const validLocations = form.workLocations.filter(l => l.trim() !== '');
       if (!validLocations.length && form.workMode !== 'remote') errs.workLocations = 'Add at least one location';
-      if (!form.numberOfOpenings || form.numberOfOpenings < 1) errs.numberOfOpenings = 'Valid number of openings required';
+      // numberOfOpenings is optional — not pre-decided sometimes
       if (form.bondRequired && !form.bondDuration?.trim()) errs.bondDuration = 'Bond duration is required if bond is applicable';
     } else if (step === 5) {
       if (!form.applicationDeadline) errs.applicationDeadline = 'Application deadline is required';
@@ -859,7 +999,7 @@ const JobPostingForm = ({ job, onClose, onSuccess }) => {
       if (form.driveType === 'on_campus') {
         if (!form.preferredDriveDateRange.start) errs.preferredDriveDateRange = 'Preferred drive start date is required';
         if (!form.preferredDriveDateRange.end) errs.preferredDriveDateRangeEnd = 'Preferred drive end date is required';
-        if (!form.expectedStudents || form.expectedStudents < 1) errs.expectedStudents = 'Expected number of students required';
+        // expectedStudents is optional
         if (form.pptRequired && (!form.pptDetails.dateTime || !form.pptDetails.venue?.trim())) errs.pptDetails = 'PPT Date, Time and Venue are required';
       } else {
         if (!form.applicationPortalUrl?.trim()) errs.applicationPortalUrl = 'Application portal URL is required';

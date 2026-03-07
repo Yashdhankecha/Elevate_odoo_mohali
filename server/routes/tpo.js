@@ -2268,4 +2268,198 @@ router.get('/jobs/stats', authenticateToken, isTPO, tpoInstituteAccess, async (r
   }
 });
 
+// ==================== DRIVE REQUESTS (On-Campus pending approvals) ====================
+
+// @route  GET /api/tpo/drive-requests
+// @desc   Get all on-campus drive requests (pending_approval) with full company info
+// @access Private (TPO only)
+router.get('/drive-requests', authenticateToken, isTPO, async (req, res) => {
+  try {
+    const { status = 'pending_approval', search, page = 1, limit = 20 } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const filter = { driveType: 'on_campus' };
+    if (status && status !== 'all') {
+      filter.status = status;
+    }
+    if (search) {
+      filter.$or = [
+        { jobTitle: { $regex: search, $options: 'i' } },
+        { companyName: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    const total = await JobPosting.countDocuments(filter);
+    const drives = await JobPosting.find(filter)
+      .populate({
+        path: 'company',
+        select: '-password -emailVerificationOTP -passwordResetToken'
+      })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    res.json({
+      success: true,
+      data: {
+        drives: drives.map(d => ({
+          _id: d._id,
+          jobId: d.jobId,
+          jobTitle: d.jobTitle,
+          companyName: d.companyName || d.company?.companyName,
+          companyLogo: d.companyLogo || d.company?.profilePicture,
+          industry: d.industry || d.company?.industry,
+          companySize: d.companySize || d.company?.companySize,
+          companyLocation: d.companyLocation || d.company?.headquartersLocation,
+          driveType: d.driveType,
+          status: d.status,
+          applicationDeadline: d.applicationDeadline,
+          tentativeDriveDate: d.tentativeDriveDate,
+          preferredDriveDateRange: d.preferredDriveDateRange,
+          targetBatches: d.targetBatches,
+          eligibleDegrees: d.eligibleDegrees,
+          eligibleBranches: d.eligibleBranches,
+          selectionRounds: d.selectionRounds,
+          totalRounds: d.totalRounds,
+          ctc: d.ctc,
+          stipend: d.stipend,
+          employmentType: d.employmentType,
+          hrName: d.hrName,
+          contactEmail: d.contactEmail,
+          contactPhone: d.contactPhone,
+          createdAt: d.createdAt,
+          company: d.company,
+        })),
+        pagination: {
+          currentPage: parseInt(page),
+          totalPages: Math.ceil(total / parseInt(limit)),
+          total
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching drive requests:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch drive requests' });
+  }
+});
+
+// @route  GET /api/tpo/drive-requests/:id
+// @desc   Get single drive request with ALL details including full company data
+// @access Private (TPO only)
+router.get('/drive-requests/:id', authenticateToken, isTPO, async (req, res) => {
+  try {
+    const drive = await JobPosting.findById(req.params.id)
+      .populate({
+        path: 'company',
+        select: '-password -emailVerificationOTP -passwordResetToken'
+      });
+
+    if (!drive) {
+      return res.status(404).json({ success: false, message: 'Drive request not found' });
+    }
+
+    res.json({ success: true, data: drive });
+  } catch (error) {
+    console.error('Error fetching drive request detail:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// @route  PATCH /api/tpo/drive-requests/:id/status
+// @desc   Approve or reject an on-campus drive request
+// @access Private (TPO only)
+router.patch('/drive-requests/:id/status', authenticateToken, isTPO, async (req, res) => {
+  try {
+    const { status, comment } = req.body; // status: 'approved' | 'rejected' | 'changes_requested'
+    if (!['approved', 'rejected', 'changes_requested'].includes(status)) {
+      return res.status(400).json({ success: false, message: 'Invalid status' });
+    }
+
+    const drive = await JobPosting.findById(req.params.id).populate('company', 'email companyName');
+    if (!drive) return res.status(404).json({ success: false, message: 'Not found' });
+
+    drive.status = status === 'approved' ? 'active' : status;
+    drive.isActive = status === 'approved';
+    drive.approvedBy = req.user._id;
+    drive.approvedAt = new Date();
+    if (comment) drive.tpoComments = comment;
+    await drive.save();
+
+    res.json({ success: true, message: `Drive request ${status}`, data: { status: drive.status } });
+  } catch (error) {
+    console.error('Error updating drive request status:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// @route  GET /api/tpo/drive-requests/:id/applicants
+// @desc   Get all applicants from this TPO's institute who applied to a specific drive
+// @access Private (TPO only)
+router.get('/drive-requests/:id/applicants', authenticateToken, isTPO, async (req, res) => {
+  try {
+    const tpo = req.user; // has instituteName
+    const JobApplication = require('../models/JobApplication');
+    const Student = require('../models/Student');
+
+    // Verify the drive exists and belongs to this TPO's institute
+    const drive = await JobPosting.findById(req.params.id).select('jobTitle companyName targetColleges status');
+    if (!drive) {
+      return res.status(404).json({ success: false, message: 'Drive not found' });
+    }
+
+    // Get all applications for this drive
+    const applications = await JobApplication.find({ jobPosting: req.params.id })
+      .populate({
+        path: 'student',
+        select: 'name email rollNumber branch graduationYear cgpa currentBacklogs collegeName profilePicture phoneNumber',
+        model: 'Student'
+      })
+      .sort({ appliedDate: -1 });
+
+    // Filter only students from this TPO's institute
+    const normalise = s => (s || '').toLowerCase().trim();
+    const tpoCollege = normalise(tpo.instituteName);
+
+    const filtered = applications.filter(app => {
+      const studentCollege = normalise(app.student?.collegeName);
+      return studentCollege === tpoCollege;
+    });
+
+    res.json({
+      success: true,
+      data: {
+        drive: {
+          id: drive._id,
+          jobTitle: drive.jobTitle,
+          companyName: drive.companyName,
+          status: drive.status
+        },
+        total: filtered.length,
+        applicants: filtered.map(app => ({
+          applicationId: app._id,
+          appliedDate: app.appliedDate,
+          applicationStatus: app.status,
+          student: {
+            id: app.student?._id,
+            name: app.student?.name,
+            email: app.student?.email,
+            rollNumber: app.student?.rollNumber,
+            branch: app.student?.branch,
+            graduationYear: app.student?.graduationYear,
+            cgpa: app.student?.cgpa,
+            currentBacklogs: app.student?.currentBacklogs,
+            collegeName: app.student?.collegeName,
+            profilePicture: app.student?.profilePicture,
+            phone: app.student?.phoneNumber,
+          }
+        }))
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching drive applicants:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 module.exports = router;
+
