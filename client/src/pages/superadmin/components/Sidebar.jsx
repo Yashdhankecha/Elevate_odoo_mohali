@@ -1,12 +1,13 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
-import { 
-  LayoutDashboard, 
-  Users, 
-  Building2, 
-  ShieldCheck, 
-  Settings, 
+import { useNotifications } from '../../../contexts/NotificationContext';
+import {
+  LayoutDashboard,
+  Users,
+  Building2,
+  ShieldCheck,
+  Settings,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -16,18 +17,18 @@ import {
   Activity,
   UserPlus,
   Layers,
-  ShieldAlert,
   Terminal,
-  X
+  X,
+  Bell
 } from 'lucide-react';
 
-const Sidebar = ({ 
-  activeSection, 
-  setActiveSection, 
-  isCollapsed, 
+const Sidebar = ({
+  activeSection,
+  setActiveSection,
+  isCollapsed,
   setSidebarCollapsed,
   isMobileOpen,
-  setIsMobileOpen 
+  setIsMobileOpen
 }) => {
   const { logout } = useAuth();
   const navigate = useNavigate();
@@ -44,6 +45,49 @@ const Sidebar = ({
     navigate('/login');
   };
 
+  const [showNotifications, setShowNotifications] = useState(false);
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+  const notificationRef = useRef();
+
+  const handleNotificationClick = (notification) => {
+    if (!notification.isRead) {
+      markAsRead([notification._id]);
+    }
+    if (notification.actionLink) {
+      navigate(notification.actionLink);
+    }
+    setShowNotifications(false);
+  };
+
+  const handleMarkAllRead = async () => {
+    await markAllAsRead();
+  };
+
+  const formatTime = (timeString) => {
+    const time = new Date(timeString);
+    const now = new Date();
+    const diffInMinutes = Math.floor((now - time) / (1000 * 60));
+
+    if (diffInMinutes < 1) return 'Just now';
+    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) return `${diffInHours}h ago`;
+
+    const diffInDays = Math.floor(diffInHours / 24);
+    return `${diffInDays}d ago`;
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+        setShowNotifications(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const SidebarContent = () => (
     <>
       {/* Brand Header */}
@@ -59,7 +103,7 @@ const Sidebar = ({
             </div>
           )}
         </div>
-        
+
         {isMobileOpen && (
           <button onClick={() => setIsMobileOpen(false)} className="lg:hidden p-2 text-slate-400 hover:text-slate-900">
             <X size={20} />
@@ -81,7 +125,7 @@ const Sidebar = ({
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeSection === item.id;
-          
+
           return (
             <button
               key={item.id}
@@ -91,8 +135,8 @@ const Sidebar = ({
               }}
               className={`
                 w-full flex items-center gap-4 px-4 py-4 rounded-[1.2rem] font-bold text-[13px] transition-all duration-500 group relative
-                ${isActive 
-                  ? 'bg-blue-600 text-white shadow-2xl shadow-blue-200' 
+                ${isActive
+                  ? 'bg-blue-600 text-white shadow-2xl shadow-blue-200'
                   : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
                 }
                 ${isCollapsed && !isMobileOpen ? 'justify-center px-0' : ''}
@@ -107,7 +151,7 @@ const Sidebar = ({
               </div>
               {(!isCollapsed || isMobileOpen) && <span className="flex-1 text-left truncate">{item.label}</span>}
               {isActive && (!isCollapsed || isMobileOpen) && (
-                 <div className="absolute right-4 w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
+                <div className="absolute right-4 w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
               )}
             </button>
           );
@@ -115,14 +159,78 @@ const Sidebar = ({
       </nav>
 
 
-      {/* Logout Button */}
-      <div className={`p-6 border-t border-slate-50 ${isCollapsed && !isMobileOpen ? 'px-6' : ''}`}>
-        <button 
+      {/* Footer / Logout Button */}
+      <div className={`p-6 border-t border-slate-50 relative ${isCollapsed && !isMobileOpen ? 'px-6' : ''}`} ref={notificationRef}>
+        <button
+          onClick={() => setShowNotifications(!showNotifications)}
+          className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl font-bold text-[13px] text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-all group mb-4 ${isCollapsed && !isMobileOpen ? 'justify-center px-0' : ''}`}
+        >
+          <div className="relative w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center flex-shrink-0 group-hover:bg-white shadow-sm border border-transparent group-hover:border-slate-100 transition-all">
+            <Bell size={16} />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[14px] h-[14px] px-1 bg-gradient-to-r from-rose-500 to-pink-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center shadow-sm">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </div>
+          {(!isCollapsed || isMobileOpen) && (
+            <div className="flex-1 flex items-center justify-between text-left">
+              <span>Notifications</span>
+              {unreadCount > 0 && (
+                <span className="bg-rose-100 text-rose-600 text-xs font-bold px-2 py-0.5 rounded-full">
+                  {unreadCount}
+                </span>
+              )}
+            </div>
+          )}
+        </button>
+
+        {showNotifications && (
+          <div className={`absolute bottom-full left-4 mb-2 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden animate-fade-in z-[80] ${isCollapsed && !isMobileOpen ? 'w-72 left-16' : 'w-80'}`}>
+            <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-slate-100 flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-slate-900 text-sm">Notifications</h3>
+                <p className="text-xs text-slate-500 mt-0.5">{unreadCount} unread</p>
+              </div>
+              {unreadCount > 0 && (
+                <button
+                  onClick={handleMarkAllRead}
+                  className="text-xs text-blue-600 hover:text-blue-700 font-bold px-3 py-1.5 bg-white rounded-lg hover:bg-blue-50 transition-all"
+                >
+                  Mark all read
+                </button>
+              )}
+            </div>
+            <div className="max-h-80 overflow-y-auto custom-scrollbar">
+              {notifications.length > 0 ? (
+                notifications.slice(0, 5).map((notification) => (
+                  <div
+                    key={notification._id}
+                    onClick={() => handleNotificationClick(notification)}
+                    className={`p-4 border-b border-slate-50 hover:bg-slate-50 cursor-pointer transition-all ${!notification.isRead ? 'bg-blue-50/30' : ''}`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${!notification.isRead ? 'bg-blue-500' : 'bg-slate-300'}`}></div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-slate-800 font-medium mb-1 line-clamp-2">{notification.message}</p>
+                        <p className="text-xs text-slate-500">{formatTime(notification.createdAt)}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="p-8 text-center text-slate-400 font-bold text-sm">No notifications</div>
+              )}
+            </div>
+          </div>
+        )}
+
+        <button
           onClick={handleLogout}
           className={`w-full flex items-center gap-4 px-4 py-4 rounded-[1.2rem] font-bold text-[13px] text-rose-500 hover:bg-rose-50 transition-all active:scale-95 group ${isCollapsed && !isMobileOpen ? 'justify-center px-0' : ''}`}
         >
           <div className="w-10 h-10 rounded-xl bg-rose-50 flex items-center justify-center flex-shrink-0 group-hover:bg-rose-500 group-hover:text-white transition-all shadow-sm">
-             <LogOut size={16} strokeWidth={3} />
+            <LogOut size={16} strokeWidth={3} />
           </div>
           {(!isCollapsed || isMobileOpen) && <span className="flex-1 text-left">Log out</span>}
         </button>
@@ -134,7 +242,7 @@ const Sidebar = ({
     <>
       {/* Mobile Sidebar Overlay */}
       {isMobileOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[60] lg:hidden animate-fade-in"
           onClick={() => setIsMobileOpen(false)}
         />

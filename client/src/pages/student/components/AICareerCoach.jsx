@@ -20,16 +20,16 @@ import {
   FaChartLine,
   FaTimes,
   FaBrain,
-  FaCompass,
-  FaSparkles
+  FaCompass
 } from 'react-icons/fa';
+
 
 /**
  * AICareerCoach: Mobile-Optimized & Robust Version
  * Focused on content wrapping, proper spacing, and a clean mobile-first chat UI.
  */
 const AICareerCoach = () => {
-  const apiBase = process.env.REACT_APP_API_URL || '/api';
+  const apiBase = import.meta.env.VITE_API_URL || '/api';
 
   const allowedKeywords = [
     // Career & Jobs

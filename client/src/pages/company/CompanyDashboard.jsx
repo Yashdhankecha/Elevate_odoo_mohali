@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
-import TopNavbar from './components/TopNavbar';
 import DashboardOverview from './components/DashboardOverview';
 import JobManagement from './components/JobManagement';
 import ApplicationsTracking from './components/ApplicationsTracking';
@@ -9,7 +9,14 @@ import ReportsAnalytics from './components/ReportsAnalytics';
 import ApprovalPending from '../tpo/components/ApprovalPending';
 
 const CompanyDashboard = () => {
-  const [activeSection, setActiveSection] = useState('dashboard');
+  const { section } = useParams();
+  const navigate = useNavigate();
+  const activeSection = section || 'dashboard';
+
+  const setActiveSection = (newSection) => {
+    navigate(`/company-dashboard/${newSection}`);
+  };
+
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [userStatus, setUserStatus] = useState(null);
@@ -83,12 +90,6 @@ const CompanyDashboard = () => {
 
       {/* Main Content Area */}
       <div className={`transition-all duration-500 ease-in-out min-h-screen ${sidebarCollapsed ? 'lg:pl-20' : 'lg:pl-72'}`}>
-        {/* Top Navbar */}
-        <TopNavbar
-          toggleSidebar={toggleSidebar}
-          sidebarCollapsed={sidebarCollapsed}
-        />
-
         {/* Main Content */}
         <main className="p-4 sm:p-6 lg:p-8 pt-6">
           <div className="max-w-[1600px] mx-auto animate-fade-in">

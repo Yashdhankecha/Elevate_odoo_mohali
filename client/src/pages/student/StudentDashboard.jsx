@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
-import TopNavbar from './components/TopNavbar';
 import DashboardOverview from './components/DashboardOverview';
 import ResumeBuilder from './components/ResumeBuilder';
 import PracticeHub from './components/PracticeHub';
@@ -13,52 +12,63 @@ import ProfileApproval from './components/ProfileApproval';
 import InternshipOffers from './components/InternshipOffers';
 import { Loader2 } from 'lucide-react';
 
+// Map URL slug → internal section key
+const SLUG_TO_SECTION = {
+  'browse-jobs': 'jobs',
+  'internships': 'internships',
+  'applications': 'applications',
+  'practice-hub': 'practice',
+  'resume-builder': 'resume',
+  'ai-coach': 'ai-coach',
+  'history': 'history',
+  'profile-approval': 'profile-approval',
+};
+
+// Map internal section key → URL slug (reverse of above)
+const SECTION_TO_SLUG = Object.fromEntries(
+  Object.entries(SLUG_TO_SECTION).map(([slug, section]) => [section, slug])
+);
+
 const StudentDashboard = () => {
-  const location = useLocation();
-  const [activeSection, setActiveSection] = useState('dashboard');
+  const { section: sectionParam } = useParams();   // URL slug from /student-dashboard/:section
+  const navigate = useNavigate();
+
+  // Derive the active section from the URL param; default to 'dashboard'
+  const activeSection = SLUG_TO_SECTION[sectionParam] || (sectionParam ? 'dashboard' : 'dashboard');
+
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error] = useState(null);
 
   useEffect(() => {
-    // Initialize dashboard
     setLoading(false);
+  }, []);
 
-    // Check for section parameter in URL
-    const urlParams = new URLSearchParams(location.search);
-    const section = urlParams.get('section');
-    if (section) {
-      setActiveSection(section);
+  // Navigate to a section by pushing the correct URL
+  const setActiveSection = (sectionKey) => {
+    if (sectionKey === 'dashboard') {
+      navigate('/student-dashboard');
+    } else {
+      const slug = SECTION_TO_SLUG[sectionKey] || sectionKey;
+      navigate(`/student-dashboard/${slug}`);
     }
-  }, [location.search]);
-
-  const toggleSidebar = () => {
-    setIsMobileSidebarOpen(!isMobileSidebarOpen);
   };
+
+  const toggleSidebar = () => setIsMobileSidebarOpen(!isMobileSidebarOpen);
 
   const renderContent = () => {
     switch (activeSection) {
-      case 'dashboard':
-        return <DashboardOverview />;
-      case 'resume':
-        return <ResumeBuilder />;
-      case 'practice':
-        return <PracticeHub />;
-      case 'applications':
-        return <Applications />;
-      case 'jobs':
-        return <JobBrowse setActiveSection={setActiveSection} />;
-      case 'internships':
-        return <InternshipOffers />;
-      case 'history':
-        return <PlacementHistory />;
-      case 'ai-coach':
-        return <AICareerCoach />;
-      case 'profile-approval':
-        return <ProfileApproval />;
-      default:
-        return <DashboardOverview />;
+      case 'dashboard': return <DashboardOverview />;
+      case 'resume': return <ResumeBuilder />;
+      case 'practice': return <PracticeHub />;
+      case 'applications': return <Applications />;
+      case 'jobs': return <JobBrowse setActiveSection={setActiveSection} />;
+      case 'internships': return <InternshipOffers />;
+      case 'history': return <PlacementHistory />;
+      case 'ai-coach': return <AICareerCoach />;
+      case 'profile-approval': return <ProfileApproval />;
+      default: return <DashboardOverview />;
     }
   };
 
@@ -120,13 +130,8 @@ const StudentDashboard = () => {
 
       <div className={`
         transition-all duration-500 ease-in-out min-h-screen flex-1 relative z-10
-        ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-72'}
+        ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'}
       `}>
-        <TopNavbar
-          toggleSidebar={toggleSidebar}
-          isMobileSidebarOpen={isMobileSidebarOpen}
-        />
-
         <main className="p-6 md:p-10 pt-8">
           <div className="max-w-[1600px] mx-auto">
             <div className="animate-fade-in">

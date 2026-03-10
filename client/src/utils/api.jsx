@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Create axios instance with base configuration
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api',
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -18,14 +18,14 @@ api.interceptors.request.use(
     console.log('Request method:', config.method);
     console.log('Token present:', token ? 'YES' : 'NO');
     console.log('Token value:', token ? token.substring(0, 20) + '...' : 'None');
-    
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
       console.log('Authorization header set');
     } else {
       console.log('No token found in localStorage');
     }
-    
+
     return config;
   },
   (error) => {
@@ -46,7 +46,7 @@ api.interceptors.response.use(
       // Check if the request was to login endpoint
       const isLoginRequest = error.config?.url?.includes('/auth/login');
       const isMeRequest = error.config?.url?.includes('/auth/me');
-      
+
       if (!isLoginRequest) {
         // Check if user is not verified before logging out
         const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -66,18 +66,18 @@ api.interceptors.response.use(
       }
       // For login requests, let the login component handle the error
     }
-    
+
     // Handle 403 Forbidden errors
     if (error.response?.status === 403) {
       console.error('Access forbidden:', error.response.data);
       // Don't automatically redirect on 403 errors, let components handle them
     }
-    
+
     // Handle 500 Internal Server errors
     if (error.response?.status === 500) {
       console.error('Server error:', error.response.data);
     }
-    
+
     return Promise.reject(error);
   }
 );
@@ -183,13 +183,13 @@ export const updateUserProfile = async (profileData) => {
     console.log('Profile data to send:', JSON.stringify(profileData, null, 2));
     console.log('API URL:', '/user/profile');
     console.log('Request method: PUT');
-    
+
     const response = await api.put('/user/profile', profileData);
-    
+
     console.log('=== CLIENT PROFILE UPDATE RESPONSE ===');
     console.log('Response status:', response.status);
     console.log('Response data:', JSON.stringify(response.data, null, 2));
-    
+
     return response.data;
   } catch (error) {
     console.error('=== CLIENT PROFILE UPDATE ERROR ===');
@@ -295,7 +295,7 @@ export const getNotifications = async (params = {}) => {
     if (params.page) queryParams.append('page', params.page);
     if (params.type) queryParams.append('type', params.type);
     if (params.isRead !== undefined) queryParams.append('isRead', params.isRead);
-    
+
     const response = await api.get(`/notifications?${queryParams.toString()}`);
     return response.data;
   } catch (error) {

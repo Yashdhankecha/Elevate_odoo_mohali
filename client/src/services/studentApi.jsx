@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 // Create axios instance with default config
 const api = axios.create({
@@ -97,6 +97,17 @@ export const studentApi = {
     return response.data;
   },
 
+  uploadProfilePicture: async (file) => {
+    const formData = new FormData();
+    formData.append('picture', file);
+    const response = await api.post('/student/upload-picture', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data.url;
+  },
+
   // Job Browsing and Applications
   getAvailableJobs: async (params = {}) => {
     const response = await api.get('/student/jobs', { params });
@@ -109,7 +120,7 @@ export const studentApi = {
     formData.append('portfolio', applicationData.portfolio);
     formData.append('availability', applicationData.availability);
     formData.append('salary', applicationData.salary);
-    
+
     if (applicationData.resume) {
       formData.append('resume', applicationData.resume);
     }

@@ -22,51 +22,38 @@ import TPODashboard from './pages/tpo/TPODashboard';
 import SuperadminDashboard from './pages/superadmin/SuperadminDashboard';
 import Home from './pages/Home';
 
-// Component to conditionally render Navbar and styling
+// Helper – returns true if the current path is a dashboard/profile/auth page
+// so the global Navbar and outer <main> wrapper are suppressed.
+function isDashboardOrAuth(pathname) {
+  return (
+    pathname.startsWith('/student-dashboard') ||
+    pathname.startsWith('/company-dashboard') ||
+    pathname.startsWith('/tpo-dashboard') ||
+    pathname.startsWith('/superadmin-dashboard') ||
+    pathname.includes('-profile') ||
+    pathname === '/dashboard' ||
+    pathname === '/approval-pending' ||
+    pathname === '/not-verified' ||
+    pathname === '/login' ||
+    pathname === '/signup' ||
+    pathname === '/verify-otp' ||
+    pathname === '/forgot-password' ||
+    pathname === '/reset-password'
+  );
+}
+
 function ConditionalNavbar() {
   const location = useLocation();
-  const isDashboardPage = location.pathname.includes('-dashboard') ||
-    location.pathname.includes('-profile') ||
-    location.pathname === '/dashboard' ||
-    location.pathname === '/approval-pending' ||
-    location.pathname === '/not-verified';
-  const isAuthPage = location.pathname === '/login' ||
-    location.pathname === '/signup' ||
-    location.pathname === '/verify-otp' ||
-    location.pathname === '/forgot-password' ||
-    location.pathname === '/reset-password';
-
-  // Don't render Navbar on dashboard pages, approval pending page, and auth pages
-  if (isDashboardPage || isAuthPage) {
-    return null;
-  }
-
+  if (isDashboardOrAuth(location.pathname)) return null;
   return <Navbar />;
 }
 
-// Component to conditionally apply main styling
 function ConditionalMain({ children }) {
   const location = useLocation();
-  const isDashboardPage = location.pathname.includes('-dashboard') ||
-    location.pathname.includes('-profile') ||
-    location.pathname === '/dashboard' ||
-    location.pathname === '/not-verified' ||
-    location.pathname === '/';
-  const isAuthPage = location.pathname === '/login' ||
-    location.pathname === '/signup' ||
-    location.pathname === '/verify-otp' ||
-    location.pathname === '/forgot-password' ||
-    location.pathname === '/reset-password';
-
-  if (isDashboardPage || isAuthPage) {
+  if (isDashboardOrAuth(location.pathname) || location.pathname === '/') {
     return <>{children}</>;
   }
-
-  return (
-    <main className="container mx-auto px-4 py-8">
-      {children}
-    </main>
-  );
+  return <main className="container mx-auto px-4 py-8">{children}</main>;
 }
 
 function App() {
@@ -87,7 +74,7 @@ function App() {
                 <Route path="/approval-pending" element={<ApprovalInProcess />} />
                 <Route path="/not-verified" element={<NotVerified />} />
 
-                {/* Role-based dashboard routes */}
+                {/* Role-based dashboard route */}
                 <Route
                   path="/dashboard"
                   element={
@@ -97,33 +84,33 @@ function App() {
                   }
                 />
 
-                {/* Individual dashboard routes */}
+                {/* Student dashboard with URL-based section routing */}
                 <Route
                   path="/student-dashboard"
-                  element={
-                    <RoleBasedRoute allowedRoles={['student']} />
-                  }
+                  element={<RoleBasedRoute allowedRoles={['student']} />}
+                />
+                <Route
+                  path="/student-dashboard/:section"
+                  element={<RoleBasedRoute allowedRoles={['student']} />}
                 />
 
                 <Route
                   path="/company-dashboard"
-                  element={
-                    <RoleBasedRoute allowedRoles={['company']} />
-                  }
+                  element={<RoleBasedRoute allowedRoles={['company']} />}
+                />
+                <Route
+                  path="/company-dashboard/:section"
+                  element={<RoleBasedRoute allowedRoles={['company']} />}
                 />
 
                 <Route
                   path="/tpo-dashboard"
-                  element={
-                    <RoleBasedRoute allowedRoles={['tpo']} />
-                  }
+                  element={<RoleBasedRoute allowedRoles={['tpo']} />}
                 />
 
                 <Route
                   path="/superadmin-dashboard"
-                  element={
-                    <RoleBasedRoute allowedRoles={['superadmin']} />
-                  }
+                  element={<RoleBasedRoute allowedRoles={['superadmin']} />}
                 />
 
                 <Route
@@ -160,27 +147,11 @@ function App() {
               position="top-right"
               toastOptions={{
                 duration: 4000,
-                style: {
-                  background: '#363636',
-                  color: '#fff',
-                },
-                success: {
-                  duration: 3000,
-                  iconTheme: {
-                    primary: '#10b981',
-                    secondary: '#fff',
-                  },
-                },
-                error: {
-                  duration: 5000,
-                  iconTheme: {
-                    primary: '#ef4444',
-                    secondary: '#fff',
-                  },
-                },
+                style: { background: '#363636', color: '#fff' },
+                success: { duration: 3000, iconTheme: { primary: '#10b981', secondary: '#fff' } },
+                error: { duration: 5000, iconTheme: { primary: '#ef4444', secondary: '#fff' } },
               }}
             />
-
           </div>
         </NotificationProvider>
       </AuthProvider>
@@ -189,3 +160,4 @@ function App() {
 }
 
 export default App;
+

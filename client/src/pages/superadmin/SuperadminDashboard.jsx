@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
-import TopNavbar from './components/TopNavbar';
 import DashboardOverview from './components/DashboardOverview';
 import Management from './components/Management';
 import TPOApproval from './components/TPOApproval';
@@ -17,7 +16,7 @@ const SuperadminDashboard = () => {
   const [pendingCompanies, setPendingCompanies] = useState(0);
 
   const api = axios.create({
-    baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api',
+    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
     headers: { 'Content-Type': 'application/json' },
     withCredentials: true,
   });
@@ -96,12 +95,6 @@ const SuperadminDashboard = () => {
       />
 
       <div className={`flex-1 transition-all duration-500 ease-in-out min-h-screen relative z-10 ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-72'}`}>
-        <TopNavbar
-          toggleSidebar={toggleSidebar}
-          sidebarCollapsed={sidebarCollapsed}
-          isMobileSidebarOpen={isMobileSidebarOpen}
-        />
-
         <main className="p-6 lg:p-10 pt-8">
           <div className="max-w-[1600px] mx-auto">
             {renderContent()}

@@ -790,7 +790,7 @@ const ReviewSection = ({ title, items, onEdit }) => (
   <div className={sectionClass}>
     <div className="flex justify-between items-center">
       <h3 className="text-base font-bold text-slate-800">{title}</h3>
-      <button type="button" onClick={onEdit} className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1"><Eye size={14} /> Edit</button>
+      {onEdit && <button type="button" onClick={onEdit} className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1"><Eye size={14} /> Edit</button>}
     </div>
     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
       {items.filter(i => i.value).map((item, i) => (
@@ -803,15 +803,15 @@ const ReviewSection = ({ title, items, onEdit }) => (
   </div>
 );
 
-const Step6 = ({ form, setField, goToStep }) => (
+const Step6 = ({ form, setField, goToStep, isViewOnly }) => (
   <div className="space-y-6">
-    <ReviewSection title="Company & Job Basics" onEdit={() => goToStep(1)} items={[
+    <ReviewSection title="Company & Job Basics" onEdit={isViewOnly ? null : () => goToStep(1)} items={[
       { label: 'Company', value: form.companyName }, { label: 'Industry', value: form.industry },
       { label: 'Location', value: form.companyLocation }, { label: 'Job Title', value: form.jobTitle },
       { label: 'Department', value: form.department }, { label: 'Employment Type', value: form.employmentType },
       { label: 'Category', value: form.jobCategory },
     ]} />
-    <ReviewSection title="Drive Type & Eligibility" onEdit={() => goToStep(2)} items={[
+    <ReviewSection title="Drive Type & Eligibility" onEdit={isViewOnly ? null : () => goToStep(2)} items={[
       { label: 'Drive Type', value: form.driveType === 'on_campus' ? 'On-Campus' : 'Off-Campus' },
       { label: 'Target Batches', value: form.targetBatches }, { label: 'Degrees', value: form.eligibleDegrees },
       { label: 'Branches', value: form.eligibleBranches },
@@ -819,34 +819,36 @@ const Step6 = ({ form, setField, goToStep }) => (
       { label: 'Backlogs', value: form.eligibilityCriteria.backlogsAllowed ? `Yes (max ${form.eligibilityCriteria.maxActiveBacklogs})` : 'No' },
       { label: 'Age Limit', value: form.eligibilityCriteria.minAge && form.eligibilityCriteria.maxAge ? `${form.eligibilityCriteria.minAge} - ${form.eligibilityCriteria.maxAge} years` : 'Not specified' },
     ]} />
-    <ReviewSection title="Selection Process" onEdit={() => goToStep(3)} items={[
+    <ReviewSection title="Selection Process" onEdit={isViewOnly ? null : () => goToStep(3)} items={[
       { label: 'Total Rounds', value: form.totalRounds },
       ...form.selectionRounds.map((r, i) => ({ label: `Round ${i + 1}`, value: `${r.roundName} (${r.roundType}, ${r.mode})` }))
     ]} />
-    <ReviewSection title="Compensation & Job Details" onEdit={() => goToStep(4)} items={[
+    <ReviewSection title="Compensation & Job Details" onEdit={isViewOnly ? null : () => goToStep(4)} items={[
       { label: form.employmentType === 'internship' ? 'Stipend' : 'CTC', value: form.employmentType === 'internship' ? (form.stipend ? `₹${form.stipend}/mo` : '') : (form.ctc ? `₹${form.ctc}/yr` : '') },
       { label: 'Openings', value: form.numberOfOpenings }, { label: 'Work Mode', value: form.workMode },
       { label: 'Locations', value: form.workLocations.filter(Boolean) },
       { label: 'Required Skills', value: form.requiredSkills }, { label: 'Bond', value: form.bondRequired ? `Yes - ${form.bondDuration}` : 'No' },
     ]} />
-    <ReviewSection title="Dates & Requirements" onEdit={() => goToStep(5)} items={[
+    <ReviewSection title="Dates & Requirements" onEdit={isViewOnly ? null : () => goToStep(5)} items={[
       { label: 'Deadline', value: form.applicationDeadline ? new Date(form.applicationDeadline).toLocaleString() : '' },
       { label: 'Joining Date', value: form.expectedJoiningDate }, { label: 'HR Contact', value: form.hrName },
       { label: 'Email', value: form.contactEmail }, { label: 'Phone', value: form.contactPhone },
     ]} />
-    <div className={sectionClass}>
-      <label className="flex items-start gap-3 cursor-pointer">
-        <input type="checkbox" checked={form.termsAccepted} onChange={e => setField('termsAccepted', e.target.checked)}
-          className="mt-1 w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500" />
-        <span className="text-sm text-slate-600">I confirm all information provided is accurate and I agree to the terms and conditions of the placement portal.</span>
-      </label>
-    </div>
+    {!isViewOnly && (
+      <div className={sectionClass}>
+        <label className="flex items-start gap-3 cursor-pointer">
+          <input type="checkbox" checked={form.termsAccepted} onChange={e => setField('termsAccepted', e.target.checked)}
+            className="mt-1 w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500" />
+          <span className="text-sm text-slate-600">I confirm all information provided is accurate and I agree to the terms and conditions of the placement portal.</span>
+        </label>
+      </div>
+    )}
   </div>
 );
 
 // ===== MAIN COMPONENT =====
-const JobPostingForm = ({ job, onClose, onSuccess }) => {
-  const [currentStep, setCurrentStep] = useState(1);
+const JobPostingForm = ({ job, onClose, onSuccess, isViewOnly = false }) => {
+  const [currentStep, setCurrentStep] = useState(isViewOnly ? 6 : 1);
   const [form, setForm] = useState(() => job ? { ...INITIAL_FORM, ...job, termsAccepted: false } : { ...INITIAL_FORM });
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
@@ -936,7 +938,7 @@ const JobPostingForm = ({ job, onClose, onSuccess }) => {
     if (savedJobId.current) {
       autoSaveTimer.current = setInterval(async () => {
         try {
-          await saveJobDraft(savedJobId.current, form);
+          await saveJobDraft(savedJobId.current, { ...form, status: 'draft' });
         } catch (e) { /* silent */ }
       }, 120000);
     }
@@ -1069,7 +1071,7 @@ const JobPostingForm = ({ job, onClose, onSuccess }) => {
       case 3: return <Step3 form={form} setField={setField} />;
       case 4: return <Step4 form={form} setField={setField} />;
       case 5: return <Step5 form={form} setField={setField} setNested={setNested} />;
-      case 6: return <Step6 form={form} setField={setField} goToStep={goToStep} />;
+      case 6: return <Step6 form={form} setField={setField} goToStep={goToStep} isViewOnly={isViewOnly} />;
       default: return null;
     }
   };
@@ -1090,34 +1092,36 @@ const JobPostingForm = ({ job, onClose, onSuccess }) => {
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-white/80 backdrop-blur-md flex-shrink-0">
           <div>
-            <h2 className="text-xl font-black text-slate-900">{job ? 'Edit Job Posting' : 'Create Job Posting'}</h2>
-            <p className="text-xs text-slate-400 font-medium">Step {currentStep} of 6 — {STEPS[currentStep - 1].title}</p>
+            <h2 className="text-xl font-black text-slate-900">{isViewOnly ? 'Job Details' : (job ? 'Edit Job Posting' : 'Create Job Posting')}</h2>
+            {!isViewOnly && <p className="text-xs text-slate-400 font-medium">Step {currentStep} of 6 — {STEPS[currentStep - 1]?.title}</p>}
           </div>
           <button onClick={onClose} className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-slate-100 text-slate-400"><X size={20} /></button>
         </div>
 
         {/* Progress */}
-        <div className="px-6 py-3 bg-white border-b border-slate-50 flex-shrink-0">
-          <div className="flex items-center gap-1">
-            {STEPS.map((step, i) => {
-              const Icon = step.icon;
-              const isActive = currentStep === step.id;
-              const isDone = currentStep > step.id;
-              return (
-                <React.Fragment key={step.id}>
-                  <button onClick={() => goToStep(step.id)}
-                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all cursor-pointer ${isActive ? 'bg-blue-600 text-white shadow-md shadow-blue-200' : isDone ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
-                      }`}>
-                    {isDone ? <CheckCircle2 size={12} /> : <Icon size={12} />}
-                    <span className="hidden lg:inline">{step.title}</span>
-                    <span className="lg:hidden">{step.id}</span>
-                  </button>
-                  {i < STEPS.length - 1 && <div className={`flex-1 h-0.5 rounded ${isDone ? 'bg-emerald-300' : 'bg-slate-200'}`} />}
-                </React.Fragment>
-              );
-            })}
+        {!isViewOnly && (
+          <div className="px-6 py-3 bg-white border-b border-slate-50 flex-shrink-0">
+            <div className="flex items-center gap-1">
+              {STEPS.map((step, i) => {
+                const Icon = step.icon;
+                const isActive = currentStep === step.id;
+                const isDone = currentStep > step.id;
+                return (
+                  <React.Fragment key={step.id}>
+                    <button onClick={() => goToStep(step.id)}
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all cursor-pointer ${isActive ? 'bg-blue-600 text-white shadow-md shadow-blue-200' : isDone ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
+                        }`}>
+                      {isDone ? <CheckCircle2 size={12} /> : <Icon size={12} />}
+                      <span className="hidden lg:inline">{step.title}</span>
+                      <span className="lg:hidden">{step.id}</span>
+                    </button>
+                    {i < STEPS.length - 1 && <div className={`flex-1 h-0.5 rounded ${isDone ? 'bg-emerald-300' : 'bg-slate-200'}`} />}
+                  </React.Fragment>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
@@ -1130,31 +1134,33 @@ const JobPostingForm = ({ job, onClose, onSuccess }) => {
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-slate-100 bg-white/80 backdrop-blur-md flex items-center justify-between gap-3 flex-shrink-0">
-          <button type="button" onClick={handleSaveDraft} disabled={saving}
-            className="flex items-center gap-2 px-5 py-2.5 border border-slate-200 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all disabled:opacity-50">
-            {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Save Draft
-          </button>
-          <div className="flex items-center gap-3">
-            {currentStep > 1 && (
-              <button type="button" onClick={prevStep} className="flex items-center gap-1 px-5 py-2.5 border border-slate-200 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50">
-                <ChevronLeft size={16} /> Back
-              </button>
-            )}
-            {currentStep < 6 ? (
-              <button type="button" onClick={nextStep}
-                className="flex items-center gap-1 px-6 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all">
-                Next <ChevronRight size={16} />
-              </button>
-            ) : (
-              <button type="button" onClick={handleSubmit} disabled={submitting || !form.termsAccepted}
-                className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition-all disabled:opacity-50">
-                {submitting ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-                {form.driveType === 'on_campus' ? 'Submit for Approval' : 'Publish Job'}
-              </button>
-            )}
+        {!isViewOnly && (
+          <div className="px-6 py-4 border-t border-slate-100 bg-white/80 backdrop-blur-md flex items-center justify-between gap-3 flex-shrink-0">
+            <button type="button" onClick={handleSaveDraft} disabled={saving}
+              className="flex items-center gap-2 px-5 py-2.5 border border-slate-200 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all disabled:opacity-50">
+              {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Save Draft
+            </button>
+            <div className="flex items-center gap-3">
+              {currentStep > 1 && (
+                <button type="button" onClick={prevStep} className="flex items-center gap-1 px-5 py-2.5 border border-slate-200 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50">
+                  <ChevronLeft size={16} /> Back
+                </button>
+              )}
+              {currentStep < 6 ? (
+                <button type="button" onClick={nextStep}
+                  className="flex items-center gap-1 px-6 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all">
+                  Next <ChevronRight size={16} />
+                </button>
+              ) : (
+                <button type="button" onClick={handleSubmit} disabled={submitting || !form.termsAccepted}
+                  className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition-all disabled:opacity-50">
+                  {submitting ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                  {form.driveType === 'on_campus' ? 'Submit for Approval' : 'Publish Job'}
+                </button>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
-import TopNavbar from './components/TopNavbar';
 import DashboardOverview from './components/DashboardOverview';
 import StudentManagement from './components/StudentManagement';
 import InterviewManagement from './components/InterviewManagement';
@@ -79,13 +78,6 @@ const TPODashboard = () => {
 
       {/* Main Content Area */}
       <div className={`transition-all duration-500 ease-in-out min-h-screen ${sidebarCollapsed ? 'lg:pl-20' : 'lg:pl-72'}`}>
-        {/* Top Navbar */}
-        <TopNavbar
-          toggleSidebar={toggleSidebar}
-          sidebarCollapsed={sidebarCollapsed}
-          isMobileSidebarOpen={isMobileSidebarOpen}
-        />
-
         {/* Main Content */}
         <main className="p-4 sm:p-6 lg:p-8 pt-6">
           <div className="max-w-[1600px] mx-auto animate-fade-in">

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  FaUsers, 
-  FaBuilding, 
-  FaCheckCircle, 
+import {
+  FaUsers,
+  FaBuilding,
+  FaCheckCircle,
   FaTimesCircle,
   FaClock,
   FaEye,
@@ -12,7 +12,7 @@ import axios from 'axios';
 
 // Create axios instance with base configuration
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api',
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -48,7 +48,7 @@ const PendingRegistrations = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await api.get('/admin/pending-registrations');
       setPendingUsers(response.data.pendingUsers || []);
     } catch (err) {
@@ -62,13 +62,13 @@ const PendingRegistrations = () => {
   const handleApprove = async (userId) => {
     try {
       setProcessingUsers(prev => new Set(prev).add(userId));
-      
+
       const response = await api.post(`/admin/approve-user/${userId}`);
-      
+
       if (response.data.success) {
         // Remove the approved user from the list
         setPendingUsers(prev => prev.filter(user => user.id !== userId));
-        
+
         // Show success message
         showToast('success', response.data.message);
       }
@@ -87,13 +87,13 @@ const PendingRegistrations = () => {
   const handleReject = async (userId) => {
     try {
       setProcessingUsers(prev => new Set(prev).add(userId));
-      
+
       const response = await api.post(`/admin/reject-user/${userId}`);
-      
+
       if (response.data.success) {
         // Remove the rejected user from the list
         setPendingUsers(prev => prev.filter(user => user.id !== userId));
-        
+
         // Show success message
         showToast('success', response.data.message);
       }
@@ -112,13 +112,12 @@ const PendingRegistrations = () => {
   const showToast = (type, message) => {
     // Simple toast implementation - you can replace with react-hot-toast or similar
     const toast = document.createElement('div');
-    toast.className = `fixed top-4 right-4 z-50 px-6 py-3 rounded-lg text-white font-medium ${
-      type === 'success' ? 'bg-green-500' : 'bg-red-500'
-    }`;
+    toast.className = `fixed top-4 right-4 z-50 px-6 py-3 rounded-lg text-white font-medium ${type === 'success' ? 'bg-green-500' : 'bg-red-500'
+      }`;
     toast.textContent = message;
-    
+
     document.body.appendChild(toast);
-    
+
     setTimeout(() => {
       document.body.removeChild(toast);
     }, 3000);
@@ -161,8 +160,8 @@ const PendingRegistrations = () => {
           <div className="text-red-500 text-6xl mb-4">⚠️</div>
           <h2 className="text-2xl font-bold text-gray-800 mb-2">Oops! Something went wrong</h2>
           <p className="text-gray-600 mb-4">{error}</p>
-          <button 
-            onClick={fetchPendingRegistrations} 
+          <button
+            onClick={fetchPendingRegistrations}
             className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
           >
             Try Again
@@ -184,7 +183,7 @@ const PendingRegistrations = () => {
           <p className="text-gray-600">Review and approve new user registrations</p>
         </div>
         <div className="flex gap-2">
-          <button 
+          <button
             onClick={fetchPendingRegistrations}
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
           >
@@ -243,22 +242,20 @@ const PendingRegistrations = () => {
           <nav className="flex space-x-8 px-6">
             <button
               onClick={() => setActiveTab('students')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'students'
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'students'
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
+                }`}
             >
               <FaUsers className="inline w-4 h-4 mr-2" />
               Students ({pendingUsers.filter(u => u.originalRole === 'student').length})
             </button>
             <button
               onClick={() => setActiveTab('companies')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'companies'
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'companies'
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
+                }`}
             >
               <FaBuilding className="inline w-4 h-4 mr-2" />
               Company HRs ({pendingUsers.filter(u => u.originalRole === 'company').length})
@@ -272,7 +269,7 @@ const PendingRegistrations = () => {
               <FaClock className="w-16 h-16 text-gray-300 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No pending registrations</h3>
               <p className="text-gray-500">
-                {activeTab === 'students' 
+                {activeTab === 'students'
                   ? 'All student registrations have been processed.'
                   : 'All company HR registrations have been processed.'
                 }

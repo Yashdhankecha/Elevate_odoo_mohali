@@ -156,26 +156,53 @@ router.get('/jobs', authenticateToken, ensureStudent, async (req, res) => {
       sortOrder = 'desc'
     } = req.query;
 
-    // Get the student's college name for on-campus drive filtering
-    const student = await Student.findById(req.user._id).select('collegeName cgpa branch graduationYear currentBacklogs');
-    const studentCollege = student?.collegeName || '';
+    // Get the student's college — try Student collection first, then User as fallback
+    let student = await Student.findById(req.user._id).select('collegeName cgpa branch graduationYear currentBacklogs');
+    if (!student) {
+      try {
+        const User = require('../models/User');
+        const userDoc = await User.findById(req.user._id).select('student');
+        student = userDoc?.student || null;
+      } catch (_) { }
+    }
+    const studentCollege = (student?.collegeName || '').trim();
 
-    // Build base query — only active jobs
-    const query = { isActive: true };
+    // ---------- Build query ----------
+    // Visibility rules:
+    //   • A job must be "active": status === 'active' OR isActive === true
+    //   • Off-campus jobs → always visible
+    //   • On-campus drives → visible when:
+    //       a) targetColleges is empty/missing (open to all colleges), OR
+    //       b) student's college appears in targetColleges (partial, case-insensitive)
 
-    // ── On-campus drives: only show if student's college is in targetColleges ──
-    // Off-campus drives: visible to all students
-    // We build an $or: off-campus OR (on_campus AND college matches)
-    const collegeFilter = {
-      $or: [
-        { driveType: { $ne: 'on_campus' } },
-        { driveType: 'on_campus', targetColleges: { $elemMatch: { $regex: new RegExp(`^${studentCollege.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } } }
+    const activeConditions = [{ status: 'active' }, { isActive: true }];
+
+    const collegeConditions = [
+      // All off-campus
+      { driveType: { $ne: 'on_campus' } },
+      // On-campus open to all (no targetColleges restriction)
+      { driveType: 'on_campus', targetColleges: { $exists: false } },
+      { driveType: 'on_campus', targetColleges: { $size: 0 } },
+      { driveType: 'on_campus', targetColleges: null },
+    ];
+
+    if (studentCollege) {
+      const escaped = studentCollege.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      collegeConditions.push({
+        driveType: 'on_campus',
+        targetColleges: { $elemMatch: { $regex: new RegExp(escaped, 'i') } }
+      });
+    }
+
+    const query = {
+      $and: [
+        { $or: activeConditions },
+        { $or: collegeConditions }
       ]
     };
-    Object.assign(query, collegeFilter);
 
+    // Optional filters
     if (search) {
-      query.$and = query.$and || [];
       query.$and.push({
         $or: [
           { title: { $regex: search, $options: 'i' } },
@@ -187,11 +214,13 @@ router.get('/jobs', authenticateToken, ensureStudent, async (req, res) => {
     }
 
     if (location) { query.location = { $regex: location, $options: 'i' }; }
-    if (category) { query.$or = undefined; query.category = category; }
+    if (category) { query.category = category; }
     if (type) { query.type = type; }
     if (minSalary) { query['package.min'] = { $gte: parseInt(minSalary) * 100000 }; }
     if (maxSalary) { query['package.max'] = { $lte: parseInt(maxSalary) * 100000 }; }
     if (experience) { query['experience.max'] = { $lte: parseInt(experience) }; }
+
+    console.log('[student/jobs] college:"' + studentCollege + '" | results query OK');
 
     const sort = {};
     sort[sortBy === 'postedAt' ? 'createdAt' : sortBy] = sortOrder === 'desc' ? -1 : 1;
@@ -448,7 +477,7 @@ router.get('/applications', authenticateToken, ensureStudent, async (req, res) =
     }
 
     const applications = await JobApplication.find(query)
-      .populate('jobPosting', 'title category package location type')
+      .populate('jobPosting', 'title category package location type description requirements responsibilities skills duration deadline')
       .populate('company', 'company email')
       .sort({ appliedDate: -1 })
       .limit(limit * 1)
@@ -472,23 +501,43 @@ router.get('/applications', authenticateToken, ensureStudent, async (req, res) =
       { $unwind: '$jobPosting' },
       { $group: { _id: '$jobPosting.category', count: { $sum: 1 } } }
     ]);
+    const getStatusColor = (status) => {
+      const colors = {
+        'applied': 'text-blue-600', 'test_scheduled': 'text-amber-600',
+        'test_completed': 'text-orange-600', 'interview_scheduled': 'text-purple-600',
+        'offer_received': 'text-emerald-600', 'rejected': 'text-rose-600'
+      };
+      return colors[status] || 'text-gray-600';
+    };
+
+    const getCategorySalary = (cat) => '₹8-15 LPA'; // Backend placeholder
+    const getCategoryColor = (cat) => 'text-indigo-600'; // Backend placeholder
 
     res.json({
       success: true,
       data: {
         applications: applications.map(app => ({
           id: app._id,
-          logo: null, // You can add company logos later
+          logo: null,
           role: app.jobPosting?.title || 'Position',
           company: app.company?.company?.companyName || 'Company',
           salary: app.jobPosting?.package ?
             `₹${app.jobPosting.package.min / 100000}-${app.jobPosting.package.max / 100000} LPA` :
             'Not specified',
-          status: {
-            label: app.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
-            color: getStatusColor(app.status)
-          },
-          appliedDate: app.appliedDate
+          status: app.status,
+          appliedDate: new Date(app.appliedDate).toLocaleDateString(),
+          description: app.jobPosting?.description,
+          requirements: app.jobPosting?.requirements,
+          responsibilities: app.jobPosting?.responsibilities,
+          skills: app.jobPosting?.skills,
+          duration: app.jobPosting?.duration,
+          deadline: app.jobPosting?.deadline,
+          location: app.jobPosting?.location,
+          type: app.jobPosting?.type,
+          coverLetter: app.coverLetter,
+          resume: app.resume,
+          notes: app.notes,
+          timeline: app.timeline
         })),
         stats,
         categoryStats: categoryStats.map(cat => ({
@@ -1836,7 +1885,7 @@ router.get('/internship-applications', authenticateToken, ensureStudent, async (
       student: studentId,
       'jobPosting.type': 'internship'
     })
-      .populate('jobPosting', 'title company location deadline')
+      .populate('jobPosting', 'title company location deadline description requirements responsibilities skills duration package type')
       .populate('company', 'company')
       .sort({ appliedDate: -1 });
 
@@ -1860,6 +1909,105 @@ router.get('/internship-applications', authenticateToken, ensureStudent, async (
       success: false,
       message: 'Failed to fetch internship applications'
     });
+  }
+});
+
+// @route   POST /api/student/upload-picture
+// @desc    Upload student profile picture to Cloudinary
+// @access  Private (Student)
+router.post('/upload-picture', authenticateToken, ensureStudent, async (req, res) => {
+  try {
+    const multer = require('multer');
+    const cloudinary = require('cloudinary').v2;
+
+    // Configure Cloudinary (uses env vars)
+    cloudinary.config({
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+      api_key: process.env.CLOUDINARY_API_KEY,
+      api_secret: process.env.CLOUDINARY_API_SECRET
+    });
+
+    // Check if Cloudinary is configured
+    if (
+      !process.env.CLOUDINARY_CLOUD_NAME ||
+      process.env.CLOUDINARY_CLOUD_NAME === 'your_cloud_name'
+    ) {
+      return res.status(503).json({
+        success: false,
+        message: 'Cloudinary is not configured yet. Please add CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET to your .env file.'
+      });
+    }
+
+    // Use memory storage so file is in req.file.buffer
+    const upload = multer({
+      storage: multer.memoryStorage(),
+      limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+      fileFilter: (req, file, cb) => {
+        if (file.mimetype.startsWith('image/')) {
+          cb(null, true);
+        } else {
+          cb(new Error('Only image files are allowed'), false);
+        }
+      }
+    }).single('picture');
+
+    // Run multer as a promise
+    await new Promise((resolve, reject) => {
+      upload(req, res, (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No file uploaded' });
+    }
+
+    // Upload to Cloudinary using stream
+    const uploadResult = await new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          folder: 'student_profiles',
+          public_id: `student_${req.user._id}`,
+          overwrite: true,
+          resource_type: 'image',
+          transformation: [{ width: 400, height: 400, crop: 'limit', quality: 'auto' }]
+        },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      );
+      uploadStream.end(req.file.buffer);
+    });
+
+    // Save Cloudinary URL to student profile
+    // Try Student collection first, then User collection
+    let student = await Student.findById(req.user._id);
+    let isStudentCollection = true;
+    if (!student) {
+      student = await User.findById(req.user._id);
+      isStudentCollection = false;
+    }
+
+    if (student) {
+      if (isStudentCollection) {
+        student.profilePicture = uploadResult.secure_url;
+      } else {
+        student.student = student.student || {};
+        student.student.profilePicture = uploadResult.secure_url;
+      }
+      await student.save();
+    }
+
+    res.json({
+      success: true,
+      url: uploadResult.secure_url,
+      message: 'Profile picture uploaded successfully'
+    });
+  } catch (error) {
+    console.error('Error uploading profile picture:', error);
+    res.status(500).json({ success: false, message: 'Failed to upload profile picture', details: error.message });
   }
 });
 

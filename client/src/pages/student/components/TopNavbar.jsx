@@ -200,11 +200,19 @@ const TopNavbar = ({ toggleSidebar, isMobileSidebarOpen }) => {
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
                 className="flex items-center gap-2 sm:gap-3 pl-1 pr-3 py-1 rounded-xl hover:bg-gray-50 transition-all"
               >
-                <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-200/50">
-                  <span className="text-white text-xs font-bold">
-                    {getUserInitials(getUserDisplayName(user))}
-                  </span>
-                </div>
+                {user?.profilePicture ? (
+                  <img
+                    src={user.profilePicture || "/default-avatar.png"}
+                    alt="Profile"
+                    className="w-9 h-9 rounded-xl object-cover shadow-lg shadow-blue-200/50"
+                  />
+                ) : (
+                  <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-200/50">
+                    <span className="text-white text-xs font-bold">
+                      {getUserInitials(getUserDisplayName(user))}
+                    </span>
+                  </div>
+                )}
                 <div className="hidden sm:block text-left">
                   <p className="text-sm font-bold text-gray-800 leading-tight">
                     {getUserDisplayName(user)}

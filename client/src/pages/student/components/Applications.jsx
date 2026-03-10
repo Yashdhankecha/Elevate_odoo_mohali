@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  FaBriefcase, 
-  FaFilter, 
-  FaUser, 
+import {
+  FaBriefcase,
+  FaFilter,
+  FaUser,
   FaBuilding,
   FaEye,
   FaEdit,
@@ -69,7 +69,7 @@ const ApplicationModal = ({ application, mode, onClose, onUpdate, updating, onMo
             </h2>
             <p className="text-[10px] md:text-sm text-gray-400 font-bold uppercase tracking-widest mt-1">Ref: {application.id?.slice(-8) || 'Elevate-8291'}</p>
           </div>
-          <button 
+          <button
             onClick={onClose}
             className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-gray-50 text-gray-400 hover:text-rose-500 hover:bg-rose-50 flex items-center justify-center transition-all duration-300"
           >
@@ -81,9 +81,9 @@ const ApplicationModal = ({ application, mode, onClose, onUpdate, updating, onMo
           {mode === 'view' ? (
             <div className="space-y-8">
               {/* Job Information Card */}
-               <div className="relative group overflow-hidden rounded-2xl md:rounded-3xl bg-gradient-to-br from-blue-600 to-indigo-700 p-6 md:p-8 text-white shadow-xl shadow-blue-200">
+              <div className="relative group overflow-hidden rounded-2xl md:rounded-3xl bg-gradient-to-br from-blue-600 to-indigo-700 p-6 md:p-8 text-white shadow-xl shadow-blue-200">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-16 -mt-16"></div>
-                
+
                 <div className="relative z-10 space-y-4 md:space-y-6">
                   <div className="flex items-start justify-between">
                     <div>
@@ -109,15 +109,63 @@ const ApplicationModal = ({ application, mode, onClose, onUpdate, updating, onMo
                     </div>
                     <div className="hidden md:block">
                       <p className="text-[9px] uppercase font-bold text-blue-200 tracking-tighter mb-0.5">Location</p>
-                      <p className="font-bold text-xs md:text-sm">On-site, Mohali</p>
+                      <p className="font-bold text-xs md:text-sm truncate">{application.location || 'Not specified'}</p>
                     </div>
                     <div className="hidden md:block">
-                      <p className="text-[9px] uppercase font-bold text-blue-200 tracking-tighter mb-0.5">Match</p>
-                      <p className="font-bold text-xs md:text-sm">94%</p>
+                      <p className="text-[9px] uppercase font-bold text-blue-200 tracking-tighter mb-0.5">Type / Duration</p>
+                      <p className="font-bold text-xs md:text-sm truncate">{application.duration ? `${application.duration} Months` : application.type || 'Full Time'}</p>
                     </div>
                   </div>
                 </div>
               </div>
+
+              {/* Job Details Section */}
+              {application.description && (
+                <div>
+                  <h4 className="text-sm font-black text-gray-800 uppercase tracking-widest mb-3 flex items-center gap-2">
+                    <div className="w-1.5 h-4 bg-indigo-500 rounded-full"></div>
+                    Role Description
+                  </h4>
+                  <div className="bg-gray-50/50 border border-gray-100 rounded-2xl p-6 text-gray-600 text-sm leading-relaxed whitespace-pre-wrap">
+                    {application.description}
+                  </div>
+                </div>
+              )}
+
+              {application.requirements?.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-black text-gray-800 uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <div className="w-1.5 h-4 bg-amber-500 rounded-full"></div>
+                    Requirements
+                  </h4>
+                  <div className="space-y-2">
+                    {application.requirements.map((req, index) => (
+                      <div key={index} className="flex items-start gap-3 p-3 bg-gray-50/30 rounded-xl hover:bg-gray-50 transition-colors">
+                        <div className="w-6 h-6 rounded-lg bg-amber-50 text-amber-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <FaCheckCircle size={10} />
+                        </div>
+                        <span className="text-sm text-gray-700">{req}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {application.skills?.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-black text-gray-800 uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <div className="w-1.5 h-4 bg-purple-500 rounded-full"></div>
+                    Required Skills
+                  </h4>
+                  <div className="flex flex-wrap gap-2">
+                    {application.skills.map((skill, index) => (
+                      <span key={index} className="px-4 py-2 bg-purple-50 text-purple-700 rounded-xl text-xs font-bold uppercase tracking-wider">
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Application Details */}
               <div className="grid gap-6">
@@ -158,18 +206,18 @@ const ApplicationModal = ({ application, mode, onClose, onUpdate, updating, onMo
               {/* Timeline */}
               {application.timeline && (
                 <div>
-                   <h4 className="text-sm font-black text-gray-800 uppercase tracking-widest mb-6">Process Milestones</h4>
-                   <div className="space-y-6 relative ml-4">
-                      <div className="absolute left-0 top-0 bottom-0 w-px bg-gray-100"></div>
-                      {application.timeline.map((event, idx) => (
-                        <div key={idx} className="relative pl-8 group">
-                          <div className={`absolute left-[-5px] top-1 w-[11px] h-[11px] rounded-full ring-4 ring-white transition-all duration-300 ${idx === 0 ? 'bg-blue-600 ring-blue-100 scale-125' : 'bg-gray-300'}`}></div>
-                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{event.date}</p>
-                          <p className="text-sm font-bold text-gray-800 group-hover:text-blue-600 transition-colors">{event.action}</p>
-                          <p className="text-xs text-gray-500 mt-0.5">{event.description}</p>
-                        </div>
-                      ))}
-                   </div>
+                  <h4 className="text-sm font-black text-gray-800 uppercase tracking-widest mb-6">Process Milestones</h4>
+                  <div className="space-y-6 relative ml-4">
+                    <div className="absolute left-0 top-0 bottom-0 w-px bg-gray-100"></div>
+                    {application.timeline.map((event, idx) => (
+                      <div key={idx} className="relative pl-8 group">
+                        <div className={`absolute left-[-5px] top-1 w-[11px] h-[11px] rounded-full ring-4 ring-white transition-all duration-300 ${idx === 0 ? 'bg-blue-600 ring-blue-100 scale-125' : 'bg-gray-300'}`}></div>
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{event.date}</p>
+                        <p className="text-sm font-bold text-gray-800 group-hover:text-blue-600 transition-colors">{event.action}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">{event.description}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -244,15 +292,15 @@ const ApplicationModal = ({ application, mode, onClose, onUpdate, updating, onMo
         {mode === 'view' && (
           <div className="p-5 md:p-8 bg-gray-50/50 border-t border-gray-100/50 flex flex-col sm:flex-row gap-3 md:gap-4">
             <button
-               onClick={() => onModeChange('edit')}
-               className="flex-1 py-4 bg-blue-600 text-white rounded-xl md:rounded-2xl font-black uppercase tracking-widest text-[10px] md:text-xs shadow-xl shadow-blue-200 hover:bg-blue-700 transition-all duration-300 flex items-center justify-center gap-2"
+              onClick={() => onModeChange('edit')}
+              className="flex-1 py-4 bg-blue-600 text-white rounded-xl md:rounded-2xl font-black uppercase tracking-widest text-[10px] md:text-xs shadow-xl shadow-blue-200 hover:bg-blue-700 transition-all duration-300 flex items-center justify-center gap-2"
             >
-               <FaEdit />
-               Edit Application
+              <FaEdit />
+              Edit Application
             </button>
             <button className="flex-1 py-4 bg-white border border-gray-200 text-gray-600 rounded-xl md:rounded-2xl font-black uppercase tracking-widest text-[10px] md:text-xs hover:bg-gray-50 transition-all duration-300 flex items-center justify-center gap-2">
-               <FaBriefcase />
-               View Original Job
+              <FaBriefcase />
+              View Original Job
             </button>
           </div>
         )}
@@ -317,10 +365,18 @@ const Applications = () => {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] animate-fade-in">
         <div className="w-16 h-16 border-4 border-blue-50 flex items-center justify-center rounded-2xl relative overflow-hidden">
-           <div className="absolute inset-0 bg-blue-600 animate-grow h-1 origin-bottom"></div>
-           <FaBriefcase className="text-blue-200 animate-pulse" size={24} />
+          <div className="absolute inset-0 bg-blue-600 animate-grow h-1 origin-bottom"></div>
+          <FaBriefcase className="text-blue-200 animate-pulse" size={24} />
         </div>
         <p className="mt-6 text-gray-400 font-bold uppercase tracking-widest text-[10px]">Accessing Vault Data</p>
+      </div>
+    );
+  }
+
+  if (!applicationsData) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh]">
+        <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">Failed to load vault data. Please try again later.</p>
       </div>
     );
   }
@@ -335,17 +391,16 @@ const Applications = () => {
           <h2 className="text-3xl font-black text-gray-800 tracking-tight">Application Vault</h2>
           <p className="text-gray-400 text-sm font-bold uppercase tracking-widest mt-1 italic">Totaling {stats.total} professional reach-outs</p>
         </div>
-        
+
         <div className="flex gap-2 p-1.5 md:p-2 bg-gray-100/50 rounded-xl md:rounded-2xl backdrop-blur-sm overflow-x-auto no-scrollbar max-w-full">
           {['all', 'applied', 'interview_scheduled', 'offer_received'].map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`px-4 md:px-6 py-2 md:py-2.5 rounded-lg md:rounded-xl text-[9px] md:text-xs font-black uppercase tracking-widest transition-all duration-300 whitespace-nowrap ${
-                filter === f 
-                  ? 'bg-white text-blue-600 shadow-sm' 
-                   : 'text-gray-400 hover:text-gray-600'
-              }`}
+              className={`px-4 md:px-6 py-2 md:py-2.5 rounded-lg md:rounded-xl text-[9px] md:text-xs font-black uppercase tracking-widest transition-all duration-300 whitespace-nowrap ${filter === f
+                ? 'bg-white text-blue-600 shadow-sm'
+                : 'text-gray-400 hover:text-gray-600'
+                }`}
             >
               {f === 'interview_scheduled' ? 'Interviews' : f === 'offer_received' ? 'Offers' : f.replace('_', ' ')}
             </button>
@@ -354,7 +409,7 @@ const Applications = () => {
       </div>
 
       {/* Stats Summary Cards */}
-       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
         {[
           { label: 'Total Vault', val: stats.total, color: 'from-blue-600 to-indigo-600', icon: FaBriefcase },
           { label: 'Pipeline', val: stats.inProgress, color: 'from-amber-500 to-orange-600', icon: FaClock },
@@ -362,16 +417,16 @@ const Applications = () => {
           { label: 'Missed', val: stats.rejected, color: 'from-rose-500 to-pink-600', icon: FaTimes }
         ].map((s, idx) => (
           <div key={idx} className="glass-card group p-4 md:p-6 rounded-2xl md:rounded-[2rem] hover-lift relative overflow-hidden border-white/50">
-             <div className={`absolute -right-4 -top-4 w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br ${s.color} opacity-5 rounded-full`}></div>
-             <div className="flex items-center gap-3 md:gap-4">
-                <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-gradient-to-br ${s.color} flex items-center justify-center text-white shadow-lg shadow-blue-900/10`}>
-                   <s.icon size={18} />
-                </div>
-                <div>
-                   <p className="text-xl md:text-2xl font-black text-gray-800 tracking-tighter">{s.val}</p>
-                   <p className="text-[8px] md:text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">{s.label}</p>
-                </div>
-             </div>
+            <div className={`absolute -right-4 -top-4 w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br ${s.color} opacity-5 rounded-full`}></div>
+            <div className="flex items-center gap-3 md:gap-4">
+              <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-gradient-to-br ${s.color} flex items-center justify-center text-white shadow-lg shadow-blue-900/10`}>
+                <s.icon size={18} />
+              </div>
+              <div>
+                <p className="text-xl md:text-2xl font-black text-gray-800 tracking-tighter">{s.val}</p>
+                <p className="text-[8px] md:text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">{s.label}</p>
+              </div>
+            </div>
           </div>
         ))}
       </div>
@@ -380,30 +435,30 @@ const Applications = () => {
         {/* Categories Section */}
         <div className="lg:col-span-4 space-y-6">
           <div className="flex items-center gap-3 px-2">
-             <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-500 flex items-center justify-center">
-                <FaFilter size={14} />
-             </div>
-             <h3 className="text-lg font-bold text-gray-800">Industry Reach</h3>
+            <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-500 flex items-center justify-center">
+              <FaFilter size={14} />
+            </div>
+            <h3 className="text-lg font-bold text-gray-800">Industry Reach</h3>
           </div>
-          
+
           <div className="space-y-4">
             {categoryStats?.map((cat, idx) => (
               <div key={idx} className="glass-card group p-5 rounded-3xl hover-lift border-white/50 cursor-pointer overflow-hidden relative">
-                 <div className={`absolute top-0 right-0 w-2 h-full ${cat.color} opacity-20`}></div>
-                 <div className="flex justify-between items-start">
-                    <div>
-                       <p className={`text-sm font-black uppercase tracking-wider ${cat.color}`}>{cat.label}</p>
-                       <p className="text-xs text-gray-400 font-bold mt-1">Avg CTC: {cat.salary}</p>
-                    </div>
-                    <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-800 group-hover:bg-gray-100 transition-colors">
-                       <span className="text-xs font-black">{cat.count}</span>
-                    </div>
-                 </div>
-                 <div className="mt-4 flex items-center gap-2">
-                    <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                       <div className={`h-full ${cat.color.replace('text', 'bg')} transition-all duration-1000`} style={{ width: `${(cat.count/stats.total)*100}%` }}></div>
-                    </div>
-                 </div>
+                <div className={`absolute top-0 right-0 w-2 h-full ${cat.color} opacity-20`}></div>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className={`text-sm font-black uppercase tracking-wider ${cat.color}`}>{cat.label}</p>
+                    <p className="text-xs text-gray-400 font-bold mt-1">Avg CTC: {cat.salary}</p>
+                  </div>
+                  <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-800 group-hover:bg-gray-100 transition-colors">
+                    <span className="text-xs font-black">{cat.count}</span>
+                  </div>
+                </div>
+                <div className="mt-4 flex items-center gap-2">
+                  <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                    <div className={`h-full ${cat.color.replace('text', 'bg')} transition-all duration-1000`} style={{ width: `${(cat.count / stats.total) * 100}%` }}></div>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
@@ -411,11 +466,11 @@ const Applications = () => {
 
         {/* Main List Section */}
         <div className="lg:col-span-8 space-y-6">
-           <div className="flex items-center gap-3 px-2">
-             <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center">
-                <FaHistory size={14} />
-             </div>
-             <h3 className="text-lg font-bold text-gray-800">Pipeline Inventory</h3>
+          <div className="flex items-center gap-3 px-2">
+            <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center">
+              <FaHistory size={14} />
+            </div>
+            <h3 className="text-lg font-bold text-gray-800">Pipeline Inventory</h3>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -425,39 +480,39 @@ const Applications = () => {
                 <div key={app.id || idx} className="glass-card group rounded-[2.5rem] p-8 border-white hover:border-blue-100 hover:shadow-2xl hover:shadow-blue-200/20 transition-all duration-500 relative flex flex-col">
                   {/* Status Badge */}
                   <div className="flex justify-between items-start mb-6">
-                     <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${info.color} flex items-center gap-1.5`}>
-                        <info.icon size={12} />
-                        {info.label}
-                     </div>
-                     <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">{app.appliedDate}</span>
+                    <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${info.color} flex items-center gap-1.5`}>
+                      <info.icon size={12} />
+                      {info.label}
+                    </div>
+                    <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">{app.appliedDate}</span>
                   </div>
 
                   {/* Body */}
                   <div className="flex-1 space-y-2">
-                     <h4 className="text-xl font-black text-gray-800 leading-tight group-hover:text-blue-600 transition-colors">{app.role}</h4>
-                     <div className="flex items-center gap-2 text-gray-400">
-                        <FaBuilding size={12} />
-                        <span className="text-xs font-bold uppercase tracking-wider">{app.company}</span>
-                     </div>
+                    <h4 className="text-xl font-black text-gray-800 leading-tight group-hover:text-blue-600 transition-colors">{app.role}</h4>
+                    <div className="flex items-center gap-2 text-gray-400">
+                      <FaBuilding size={12} />
+                      <span className="text-xs font-bold uppercase tracking-wider">{app.company}</span>
+                    </div>
                   </div>
 
                   {/* Footer */}
                   <div className="mt-8 pt-6 border-t border-gray-100/50 flex items-center justify-between">
-                     <p className="text-sm font-black text-gray-800">{app.salary}</p>
-                     <div className="flex gap-2">
-                        <button 
-                          onClick={() => { setSelectedApplication(app); setModalMode('view'); setShowModal(true); }}
-                          className="w-10 h-10 rounded-xl bg-gray-100 text-gray-500 hover:bg-blue-600 hover:text-white transition-all duration-300 flex items-center justify-center"
-                        >
-                          <FaEye size={16} />
-                        </button>
-                        <button 
-                          onClick={() => { setSelectedApplication(app); setModalMode('edit'); setShowModal(true); }}
-                          className="w-10 h-10 rounded-xl bg-gray-100 text-gray-500 hover:bg-emerald-500 hover:text-white transition-all duration-300 flex items-center justify-center"
-                        >
-                          <FaEdit size={16} />
-                        </button>
-                     </div>
+                    <p className="text-sm font-black text-gray-800">{app.salary}</p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => { setSelectedApplication(app); setModalMode('view'); setShowModal(true); }}
+                        className="w-10 h-10 rounded-xl bg-gray-100 text-gray-500 hover:bg-blue-600 hover:text-white transition-all duration-300 flex items-center justify-center"
+                      >
+                        <FaEye size={16} />
+                      </button>
+                      <button
+                        onClick={() => { setSelectedApplication(app); setModalMode('edit'); setShowModal(true); }}
+                        className="w-10 h-10 rounded-xl bg-gray-100 text-gray-500 hover:bg-emerald-500 hover:text-white transition-all duration-300 flex items-center justify-center"
+                      >
+                        <FaEdit size={16} />
+                      </button>
+                    </div>
                   </div>
                 </div>
               );

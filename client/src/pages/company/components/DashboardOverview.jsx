@@ -191,20 +191,6 @@ const DashboardOverview = () => {
           <h1 className="text-3xl font-black text-gray-900 tracking-tight">Recruitment Console</h1>
           <p className="text-gray-500 font-medium">Live data from your recruitment pipeline</p>
         </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            onClick={fetchDashboardData}
-            className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-100 rounded-xl shadow-sm text-sm font-bold text-gray-700 hover:bg-gray-50 transition-all"
-          >
-            <Calendar size={16} />
-            Refresh
-          </button>
-          <button className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all font-bold text-sm">
-            <Plus size={16} />
-            Post New Job
-          </button>
-        </div>
       </div>
 
       {/* Stats Grid */}

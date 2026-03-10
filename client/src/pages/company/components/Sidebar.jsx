@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useNotifications } from '../../../contexts/NotificationContext';
 import { getUserDisplayName, getUserInitials } from '../../../utils/helpers';
 import {
   LayoutDashboard,
@@ -14,7 +15,8 @@ import {
   ChevronLeft,
   ChevronRight,
   PlusCircle,
-  BarChart3
+  BarChart3,
+  Bell
 } from 'lucide-react';
 
 const Sidebar = ({ activeSection, setActiveSection, isCollapsed, setSidebarCollapsed }) => {
@@ -32,6 +34,49 @@ const Sidebar = ({ activeSection, setActiveSection, isCollapsed, setSidebarColla
     await logout();
     navigate('/login');
   };
+
+  const [showNotifications, setShowNotifications] = useState(false);
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+  const notificationRef = useRef();
+
+  const handleNotificationClick = (notification) => {
+    if (!notification.isRead) {
+      markAsRead([notification._id]);
+    }
+    if (notification.actionLink) {
+      navigate(notification.actionLink);
+    }
+    setShowNotifications(false);
+  };
+
+  const handleMarkAllRead = async () => {
+    await markAllAsRead();
+  };
+
+  const formatTime = (timeString) => {
+    const time = new Date(timeString);
+    const now = new Date();
+    const diffInMinutes = Math.floor((now - time) / (1000 * 60));
+
+    if (diffInMinutes < 1) return 'Just now';
+    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) return `${diffInHours}h ago`;
+
+    const diffInDays = Math.floor(diffInHours / 24);
+    return `${diffInDays}d ago`;
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+        setShowNotifications(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   return (
     <aside className={`
@@ -96,7 +141,71 @@ const Sidebar = ({ activeSection, setActiveSection, isCollapsed, setSidebarColla
       </nav>
 
       {/* Footer */}
-      <div className={`p-4 border-t border-gray-50 space-y-1 ${isCollapsed ? 'px-2' : ''}`}>
+      <div className={`p-4 border-t border-gray-50 space-y-1 relative ${isCollapsed ? 'px-2' : ''}`} ref={notificationRef}>
+        <button
+          onClick={() => setShowNotifications(!showNotifications)}
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm text-gray-600 hover:bg-gray-50 transition-all ${isCollapsed ? 'justify-center px-2' : ''}`}
+        >
+          <div className="relative w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+            <Bell size={14} className="text-gray-600" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[14px] h-[14px] px-1 bg-gradient-to-r from-rose-500 to-pink-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center shadow-sm">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </div>
+          {!isCollapsed && (
+            <div className="flex-1 flex items-center justify-between text-left">
+              <span>Notifications</span>
+              {unreadCount > 0 && (
+                <span className="bg-rose-100 text-rose-600 text-xs font-bold px-2 py-0.5 rounded-full">
+                  {unreadCount}
+                </span>
+              )}
+            </div>
+          )}
+        </button>
+
+        {showNotifications && (
+          <div className={`absolute bottom-full left-4 mb-2 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden animate-fade-in z-50 ${isCollapsed ? 'w-72 left-16' : 'w-80'}`}>
+            <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-100 flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-gray-900 text-sm">Notifications</h3>
+                <p className="text-xs text-gray-500 mt-0.5">{unreadCount} unread</p>
+              </div>
+              {unreadCount > 0 && (
+                <button
+                  onClick={handleMarkAllRead}
+                  className="text-xs text-blue-600 hover:text-blue-700 font-bold px-3 py-1.5 bg-white rounded-lg hover:bg-blue-50 transition-all"
+                >
+                  Mark all read
+                </button>
+              )}
+            </div>
+            <div className="max-h-80 overflow-y-auto custom-scrollbar">
+              {notifications.length > 0 ? (
+                notifications.slice(0, 5).map((notification) => (
+                  <div
+                    key={notification._id}
+                    onClick={() => handleNotificationClick(notification)}
+                    className={`p-4 border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-all ${!notification.isRead ? 'bg-blue-50/30' : ''}`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${!notification.isRead ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-gray-800 font-medium mb-1 line-clamp-2">{notification.message}</p>
+                        <p className="text-xs text-gray-500">{formatTime(notification.createdAt)}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="p-8 text-center text-gray-400">No notifications</div>
+              )}
+            </div>
+          </div>
+        )}
+
         <button
           onClick={() => navigate('/company-profile')}
           className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm text-gray-600 hover:bg-gray-50 transition-all ${isCollapsed ? 'justify-center px-2' : ''}`}
