@@ -133,6 +133,34 @@ const studentSchema = new mongoose.Schema({
   githubUrl: String,
   linkedinUrl: String,
 
+  // Extended profile fields (used by Profile Page & Resume Builder)
+  summary: {
+    type: String,
+    default: '',
+    trim: true,
+    maxlength: 1000
+  },
+  degree: {
+    type: String,
+    default: '',
+    trim: true
+  },
+  // Rich resume-builder arrays (stored separately from the Student model arrays
+  // so we don't break existing functionality)
+  resumeEducation: [{
+    degree: { type: String, default: '' },
+    institution: { type: String, default: '' },
+    year: { type: String, default: '' },
+    gpa: { type: String, default: '' },
+    achievements: { type: String, default: '' }
+  }],
+  resumeExperience: [{
+    title: { type: String, default: '' },
+    company: { type: String, default: '' },
+    duration: { type: String, default: '' },
+    description: { type: String, default: '' }
+  }],
+
   // Placement Information
   isPlaced: {
     type: Boolean,

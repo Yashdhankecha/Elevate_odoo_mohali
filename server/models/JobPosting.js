@@ -279,6 +279,7 @@ jobPostingSchema.pre('save', async function (next) {
   if (this.jobDescription && !this.description) this.description = this.jobDescription;
   if (this.employmentType && !this.type) this.type = this.employmentType;
   if (this.applicationDeadline && !this.deadline) this.deadline = this.applicationDeadline;
+  if (this.jobCategory && !this.category) this.category = this.jobCategory;
 
   next();
 });

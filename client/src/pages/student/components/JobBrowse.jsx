@@ -53,104 +53,103 @@ const Avatar = ({ name, logo, size = 'md' }) => {
 const JobCard = ({ job, isSaved, onSave, onView }) => {
   const deadline = fmtDeadline(job.deadline);
   const drive    = DRIVE[job.driveType] || DRIVE.off_campus;
-  const wm       = (job.isRemote ? 'remote' : '');
-  const WorkIcon = WORK_ICON[wm] || null;
-
+  
   return (
     <div
       onClick={() => onView(job)}
-      className="group bg-white rounded-2xl border border-slate-100 hover:border-blue-200 hover:shadow-[0_8px_40px_-12px_rgba(59,130,246,0.18)] transition-all duration-300 overflow-hidden flex flex-col cursor-pointer"
+      className="group relative bg-white rounded-[2.5rem] p-7 border border-slate-100 hover:border-blue-200 hover:shadow-[0_40px_80px_-24px_rgba(59,130,246,0.12)] transition-all duration-500 overflow-hidden flex flex-col cursor-pointer animate-in fade-in slide-in-from-bottom-4"
     >
-      {/* Hover accent */}
-      <div className="h-0.5 bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
-
-      <div className="p-5 flex flex-col flex-1">
-        {/* Row 1 — logo + title */}
-        <div className="flex items-start gap-3 mb-3">
-          <Avatar name={job.company} logo={job.companyLogo} />
+      {/* Dynamic hover background */}
+      <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50/50 rounded-full blur-3xl -mr-16 -mt-16 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+      
+      <div className="relative z-10 flex flex-col h-full">
+        {/* Header: Logo, Title, Save */}
+        <div className="flex items-start gap-4 mb-6">
+          <div className="flex-shrink-0 group-hover:scale-105 transition-transform duration-500">
+            <Avatar name={job.company} logo={job.companyLogo} />
+          </div>
           <div className="flex-1 min-w-0">
-            <h3 className="font-bold text-[15px] text-slate-900 leading-snug group-hover:text-blue-700 transition-colors line-clamp-1">
+            <h3 className="font-black text-lg text-slate-900 leading-tight group-hover:text-blue-700 transition-colors line-clamp-1 tracking-tight">
               {job.title}
             </h3>
-            <p className="text-slate-500 text-sm mt-0.5 line-clamp-1 flex items-center gap-1">
-              <Building2 size={11} className="flex-shrink-0" /> {job.company}
-            </p>
+            <div className="flex items-center gap-1.5 text-slate-400 font-bold text-sm mt-1">
+              <Building2 size={14} className="text-blue-400" />
+              <span className="line-clamp-1">{job.company}</span>
+            </div>
           </div>
           <button
             onClick={(e) => { e.stopPropagation(); onSave(job.id); }}
-            className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all flex-shrink-0 mt-0.5 ${isSaved ? 'bg-rose-50 text-rose-500' : 'bg-slate-50 text-slate-400 hover:bg-rose-50 hover:text-rose-500'}`}
-            title={isSaved ? 'Unsave' : 'Save'}
+            className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-sm ${
+              isSaved 
+                ? 'bg-rose-500 text-white shadow-rose-200' 
+                : 'bg-white text-slate-300 hover:text-rose-500 hover:bg-rose-50 border border-slate-100'
+            }`}
           >
-            <Heart size={12} fill={isSaved ? 'currentColor' : 'none'} />
+            <Heart size={16} fill={isSaved ? 'white' : 'none'} />
           </button>
         </div>
 
-        {/* Row 2 — badges */}
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${drive.cls}`}>{drive.label}</span>
+        {/* Chips & Badges */}
+        <div className="flex flex-wrap gap-2 mb-6">
+          <span className={`text-[10px] font-black px-3 py-1 rounded-full border tracking-widest uppercase shadow-sm ${drive.cls}`}>
+            {drive.label}
+          </span>
           {job.jobType && (
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-50 text-slate-600 border border-slate-200 capitalize">{job.jobType}</span>
-          )}
-          {WorkIcon && (
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-50 text-slate-600 border border-slate-200 flex items-center gap-1">
-              <WorkIcon size={9} /> Remote
+            <span className="text-[10px] font-black px-3 py-1 rounded-full bg-slate-50 text-slate-500 border border-slate-100 uppercase tracking-widest shadow-sm">
+              {job.jobType}
             </span>
           )}
-          {/* Eligibility chip */}
           {job.eligibility && (
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-0.5 ${
+            <span className={`text-[10px] font-black px-3 py-1 rounded-full border flex items-center gap-1.5 uppercase tracking-widest shadow-sm ${
               job.eligibility.eligible
-                ? 'bg-green-50 text-green-700 border-green-200'
-                : 'bg-red-50 text-red-600 border-red-200'
+                ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                : 'bg-rose-50 text-rose-500 border-rose-100'
             }`}>
-              {job.eligibility.eligible ? <CheckCircle2 size={8} /> : <XCircle size={8} />}
-              {job.eligibility.eligible ? 'Eligible' : 'Not eligible'}
+              {job.eligibility.eligible ? <CheckCircle2 size={10} /> : <XCircle size={10} />}
+              {job.eligibility.eligible ? 'Eligible' : 'Conflict'}
             </span>
           )}
         </div>
 
-        {/* Row 3 — key details */}
-        <div className="flex flex-wrap gap-x-4 gap-y-1.5 mb-3">
-          <div className="flex items-center gap-1 text-xs text-green-700 font-semibold">
-            <DollarSign size={11} className="text-green-500" /> {job.salary}
+        {/* Key Stats */}
+        <div className="grid grid-cols-2 gap-4 mb-6 pt-6 border-t border-slate-50">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
+              <DollarSign size={14} className="text-emerald-500" />
+            </div>
+            <div>
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Rewards</p>
+              <p className="text-xs font-black text-emerald-700">{job.salary}</p>
+            </div>
           </div>
-          {job.location && (
-            <div className="flex items-center gap-1 text-xs text-slate-500">
-              <MapPin size={10} /> {job.location}
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+              <MapPin size={14} className="text-blue-500" />
             </div>
-          )}
-          {job.totalRounds > 0 && (
-            <div className="flex items-center gap-1 text-xs text-slate-500">
-              <Layers size={10} /> {job.totalRounds} rounds
+            <div className="min-w-0">
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Nexus</p>
+              <p className="text-xs font-black text-slate-700 line-clamp-1">{job.location || 'Remote'}</p>
             </div>
-          )}
-          {job.eligibilityCriteria?.minCgpaPercentage?.value && (
-            <div className="flex items-center gap-1 text-xs text-slate-500">
-              <Star size={10} /> CGPA ≥ {job.eligibilityCriteria.minCgpaPercentage.value}
-            </div>
-          )}
+          </div>
         </div>
 
-        {/* Row 4 — skills */}
-        {job.skills?.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-3">
-            {job.skills.slice(0, 4).map(s => (
-              <span key={s} className="text-[10px] px-2 py-0.5 rounded-md bg-slate-50 text-slate-600 border border-slate-100">{s}</span>
-            ))}
-            {job.skills.length > 4 && <span className="text-[10px] px-2 py-0.5 rounded-md text-slate-400">+{job.skills.length - 4}</span>}
+        {/* Action / Footer */}
+        <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-50">
+          <div className="flex items-center gap-3">
+             <div className="flex -space-x-2">
+                {[1,2,3].map(i => (
+                  <div key={i} className={`w-6 h-6 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center text-[8px] font-black text-slate-400`}>
+                    {i}
+                  </div>
+                ))}
+             </div>
+             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+               {job.applicationCount || 0} Applicants
+             </p>
           </div>
-        )}
-
-        <div className="flex-1" />
-
-        {/* Footer */}
-        <div className="flex items-center justify-between pt-3 border-t border-slate-50 mt-1">
-          <div className="flex items-center gap-2 text-[11px] text-slate-400">
-            <Clock size={10} />{timeAgo(job.postedDate)}
-            {deadline && <span className={`${deadline.cls} flex items-center gap-0.5`}><Calendar size={10} /> {deadline.label}</span>}
-          </div>
-          <div className="flex items-center gap-1.5 text-[11px] font-bold text-blue-500 group-hover:text-blue-700">
-            View details <ChevronRight size={12} />
+          <div className="flex items-center gap-2 text-[10px] font-black text-slate-300 uppercase tracking-widest">
+            <Clock size={12} />
+            {timeAgo(job.postedDate)}
           </div>
         </div>
       </div>
@@ -160,25 +159,44 @@ const JobCard = ({ job, isSaved, onSave, onView }) => {
 
 // ─── Subcomponents for modal ─────────────────────────────────────────────────
 const Section = ({ title, icon: Icon, children }) => (
-  <div>
-    <div className="flex items-center gap-2 mb-3">
-      <div className="w-6 h-6 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0"><Icon size={12} className="text-blue-600" /></div>
-      <h4 className="text-[11px] font-black text-slate-700 uppercase tracking-widest">{title}</h4>
+  <div className="animate-in fade-in slide-in-from-left-4 duration-700">
+    <div className="flex items-center gap-3 mb-4">
+      <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0 border border-blue-100 shadow-sm">
+        <Icon size={14} className="text-blue-600" />
+      </div>
+      <h4 className="text-[12px] font-black text-slate-900 uppercase tracking-[0.2em]">{title}</h4>
     </div>
-    {children}
+    <div className="pl-11">
+      {children}
+    </div>
   </div>
 );
 
 const Chip = ({ label, value, highlight }) => (
-  <div className={`rounded-xl p-2.5 border ${highlight ? 'bg-green-50 border-green-100' : 'bg-slate-50 border-slate-100'}`}>
-    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{label}</p>
-    <p className={`text-[13px] font-bold mt-0.5 ${highlight ? 'text-green-700' : 'text-slate-800'}`}>{value}</p>
+  <div className={`group rounded-[1.5rem] p-4 border transition-all duration-500 hover:scale-[1.02] ${
+    highlight 
+      ? 'bg-emerald-50/50 border-emerald-100 shadow-[0_8px_16px_-8px_rgba(16,185,129,0.3)]' 
+      : 'bg-slate-50 border-slate-100 shadow-sm'
+  }`}>
+    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{label}</p>
+    <p className={`text-sm font-black tracking-tight ${highlight ? 'text-emerald-700' : 'text-slate-900'}`}>{value}</p>
   </div>
 );
 
 const Tag = ({ label, color = 'slate' }) => {
-  const C = { slate: 'bg-slate-100 text-slate-700 border-slate-200', violet: 'bg-violet-50 text-violet-700 border-violet-100', amber: 'bg-amber-50 text-amber-700 border-amber-100', teal: 'bg-teal-50 text-teal-700 border-teal-100', blue: 'bg-blue-50 text-blue-700 border-blue-100' };
-  return <span className={`text-xs font-medium px-2.5 py-1 rounded-lg border ${C[color] || C.slate}`}>{label}</span>;
+  const C = { 
+    slate: 'bg-slate-100 text-slate-700 border-slate-200', 
+    violet: 'bg-violet-50 text-violet-700 border-violet-100', 
+    amber: 'bg-amber-50 text-amber-700 border-amber-100', 
+    teal: 'bg-teal-50 text-teal-700 border-teal-100', 
+    blue: 'bg-blue-50 text-blue-700 border-blue-100',
+    rose: 'bg-rose-50 text-rose-700 border-rose-100'
+  };
+  return (
+    <span className={`text-[10px] font-black px-3 py-1 rounded-full border uppercase tracking-widest shadow-sm ${C[color] || C.slate}`}>
+      {label}
+    </span>
+  );
 };
 
 // ─── Job Detail Modal ────────────────────────────────────────────────────────

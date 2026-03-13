@@ -356,6 +356,22 @@ router.get('/jobs', authenticateToken, ensureStudent, async (req, res) => {
 // @access  Private (Student)
 router.post('/jobs/:jobId/apply', authenticateToken, ensureStudent, async (req, res) => {
   try {
+    const multer = require('multer');
+    const upload = multer().any();
+
+    // Run multer as a promise to parse fields from FormData
+    await new Promise((resolve, reject) => {
+      upload(req, res, (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+  } catch (multerError) {
+    console.error('Multer parsing error:', multerError);
+    return res.status(400).json({ success: false, message: 'Error parsing application data' });
+  }
+
+  try {
     const studentId = req.user._id;
     const jobId = req.params.jobId;
     const { coverLetter, portfolio, availability, salary } = req.body;
@@ -477,8 +493,8 @@ router.get('/applications', authenticateToken, ensureStudent, async (req, res) =
     }
 
     const applications = await JobApplication.find(query)
-      .populate('jobPosting', 'title category package location type description requirements responsibilities skills duration deadline')
-      .populate('company', 'company email')
+      .populate('jobPosting', 'title category jobCategory package location type description requirements responsibilities skills duration deadline')
+      .populate('company', 'companyName email profilePicture')
       .sort({ appliedDate: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit);
@@ -499,7 +515,7 @@ router.get('/applications', authenticateToken, ensureStudent, async (req, res) =
       { $match: { student: studentId } },
       { $lookup: { from: 'jobpostings', localField: 'jobPosting', foreignField: '_id', as: 'jobPosting' } },
       { $unwind: '$jobPosting' },
-      { $group: { _id: '$jobPosting.category', count: { $sum: 1 } } }
+      { $group: { _id: { $ifNull: ['$jobPosting.jobCategory', { $ifNull: ['$jobPosting.category', 'General'] }] }, count: { $sum: 1 } } }
     ]);
     const getStatusColor = (status) => {
       const colors = {
@@ -520,7 +536,7 @@ router.get('/applications', authenticateToken, ensureStudent, async (req, res) =
           id: app._id,
           logo: null,
           role: app.jobPosting?.title || 'Position',
-          company: app.company?.company?.companyName || 'Company',
+          company: app.company?.companyName || 'Company',
           salary: app.jobPosting?.package ?
             `₹${app.jobPosting.package.min / 100000}-${app.jobPosting.package.max / 100000} LPA` :
             'Not specified',
@@ -541,7 +557,7 @@ router.get('/applications', authenticateToken, ensureStudent, async (req, res) =
         })),
         stats,
         categoryStats: categoryStats.map(cat => ({
-          label: cat._id.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          label: (cat._id || 'General').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
           count: cat.count,
           salary: getCategorySalary(cat._id),
           color: getCategoryColor(cat._id)
@@ -904,7 +920,7 @@ router.get('/placement-history', authenticateToken, ensureStudent, async (req, r
       return {
         id: app._id,
         logo: null, // You can add company logos later
-        company: app.company?.company?.companyName || 'Company',
+        company: app.company?.companyName || 'Company',
         role: app.jobPosting?.title || 'Position',
         timeline,
         status: {
@@ -923,7 +939,7 @@ router.get('/placement-history', authenticateToken, ensureStudent, async (req, r
     if (offersReceived > 0) {
       achievements.push({
         title: 'First Offer',
-        description: `Received first job offer from ${applications.find(app => app.status === 'offer_received')?.company?.company?.companyName || 'Company'}`,
+        description: `Received first job offer from ${applications.find(app => app.status === 'offer_received')?.company?.companyName || 'Company'}`,
         date: applications.find(app => app.status === 'offer_received')?.appliedDate?.toLocaleDateString() || 'Recent',
         icon: 'FaTrophy'
       });
@@ -999,102 +1015,6 @@ router.get('/placement-history', authenticateToken, ensureStudent, async (req, r
   }
 });
 
-// @route   GET /api/student/profile
-// @desc    Get student profile
-// @access  Private (Student)
-router.get('/profile', authenticateToken, ensureStudent, async (req, res) => {
-  try {
-    const studentId = req.user._id;
-    let studentData = null;
-
-    // Check if user is from Student collection (new structure)
-    if (req.user.constructor.modelName === 'Student') {
-      studentData = req.user;
-    } else {
-      // Fallback to User collection (legacy)
-      const user = await User.findById(studentId).select('student');
-      if (user && user.student) {
-        studentData = user.student;
-      }
-    }
-
-    if (!studentData) {
-      return res.status(404).json({
-        success: false,
-        message: 'Student profile not found'
-      });
-    }
-
-    res.json({
-      success: true,
-      data: studentData
-    });
-
-  } catch (error) {
-    console.error('Profile fetch error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error'
-    });
-  }
-});
-
-// @route   PUT /api/student/profile
-// @desc    Update student profile
-// @access  Private (Student)
-router.put('/profile', [
-  authenticateToken,
-  ensureStudent,
-  body('name').optional().isLength({ min: 2 }).withMessage('Name must be at least 2 characters'),
-  body('cgpa').optional().isFloat({ min: 0, max: 10 }).withMessage('CGPA must be between 0 and 10'),
-  body('skills').optional().isObject().withMessage('Skills must be an object')
-], async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array()
-      });
-    }
-
-    const studentId = req.user._id;
-    const updateData = {};
-
-    // Build update object based on provided fields
-    Object.keys(req.body).forEach(key => {
-      if (req.body[key] !== undefined) {
-        updateData[`student.${key}`] = req.body[key];
-      }
-    });
-
-    // Calculate profile completion
-    const profileCompletion = calculateProfileCompletion(req.body);
-
-    const updatedUser = await User.findByIdAndUpdate(
-      studentId,
-      {
-        ...updateData,
-        'student.profileCompletion': profileCompletion
-      },
-      { new: true }
-    ).select('student');
-
-    res.json({
-      success: true,
-      message: 'Profile updated successfully',
-      data: updatedUser.student
-    });
-
-  } catch (error) {
-    console.error('Profile update error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error'
-    });
-  }
-});
 
 // @route   GET /api/student/notifications
 // @desc    Get student notifications
@@ -1491,51 +1411,6 @@ router.post('/ai-coach/session', authenticateToken, ensureStudent, async (req, r
   }
 });
 
-// @route   GET /api/student/profile/approval-status
-// @desc    Get student profile approval status
-// @access  Private (Student)
-router.get('/profile/approval-status', authenticateToken, ensureStudent, async (req, res) => {
-  try {
-    let student = null;
-
-    // Check Student collection first (new structure)
-    if (req.user.constructor.modelName === 'Student') {
-      student = req.user;
-    } else {
-      // Fallback to User collection (legacy)
-      student = await User.findById(req.user._id);
-    }
-
-    if (!student) {
-      return res.status(404).json({
-        success: false,
-        message: 'Student not found'
-      });
-    }
-
-    // For Student collection, use verificationStatus; for User collection, use approvalStatus
-    const approvalStatus = student.verificationStatus || student.approvalStatus || 'pending';
-
-    res.json({
-      success: true,
-      data: {
-        approvalStatus: approvalStatus,
-        verificationStatus: student.verificationStatus || 'pending',
-        approvedAt: student.verifiedAt || student.approvedAt,
-        approvedBy: student.verifiedBy || student.approvedBy,
-        rejectedAt: student.rejectedAt,
-        rejectedBy: student.rejectedBy,
-        rejectionReason: student.verificationNotes || student.rejectionReason
-      }
-    });
-  } catch (error) {
-    console.error('Error fetching approval status:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch approval status'
-    });
-  }
-});
 
 // @route   PUT /api/student/profile/:studentId/approve
 // @desc    Approve student profile (TPO/Superadmin only)
@@ -2008,6 +1883,249 @@ router.post('/upload-picture', authenticateToken, ensureStudent, async (req, res
   } catch (error) {
     console.error('Error uploading profile picture:', error);
     res.status(500).json({ success: false, message: 'Failed to upload profile picture', details: error.message });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// @route   GET  /api/student/profile
+// @desc    Get the logged-in student's full profile (mapped to frontend shape)
+// @access  Private (Student)
+// ─────────────────────────────────────────────────────────────────────────────
+router.get('/profile', authenticateToken, ensureStudent, async (req, res) => {
+  try {
+    const student = await Student.findById(req.user._id).select('-password -emailVerificationOTP -passwordResetToken');
+    if (!student) {
+      return res.status(404).json({ success: false, message: 'Student profile not found' });
+    }
+
+    const profile = {
+      // identity
+      name: student.name || '',
+      email: student.email || '',
+      phone: student.phoneNumber || '',
+      address: student.address?.city
+        ? `${student.address.city}${student.address.state ? ', ' + student.address.state : ''}`
+        : '',
+      summary: student.summary || '',
+      profilePicture: student.profilePicture || '',
+
+      // academics
+      branch: student.branch || '',
+      cgpa: student.cgpa || '',
+      graduationYear: student.graduationYear || '',
+      rollNumber: student.rollNumber || '',
+      collegeName: student.collegeName || '',
+      currentBacklogs: student.currentBacklogs || 0,
+
+      // links
+      linkedin: student.linkedinUrl || '',
+      github: student.githubUrl || '',
+      portfolio: student.portfolioUrl || '',
+
+      // arrays for ResumeBuilder
+      skills: (student.skills || []).map(s => s.name).filter(Boolean),
+
+      education: student.resumeEducation && student.resumeEducation.length
+        ? student.resumeEducation
+        : (student.collegeName ? [{
+          degree: student.degree || 'B.Tech',
+          institution: student.collegeName || '',
+          year: String(student.graduationYear || ''),
+          gpa: String(student.cgpa || ''),
+          achievements: ''
+        }] : [{ degree: '', institution: '', year: '', gpa: '', achievements: '' }]),
+
+      experience: student.resumeExperience && student.resumeExperience.length
+        ? student.resumeExperience
+        : (student.internships || []).map(i => ({
+          title: i.role || '',
+          company: i.company || '',
+          duration: '',
+          description: i.description || ''
+        })),
+
+      projects: (student.projects || []).map(p => ({
+        name: p.title || '',
+        description: p.description || '',
+        technologies: (p.technologies || []).join(', '),
+        link: p.githubUrl || p.liveUrl || ''
+      })),
+
+      certifications: (student.certifications || []).map(c => ({
+        name: c.name || '',
+        issuer: c.issuer || '',
+        year: c.issueDate ? new Date(c.issueDate).getFullYear().toString() : ''
+      })),
+
+      // placement
+      isPlaced: student.isPlaced || false,
+      placementDetails: student.placementDetails || null,
+
+      // meta
+      profileCompletion: student.profileCompletion || 0,
+      verificationStatus: student.verificationStatus || 'pending',
+    };
+
+    return res.json({ success: true, data: profile });
+  } catch (err) {
+    console.error('GET /profile error:', err);
+    return res.status(500).json({ success: false, message: 'Server error', details: err.message });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// @route   PUT  /api/student/profile
+// @desc    Update the logged-in student's profile (accepts ResumeBuilder shape)
+// @access  Private (Student)
+// ─────────────────────────────────────────────────────────────────────────────
+router.put('/profile', authenticateToken, ensureStudent, async (req, res) => {
+  try {
+    const studentId = req.user._id;
+    const d = req.body;
+
+    // Build the $set payload progressively so we only touch fields that were sent
+    const $set = {};
+
+    // ── Basic fields ─────────────────────────────────────────────────────────
+    if (d.name != null) $set.name = d.name;
+    if (d.phoneNumber != null) $set.phoneNumber = d.phoneNumber;
+    if (d.phone != null) $set.phoneNumber = d.phone;   // alias
+    if (d.summary != null) $set.summary = d.summary;
+    if (d.degree != null) $set.degree = d.degree;
+
+    // ── Address ──────────────────────────────────────────────────────────────
+    // Accept a flat "City, State" string (from profile page) or nested object
+    const rawAddr = d.personalInfo?.address ?? d.address;
+    if (rawAddr != null) {
+      if (typeof rawAddr === 'string') {
+        $set['address.city'] = rawAddr;
+      } else {
+        if (rawAddr.city != null) $set['address.city'] = rawAddr.city;
+        if (rawAddr.state != null) $set['address.state'] = rawAddr.state;
+        if (rawAddr.country != null) $set['address.country'] = rawAddr.country;
+        if (rawAddr.zipCode != null) $set['address.zipCode'] = rawAddr.zipCode;
+      }
+    }
+
+    // ── Academics ────────────────────────────────────────────────────────────
+    const validBranches = ['CSE', 'IT', 'ECE', 'ME', 'CE', 'EE', 'AI&DS', 'Other'];
+    if (d.branch != null) {
+      $set.branch = validBranches.includes(d.branch) ? d.branch : 'Other';
+    }
+    if (d.cgpa != null) {
+      const parsed = parseFloat(d.cgpa);
+      if (!isNaN(parsed)) $set.cgpa = parsed;
+    }
+    if (d.graduationYear != null) {
+      const parsed = parseInt(d.graduationYear);
+      if (!isNaN(parsed)) $set.graduationYear = parsed;
+    }
+
+    // ── Links ────────────────────────────────────────────────────────────────
+    if (d.links?.linkedin != null) $set.linkedinUrl = d.links.linkedin;
+    if (d.links?.github != null) $set.githubUrl = d.links.github;
+    if (d.links?.portfolio != null) $set.portfolioUrl = d.links.portfolio;
+    if (d.linkedinUrl != null) $set.linkedinUrl = d.linkedinUrl;
+    if (d.githubUrl != null) $set.githubUrl = d.githubUrl;
+    if (d.portfolioUrl != null) $set.portfolioUrl = d.portfolioUrl;
+
+    // ── Skills ───────────────────────────────────────────────────────────────
+    // Accept { technicalSkills:[] }, plain string[], or comma string
+    if (d.skills != null) {
+      let raw = [];
+      if (d.skills?.technicalSkills) {
+        raw = [...(d.skills.technicalSkills || []), ...(d.skills.softSkills || [])];
+      } else if (Array.isArray(d.skills)) {
+        raw = d.skills.map(s => (typeof s === 'string' ? s : s?.name)).filter(Boolean);
+      } else if (typeof d.skills === 'string') {
+        raw = d.skills.split(',').map(s => s.trim()).filter(Boolean);
+      }
+      $set.skills = raw.map(name => ({ name, proficiency: 'Intermediate' }));
+    }
+
+    // ── Resume builder arrays ─────────────────────────────────────────────────
+    if (Array.isArray(d.education)) $set.resumeEducation = d.education;
+    if (Array.isArray(d.experience)) $set.resumeExperience = d.experience;
+
+    // Projects: translate { name, description, technologies, link } → Student schema
+    if (Array.isArray(d.projects)) {
+      $set.projects = d.projects.filter(p => p.name).map(p => ({
+        title: p.name || '',
+        description: p.description || '',
+        technologies: (p.technologies || '').split(',').map(t => t.trim()).filter(Boolean),
+        githubUrl: p.link || '',
+        liveUrl: '',
+      }));
+    }
+
+    // Certifications
+    if (Array.isArray(d.certifications)) {
+      $set.certifications = d.certifications.filter(c => c.name).map(c => ({
+        name: c.name || '',
+        issuer: c.issuer || '',
+        issueDate: c.year ? new Date(`${c.year}-01-01`) : undefined,
+      }));
+    }
+
+    // ── Persist ───────────────────────────────────────────────────────────────
+    // runValidators: false  → skip schema validators (graduationYear min, branch enum etc.)
+    //                          those validators guard REGISTRATION, not profile updates
+    const updated = await Student.findByIdAndUpdate(
+      studentId,
+      { $set },
+      { new: true, runValidators: false }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ success: false, message: 'Student not found' });
+    }
+
+    // Recalculate profile completion and save silently
+    try {
+      updated.calculateProfileCompletion();
+      await Student.findByIdAndUpdate(
+        studentId,
+        { $set: { profileCompletion: updated.profileCompletion } },
+        { runValidators: false }
+      );
+    } catch (_) { /* non-critical */ }
+
+    return res.json({ success: true, message: 'Profile updated successfully' });
+  } catch (err) {
+    console.error('PUT /profile error:', err.message, err.stack);
+    return res.status(500).json({ success: false, message: 'Server error', details: err.message });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// @route   GET  /api/student/profile/approval-status
+// @desc    Get TPO verification status for the current student
+// @access  Private (Student)
+// ─────────────────────────────────────────────────────────────────────────────
+router.get('/profile/approval-status', authenticateToken, ensureStudent, async (req, res) => {
+  try {
+    const student = await Student.findById(req.user._id)
+      .select('verificationStatus verificationNotes verifiedAt name email branch cgpa');
+    if (!student) {
+      return res.status(404).json({ success: false, message: 'Student not found' });
+    }
+    return res.json({
+      success: true,
+      data: {
+        status: student.verificationStatus || 'pending',
+        notes: student.verificationNotes || '',
+        verifiedAt: student.verifiedAt || null,
+        student: {
+          name: student.name,
+          email: student.email,
+          branch: student.branch,
+          cgpa: student.cgpa,
+        }
+      }
+    });
+  } catch (err) {
+    console.error('GET /profile/approval-status error:', err);
+    return res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 

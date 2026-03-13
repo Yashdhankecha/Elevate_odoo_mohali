@@ -44,14 +44,14 @@ const ApplicationModal = ({ application, mode, onClose, onUpdate, updating, onMo
 
   const getStatusInfo = (status) => {
     const configs = {
-      'applied': { color: 'bg-blue-50 text-blue-600', label: 'Applied', icon: FaClock },
-      'test_scheduled': { color: 'bg-amber-50 text-amber-600', label: 'Test Scheduled', icon: FaCalendarAlt },
-      'test_completed': { color: 'bg-orange-50 text-orange-600', label: 'Test Completed', icon: FaCheckCircle },
-      'interview_scheduled': { color: 'bg-purple-50 text-purple-600', label: 'Interview Scheduled', icon: FaUser },
-      'interview_completed': { color: 'bg-indigo-50 text-indigo-600', label: 'Interview Completed', icon: FaCheckCircle },
-      'offer_received': { color: 'bg-emerald-50 text-emerald-600', label: 'Offer Received', icon: FaTrophy },
-      'rejected': { color: 'bg-rose-50 text-rose-600', label: 'Rejected', icon: FaTimes },
-      'withdrawn': { color: 'bg-gray-50 text-gray-600', label: 'Withdrawn', icon: FaTrash }
+      'applied': { color: 'bg-blue-50 text-blue-600 border-blue-200', label: 'Applied', icon: FaClock, gradient: 'from-blue-600 to-indigo-600' },
+      'test_scheduled': { color: 'bg-amber-50 text-amber-600 border-amber-200', label: 'Test Scheduled', icon: FaCalendarAlt, gradient: 'from-amber-500 to-orange-600' },
+      'test_completed': { color: 'bg-orange-50 text-orange-600 border-orange-200', label: 'Test Completed', icon: FaCheckCircle, gradient: 'from-orange-500 to-red-600' },
+      'interview_scheduled': { color: 'bg-purple-50 text-purple-600 border-purple-200', label: 'Interview Scheduled', icon: FaUser, gradient: 'from-purple-600 to-indigo-700' },
+      'interview_completed': { color: 'bg-indigo-50 text-indigo-600 border-indigo-200', label: 'Interview Completed', icon: FaCheckCircle, gradient: 'from-indigo-600 to-blue-700' },
+      'offer_received': { color: 'bg-emerald-50 text-emerald-600 border-emerald-200', label: 'Offer Received', icon: FaTrophy, gradient: 'from-emerald-500 to-teal-600' },
+      'rejected': { color: 'bg-rose-50 text-rose-600 border-rose-200', label: 'Rejected', icon: FaTimes, gradient: 'from-rose-500 to-pink-600' },
+      'withdrawn': { color: 'bg-gray-50 text-gray-600 border-gray-200', label: 'Withdrawn', icon: FaTrash, gradient: 'from-gray-500 to-slate-600' }
     };
     return configs[status] || configs['applied'];
   };
@@ -59,162 +59,104 @@ const ApplicationModal = ({ application, mode, onClose, onUpdate, updating, onMo
   const status = getStatusInfo(application.status || 'applied');
 
   return (
-    <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-[100] p-3 md:p-4 animate-fade-in">
-      <div className="glass-morphism bg-white rounded-[1.5rem] md:rounded-[2.5rem] max-w-2xl w-full max-h-[92vh] md:max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
-        {/* Header */}
-        <div className="flex justify-between items-center p-5 md:p-8 border-b border-gray-100/50">
-          <div>
-            <h2 className="text-xl md:text-2xl font-black text-gray-800">
-              {mode === 'view' ? 'Application Dossier' : 'Update Application'}
-            </h2>
-            <p className="text-[10px] md:text-sm text-gray-400 font-bold uppercase tracking-widest mt-1">Ref: {application.id?.slice(-8) || 'Elevate-8291'}</p>
+    <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-xl flex items-center justify-center z-[200] p-4 sm:p-6 overflow-hidden animate-in fade-in duration-500">
+      <div className="bg-white rounded-[2.5rem] max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-[0_32px_128px_-16px_rgba(0,0,0,0.3)] border border-white/20 flex flex-col animate-in zoom-in-95 duration-300">
+
+        {/* Header Section */}
+        <div className="relative p-8 md:p-10 border-b border-slate-100/50 flex-shrink-0">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50 opacity-50 rounded-full blur-3xl -mr-32 -mt-32" />
+
+          <div className="relative z-10 flex justify-between items-start">
+            <div>
+              <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight leading-none">
+                {mode === 'view' ? 'Application Dossier' : 'Refine Transmission'}
+              </h2>
+              <div className="flex items-center gap-3 mt-3">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">ID: {application.id?.slice(-12).toUpperCase() || 'VAULT-X01'}</span>
+                <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${status.color} shadow-sm`}>
+                  {status.label}
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="w-12 h-12 rounded-2xl bg-slate-50 text-slate-400 hover:text-rose-500 hover:bg-rose-50 flex items-center justify-center transition-all duration-300 border border-slate-100 shadow-sm"
+            >
+              <FaTimes size={18} />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-gray-50 text-gray-400 hover:text-rose-500 hover:bg-rose-50 flex items-center justify-center transition-all duration-300"
-          >
-            <FaTimes size={16} />
-          </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-5 md:p-8 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-8 md:p-10 space-y-12 custom-scrollbar scroll-smooth">
           {mode === 'view' ? (
-            <div className="space-y-8">
-              {/* Job Information Card */}
-              <div className="relative group overflow-hidden rounded-2xl md:rounded-3xl bg-gradient-to-br from-blue-600 to-indigo-700 p-6 md:p-8 text-white shadow-xl shadow-blue-200">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-16 -mt-16"></div>
+            <div className="space-y-12 animate-in fade-in duration-700">
 
-                <div className="relative z-10 space-y-4 md:space-y-6">
-                  <div className="flex items-start justify-between">
+              {/* Premium Core Card */}
+              <div className={`relative group overflow-hidden rounded-[2rem] bg-gradient-to-br ${status.gradient} p-8 md:p-10 text-white shadow-2xl shadow-blue-900/10`}>
+                <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-[64px] -mr-24 -mt-24" />
+                <div className="absolute bottom-0 left-0 w-32 h-32 bg-black/5 rounded-full blur-[64px] -ml-16 -mb-16" />
+
+                <div className="relative z-10">
+                  <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                     <div>
-                      <h3 className="text-xl md:text-2xl font-black mb-1">{application.role}</h3>
-                      <p className="text-xs md:text-blue-100 font-bold opacity-80 flex items-center gap-2">
-                        <FaBuilding size={12} />
+                      <h3 className="text-2xl md:text-3xl font-black mb-2 tracking-tight">{application.role}</h3>
+                      <div className="flex items-center gap-2 text-white/80 font-bold text-base">
+                        <FaBuilding size={14} className="text-white/60" />
                         {application.company}
-                      </p>
+                      </div>
                     </div>
-                    <div className={`px-3 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl text-[9px] md:text-xs font-black uppercase tracking-widest bg-white/20 backdrop-blur-md border border-white/20 whitespace-nowrap`}>
-                      {status.label}
+                    <div className="flex flex-col items-end">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-white/50 mb-1">Quantum Value</p>
+                      <p className="text-xl font-black text-white">{application.salary}</p>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 pt-4 border-t border-white/10">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-8 mt-10 pt-8 border-t border-white/10">
                     <div>
-                      <p className="text-[9px] uppercase font-bold text-blue-200 tracking-tighter mb-0.5">Applied</p>
-                      <p className="font-bold text-xs md:text-sm">{application.appliedDate}</p>
+                      <p className="text-[9px] uppercase font-black text-white/40 tracking-widest mb-1.5">Launch Date</p>
+                      <p className="font-bold text-sm">{application.appliedDate}</p>
                     </div>
                     <div>
-                      <p className="text-[9px] uppercase font-bold text-blue-200 tracking-tighter mb-0.5">Package</p>
-                      <p className="font-bold text-xs md:text-sm">{application.salary}</p>
+                      <p className="text-[9px] uppercase font-black text-white/40 tracking-widest mb-1.5">Deployment</p>
+                      <p className="font-bold text-sm truncate">{application.location || 'Remote Node'}</p>
                     </div>
                     <div className="hidden md:block">
-                      <p className="text-[9px] uppercase font-bold text-blue-200 tracking-tighter mb-0.5">Location</p>
-                      <p className="font-bold text-xs md:text-sm truncate">{application.location || 'Not specified'}</p>
-                    </div>
-                    <div className="hidden md:block">
-                      <p className="text-[9px] uppercase font-bold text-blue-200 tracking-tighter mb-0.5">Type / Duration</p>
-                      <p className="font-bold text-xs md:text-sm truncate">{application.duration ? `${application.duration} Months` : application.type || 'Full Time'}</p>
+                      <p className="text-[9px] uppercase font-black text-white/40 tracking-widest mb-1.5">Cycle Type</p>
+                      <p className="font-bold text-sm uppercase tracking-tighter">{application.type || 'Standard'}</p>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Job Details Section */}
-              {application.description && (
-                <div>
-                  <h4 className="text-sm font-black text-gray-800 uppercase tracking-widest mb-3 flex items-center gap-2">
-                    <div className="w-1.5 h-4 bg-indigo-500 rounded-full"></div>
-                    Role Description
-                  </h4>
-                  <div className="bg-gray-50/50 border border-gray-100 rounded-2xl p-6 text-gray-600 text-sm leading-relaxed whitespace-pre-wrap">
-                    {application.description}
-                  </div>
+              {/* Cover Letter Section */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-sm"><FaPaperPlane size={12} /></div>
+                  <h4 className="text-[12px] font-black text-slate-800 uppercase tracking-[0.1em]">Cover Strategy</h4>
                 </div>
-              )}
-
-              {application.requirements?.length > 0 && (
-                <div>
-                  <h4 className="text-sm font-black text-gray-800 uppercase tracking-widest mb-4 flex items-center gap-2">
-                    <div className="w-1.5 h-4 bg-amber-500 rounded-full"></div>
-                    Requirements
-                  </h4>
-                  <div className="space-y-2">
-                    {application.requirements.map((req, index) => (
-                      <div key={index} className="flex items-start gap-3 p-3 bg-gray-50/30 rounded-xl hover:bg-gray-50 transition-colors">
-                        <div className="w-6 h-6 rounded-lg bg-amber-50 text-amber-500 flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <FaCheckCircle size={10} />
-                        </div>
-                        <span className="text-sm text-gray-700">{req}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {application.skills?.length > 0 && (
-                <div>
-                  <h4 className="text-sm font-black text-gray-800 uppercase tracking-widest mb-4 flex items-center gap-2">
-                    <div className="w-1.5 h-4 bg-purple-500 rounded-full"></div>
-                    Required Skills
-                  </h4>
-                  <div className="flex flex-wrap gap-2">
-                    {application.skills.map((skill, index) => (
-                      <span key={index} className="px-4 py-2 bg-purple-50 text-purple-700 rounded-xl text-xs font-bold uppercase tracking-wider">
-                        {skill}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Application Details */}
-              <div className="grid gap-6">
-                <div>
-                  <h4 className="text-sm font-black text-gray-800 uppercase tracking-widest mb-3 flex items-center gap-2">
-                    <div className="w-1.5 h-4 bg-blue-600 rounded-full"></div>
-                    Cover Letter
-                  </h4>
-                  <div className="bg-gray-50/50 border border-gray-100 rounded-2xl p-6 text-gray-600 text-sm leading-relaxed whitespace-pre-wrap italic">
-                    {application.coverLetter || 'Initial cover letter was submitted at the time of application.'}
-                  </div>
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div>
-                    <h4 className="text-sm font-black text-gray-800 uppercase tracking-widest mb-3">Resume Source</h4>
-                    <div className="bg-white border-2 border-dashed border-gray-100 rounded-2xl p-4 flex items-center justify-between hover:border-blue-200 transition-colors group cursor-pointer">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-500 flex items-center justify-center">
-                          <FaFileAlt size={20} />
-                        </div>
-                        <span className="text-xs font-bold text-gray-600 group-hover:text-blue-600 transition-colors">Resume_Aug_2024.pdf</span>
-                      </div>
-                      <a href={application.resume} target="_blank" rel="noopener noreferrer" className="text-blue-600 font-black text-[10px] uppercase tracking-widest hover:underline">
-                        View File
-                      </a>
-                    </div>
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-black text-gray-800 uppercase tracking-widest mb-3">Internal Notes</h4>
-                    <div className="bg-amber-50/30 border border-amber-100 rounded-2xl p-4 text-xs text-amber-800 font-medium italic">
-                      {application.notes || 'No specific notes recorded for this cycle.'}
-                    </div>
+                <div className="pl-11">
+                  <div className="bg-slate-50/50 border border-slate-100 rounded-[2rem] p-8 text-slate-600 text-base leading-relaxed whitespace-pre-wrap italic font-medium">
+                    {application.coverLetter || 'The standard protocol cover letter was utilized for this mission.'}
                   </div>
                 </div>
               </div>
 
-              {/* Timeline */}
+              {/* Timeline Section */}
               {application.timeline && (
-                <div>
-                  <h4 className="text-sm font-black text-gray-800 uppercase tracking-widest mb-6">Process Milestones</h4>
-                  <div className="space-y-6 relative ml-4">
-                    <div className="absolute left-0 top-0 bottom-0 w-px bg-gray-100"></div>
+                <div className="space-y-8 pt-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shadow-sm"><FaHistory size={12} /></div>
+                    <h4 className="text-[12px] font-black text-slate-800 uppercase tracking-[0.1em]">Mission Milestones</h4>
+                  </div>
+                  <div className="pl-11 relative space-y-12 before:content-[''] before:absolute before:left-[15px] before:top-2 before:bottom-2 before:w-px before:bg-slate-100">
                     {application.timeline.map((event, idx) => (
-                      <div key={idx} className="relative pl-8 group">
-                        <div className={`absolute left-[-5px] top-1 w-[11px] h-[11px] rounded-full ring-4 ring-white transition-all duration-300 ${idx === 0 ? 'bg-blue-600 ring-blue-100 scale-125' : 'bg-gray-300'}`}></div>
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{event.date}</p>
-                        <p className="text-sm font-bold text-gray-800 group-hover:text-blue-600 transition-colors">{event.action}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">{event.description}</p>
+                      <div key={idx} className="relative group">
+                        <div className={`absolute -left-[2.1rem] top-1.5 w-4 h-4 rounded-full border-2 border-white ring-4 transition-all duration-500 group-hover:scale-125 ${idx === 0 ? 'bg-blue-600 ring-blue-50' : 'bg-slate-300 ring-slate-50'}`}></div>
+                        <div>
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 group-hover:text-blue-500 transition-colors">{event.date}</p>
+                          <p className="text-base font-black text-slate-800 tracking-tight mb-1">{event.action}</p>
+                          <p className="text-sm text-slate-500 font-medium leading-relaxed">{event.description}</p>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -222,66 +164,60 @@ const ApplicationModal = ({ application, mode, onClose, onUpdate, updating, onMo
               )}
             </div>
           ) : (
-            <form onSubmit={(e) => { e.preventDefault(); onUpdate(formData); }} className="space-y-8">
-              <div className="space-y-6">
-                <div>
-                  <label className="block text-sm font-black text-gray-800 uppercase tracking-widest mb-3">
-                    Refined Cover Letter
-                  </label>
+            <form onSubmit={(e) => { e.preventDefault(); onUpdate(formData); }} className="space-y-12 animate-in fade-in duration-500">
+              <div className="space-y-8">
+                <div className="space-y-4">
+                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-4">Refined Cover Protocol</label>
                   <textarea
                     name="coverLetter"
                     value={formData.coverLetter}
                     onChange={handleInputChange}
                     rows={8}
-                    className="w-full bg-gray-50/50 border border-gray-100 rounded-3xl px-6 py-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all duration-300"
-                    placeholder="Tailor your message for this specific role..."
+                    className="w-full text-base font-medium border-2 border-slate-100 bg-slate-50/50 rounded-[2.5rem] p-10 focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 focus:bg-white transition-all duration-500 resize-none shadow-sm placeholder:text-slate-300"
+                    placeholder="Tailor your mission statement..."
                   />
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-black text-gray-800 uppercase tracking-widest mb-3">
-                      Dynamic Resume Link
-                    </label>
+                <div className="grid md:grid-cols-2 gap-8">
+                  <div className="space-y-4">
+                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-4">Dynamic Resume Nexus</label>
                     <input
                       type="url"
                       name="resume"
                       value={formData.resume}
                       onChange={handleInputChange}
-                      className="w-full bg-gray-50/50 border border-gray-100 rounded-2xl px-6 py-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="e.g. Google Drive Link"
+                      className="w-full text-sm font-bold border-2 border-slate-100 bg-slate-50/50 rounded-2xl px-6 py-4 focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all font-mono"
+                      placeholder="Cloud link to PDF..."
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-black text-gray-800 uppercase tracking-widest mb-3">
-                      Personal Strategy Notes
-                    </label>
+                  <div className="space-y-4">
+                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-4">Strategy Notes</label>
                     <input
                       type="text"
                       name="notes"
                       value={formData.notes}
                       onChange={handleInputChange}
-                      className="w-full bg-gray-50/50 border border-gray-100 rounded-2xl px-6 py-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Add key talking points..."
+                      className="w-full text-sm font-bold border-2 border-slate-100 bg-slate-50/50 rounded-2xl px-6 py-4 focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all"
+                      placeholder="Internal observation..."
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="flex gap-4 pt-4">
+              <div className="flex gap-4 pt-6">
                 <button
                   type="submit"
                   disabled={updating}
-                  className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-blue-200 hover:bg-blue-700 disabled:opacity-50 transition-all duration-300"
+                  className="flex-1 py-6 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-[1.5rem] font-black uppercase tracking-widest text-xs shadow-xl shadow-blue-200 hover:-translate-y-1 disabled:opacity-50 transition-all duration-300"
                 >
-                  {updating ? 'Synchronizing...' : 'Save Revisions'}
+                  {updating ? 'Synchronizing Vault...' : 'Commit Revisions'}
                 </button>
                 <button
                   type="button"
                   onClick={() => onModeChange('view')}
-                  className="flex-1 py-4 bg-gray-100 text-gray-600 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-gray-200 transition-all duration-300"
+                  className="flex-1 py-6 bg-slate-100 text-slate-500 rounded-[1.5rem] font-black uppercase tracking-widest text-xs hover:bg-slate-200 transition-all duration-300"
                 >
-                  Discard Changes
+                  Discard
                 </button>
               </div>
             </form>
@@ -290,17 +226,17 @@ const ApplicationModal = ({ application, mode, onClose, onUpdate, updating, onMo
 
         {/* Footer Actions */}
         {mode === 'view' && (
-          <div className="p-5 md:p-8 bg-gray-50/50 border-t border-gray-100/50 flex flex-col sm:flex-row gap-3 md:gap-4">
+          <div className="p-8 md:p-10 bg-slate-50 border-t border-slate-100 flex flex-col sm:flex-row gap-4">
             <button
               onClick={() => onModeChange('edit')}
-              className="flex-1 py-4 bg-blue-600 text-white rounded-xl md:rounded-2xl font-black uppercase tracking-widest text-[10px] md:text-xs shadow-xl shadow-blue-200 hover:bg-blue-700 transition-all duration-300 flex items-center justify-center gap-2"
+              className="flex-1 py-6 bg-slate-900 text-white rounded-[1.5rem] font-black uppercase tracking-widest text-xs shadow-xl shadow-slate-200 hover:bg-slate-800 transition-all duration-300 flex items-center justify-center gap-3 group"
             >
-              <FaEdit />
-              Edit Application
+              <FaEdit className="group-hover:rotate-12 transition-transform" />
+              Modify Transmission
             </button>
-            <button className="flex-1 py-4 bg-white border border-gray-200 text-gray-600 rounded-xl md:rounded-2xl font-black uppercase tracking-widest text-[10px] md:text-xs hover:bg-gray-50 transition-all duration-300 flex items-center justify-center gap-2">
+            <button className="flex-1 py-6 bg-white border border-slate-200 text-slate-500 rounded-[1.5rem] font-black uppercase tracking-widest text-xs hover:bg-slate-50 transition-all duration-300 flex items-center justify-center gap-3">
               <FaBriefcase />
-              View Original Job
+              Original Brief
             </button>
           </div>
         )}
@@ -409,24 +345,22 @@ const Applications = () => {
       </div>
 
       {/* Stats Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
         {[
-          { label: 'Total Vault', val: stats.total, color: 'from-blue-600 to-indigo-600', icon: FaBriefcase },
-          { label: 'Pipeline', val: stats.inProgress, color: 'from-amber-500 to-orange-600', icon: FaClock },
-          { label: 'Secured', val: stats.offers, color: 'from-emerald-600 to-teal-700', icon: FaTrophy },
-          { label: 'Missed', val: stats.rejected, color: 'from-rose-500 to-pink-600', icon: FaTimes }
+          { label: 'Total Vault', val: stats.total, color: 'from-blue-600 to-indigo-600', icon: FaBriefcase, shadow: 'shadow-blue-200' },
+          { label: 'Pipeline', val: stats.inProgress, color: 'from-amber-500 to-orange-600', icon: FaClock, shadow: 'shadow-amber-200' },
+          { label: 'Secured', val: stats.offers, color: 'from-emerald-600 to-teal-700', icon: FaTrophy, shadow: 'shadow-emerald-200' },
+          { label: 'Missed', val: stats.rejected, color: 'from-rose-500 to-pink-600', icon: FaTimes, shadow: 'shadow-rose-200' }
         ].map((s, idx) => (
-          <div key={idx} className="glass-card group p-4 md:p-6 rounded-2xl md:rounded-[2rem] hover-lift relative overflow-hidden border-white/50">
-            <div className={`absolute -right-4 -top-4 w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br ${s.color} opacity-5 rounded-full`}></div>
-            <div className="flex items-center gap-3 md:gap-4">
-              <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-gradient-to-br ${s.color} flex items-center justify-center text-white shadow-lg shadow-blue-900/10`}>
-                <s.icon size={18} />
-              </div>
-              <div>
-                <p className="text-xl md:text-2xl font-black text-gray-800 tracking-tighter">{s.val}</p>
-                <p className="text-[8px] md:text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">{s.label}</p>
-              </div>
+          <div key={idx} className="group p-8 rounded-[2.5rem] bg-white border border-slate-100 hover:border-blue-200 transition-all duration-500 relative overflow-hidden flex flex-col items-center text-center">
+            <div className={`absolute -right-4 -top-4 w-24 h-24 bg-gradient-to-br ${s.color} opacity-5 rounded-full blur-2xl group-hover:opacity-10 transition-opacity`} />
+
+            <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${s.color} flex items-center justify-center text-white shadow-2xl ${s.shadow}/40 mb-4 group-hover:scale-110 transition-transform duration-500`}>
+              <s.icon size={22} />
             </div>
+
+            <p className="text-3xl font-black text-slate-900 tracking-tighter mb-1">{s.val}</p>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{s.label}</p>
           </div>
         ))}
       </div>
@@ -443,20 +377,19 @@ const Applications = () => {
 
           <div className="space-y-4">
             {categoryStats?.map((cat, idx) => (
-              <div key={idx} className="glass-card group p-5 rounded-3xl hover-lift border-white/50 cursor-pointer overflow-hidden relative">
-                <div className={`absolute top-0 right-0 w-2 h-full ${cat.color} opacity-20`}></div>
-                <div className="flex justify-between items-start">
+              <div key={idx} className="group p-6 rounded-[2rem] bg-white border border-slate-100 hover:border-indigo-100 hover:shadow-[0_20px_40px_-12px_rgba(79,70,229,0.08)] transition-all duration-500 cursor-pointer overflow-hidden relative">
+                <div className="flex justify-between items-start mb-4">
                   <div>
-                    <p className={`text-sm font-black uppercase tracking-wider ${cat.color}`}>{cat.label}</p>
-                    <p className="text-xs text-gray-400 font-bold mt-1">Avg CTC: {cat.salary}</p>
+                    <p className={`text-[10px] font-black uppercase tracking-[0.2em] mb-1 ${cat.color}`}>{cat.label}</p>
+                    <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Avg CTC: {cat.salary}</p>
                   </div>
-                  <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-800 group-hover:bg-gray-100 transition-colors">
-                    <span className="text-xs font-black">{cat.count}</span>
+                  <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-800 font-black text-xs">
+                    {cat.count}
                   </div>
                 </div>
-                <div className="mt-4 flex items-center gap-2">
-                  <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                    <div className={`h-full ${cat.color.replace('text', 'bg')} transition-all duration-1000`} style={{ width: `${(cat.count / stats.total) * 100}%` }}></div>
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 h-1.5 bg-slate-50 rounded-full overflow-hidden">
+                    <div className={`h-full ${cat.color.replace('text', 'bg')} transition-all duration-1000 shadow-[0_0_12px_rgba(0,0,0,0.1)]`} style={{ width: `${(cat.count / stats.total) * 100}%` }}></div>
                   </div>
                 </div>
               </div>
@@ -473,44 +406,49 @@ const Applications = () => {
             <h3 className="text-lg font-bold text-gray-800">Pipeline Inventory</h3>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {applications?.map((app, idx) => {
               const info = getStatusInfo(app.status);
               return (
-                <div key={app.id || idx} className="glass-card group rounded-[2.5rem] p-8 border-white hover:border-blue-100 hover:shadow-2xl hover:shadow-blue-200/20 transition-all duration-500 relative flex flex-col">
-                  {/* Status Badge */}
-                  <div className="flex justify-between items-start mb-6">
-                    <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${info.color} flex items-center gap-1.5`}>
-                      <info.icon size={12} />
+                <div key={app.id || idx} className="group relative bg-white rounded-[2.5rem] p-8 border border-slate-100 hover:border-blue-200 hover:shadow-[0_32px_64px_-16px_rgba(59,130,246,0.1)] transition-all duration-500 flex flex-col">
+                  {/* Status & Date */}
+                  <div className="flex justify-between items-start mb-8">
+                    <div className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-[0.15em] ${info.color} flex items-center gap-2 border shadow-sm`}>
+                      <info.icon size={10} />
                       {info.label}
                     </div>
-                    <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">{app.appliedDate}</span>
+                    <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">{app.appliedDate}</span>
                   </div>
 
                   {/* Body */}
-                  <div className="flex-1 space-y-2">
-                    <h4 className="text-xl font-black text-gray-800 leading-tight group-hover:text-blue-600 transition-colors">{app.role}</h4>
-                    <div className="flex items-center gap-2 text-gray-400">
-                      <FaBuilding size={12} />
-                      <span className="text-xs font-bold uppercase tracking-wider">{app.company}</span>
+                  <div className="flex-1 space-y-3">
+                    <h4 className="text-xl font-black text-slate-900 leading-tight group-hover:text-blue-700 transition-colors tracking-tight">{app.role}</h4>
+                    <div className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-widest">
+                      <FaBuilding size={12} className="text-blue-400" />
+                      {app.company}
                     </div>
                   </div>
 
-                  {/* Footer */}
-                  <div className="mt-8 pt-6 border-t border-gray-100/50 flex items-center justify-between">
-                    <p className="text-sm font-black text-gray-800">{app.salary}</p>
+                  {/* Footer Stats & Actions */}
+                  <div className="mt-10 pt-6 border-t border-slate-50 flex items-center justify-between">
+                    <div>
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Quantum Package</p>
+                      <p className="text-sm font-black text-emerald-600 tracking-tight">{app.salary}</p>
+                    </div>
                     <div className="flex gap-2">
                       <button
                         onClick={() => { setSelectedApplication(app); setModalMode('view'); setShowModal(true); }}
-                        className="w-10 h-10 rounded-xl bg-gray-100 text-gray-500 hover:bg-blue-600 hover:text-white transition-all duration-300 flex items-center justify-center"
+                        className="w-12 h-12 rounded-2xl bg-slate-50 text-slate-400 hover:bg-blue-600 hover:text-white transition-all duration-500 flex items-center justify-center border border-slate-100 shadow-sm"
+                        title="Quantum View"
                       >
-                        <FaEye size={16} />
+                        <FaEye size={18} />
                       </button>
                       <button
                         onClick={() => { setSelectedApplication(app); setModalMode('edit'); setShowModal(true); }}
-                        className="w-10 h-10 rounded-xl bg-gray-100 text-gray-500 hover:bg-emerald-500 hover:text-white transition-all duration-300 flex items-center justify-center"
+                        className="w-12 h-12 rounded-2xl bg-slate-50 text-slate-400 hover:bg-slate-900 hover:text-white transition-all duration-500 flex items-center justify-center border border-slate-100 shadow-sm"
+                        title="Refine Data"
                       >
-                        <FaEdit size={16} />
+                        <FaEdit size={18} />
                       </button>
                     </div>
                   </div>
