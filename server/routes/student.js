@@ -216,9 +216,21 @@ router.get('/jobs', authenticateToken, ensureStudent, async (req, res) => {
     if (location) { query.location = { $regex: location, $options: 'i' }; }
     if (category) { query.category = category; }
     if (type) { query.type = type; }
-    if (minSalary) { query['package.min'] = { $gte: parseInt(minSalary) * 100000 }; }
-    if (maxSalary) { query['package.max'] = { $lte: parseInt(maxSalary) * 100000 }; }
-    if (experience) { query['experience.max'] = { $lte: parseInt(experience) }; }
+    
+    // Improved filters
+    if (minSalary) { query['ctc'] = { $gte: parseInt(minSalary) * 100000 }; }
+    if (maxSalary) { query['ctc'] = { $lte: parseInt(maxSalary) * 100000 }; }
+    if (experience) { 
+      if (experience === '0') query['experienceRequired'] = '0';
+      else if (experience === '1') query['experienceRequired'] = { $in: ['0-1', '1-2'] };
+      else query['experienceRequired'] = experience;
+    }
+    if (req.query.workMode && req.query.workMode !== 'All') {
+      query.workMode = req.query.workMode.toLowerCase();
+    }
+    if (req.query.driveType && req.query.driveType !== 'All') {
+      query.driveType = req.query.driveType;
+    }
 
     console.log('[student/jobs] college:"' + studentCollege + '" | results query OK');
 
@@ -1441,15 +1453,39 @@ router.get('/internship-offers', authenticateToken, ensureStudent, async (req, r
     }
 
     if (category && category !== 'All') {
-      filter.category = category;
+      filter.$or = [
+        { category: category },
+        { jobCategory: category },
+        { department: category }
+      ];
     }
 
     if (location && location !== 'All') {
-      filter.location = location;
+      filter.$or = [
+        { location: { $regex: location, $options: 'i' } },
+        { companyLocation: { $regex: location, $options: 'i' } },
+        { workLocations: { $regex: location, $options: 'i' } }
+      ];
     }
 
-    if (type && type !== 'All') {
-      filter.internshipType = type;
+    if (req.query.workMode && req.query.workMode !== 'All') {
+      filter.workMode = req.query.workMode.toLowerCase();
+    }
+
+    if (req.query.duration && req.query.duration !== 'All') {
+      filter.internshipDuration = { $regex: req.query.duration, $options: 'i' };
+    }
+
+    if (req.query.ppo && req.query.ppo !== 'All') {
+      filter.ppoPossibility = req.query.ppo === 'Yes' ? { $in: ['yes', 'performance_based'] } : 'no';
+    }
+
+    if (req.query.stipend && req.query.stipend !== 'All') {
+      if (req.query.stipend === 'Paid') {
+        filter.stipend = { $gt: 0 };
+      } else if (req.query.stipend === 'Unpaid') {
+        filter.$or = [{ stipend: 0 }, { stipend: { $exists: false } }];
+      }
     }
 
     // Get internships with pagination

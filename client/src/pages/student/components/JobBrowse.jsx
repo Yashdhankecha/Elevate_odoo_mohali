@@ -41,9 +41,22 @@ const grad = (name) => GRAD[(name || '').charCodeAt(0) % GRAD.length];
 
 // ─── Company Avatar ──────────────────────────────────────────────────────────
 const Avatar = ({ name, logo, size = 'md' }) => {
+  const [error, setError] = useState(false);
   const sz = size === 'lg' ? 'w-16 h-16 rounded text-xl' : 'w-11 h-11 rounded text-sm';
+  
+  if (logo && !error) {
+    return (
+      <img 
+        src={logo} 
+        alt={name || 'Company'} 
+        className={`${sz} object-contain bg-white flex-shrink-0 shadow-sm border border-slate-100 p-1`} 
+        onError={() => setError(true)}
+      />
+    );
+  }
+  
   return (
-    <div className={`${sz} bg-gradient-to-br ${grad(name)} flex items-center justify-center text-white font-black shadow-sm flex-shrink-0`}>
+    <div className={`${sz} bg-gradient-to-br ${grad(name)} flex items-center justify-center text-white font-black shadow-sm flex-shrink-0 capitalize`}>
       {initials(name)}
     </div>
   );
@@ -479,6 +492,8 @@ const JobBrowse = () => {
   const [sortBy, setSortBy] = useState('postedAt');
   const [driveType, setDriveType] = useState('');
   const [locFilter, setLocFilter] = useState('');
+  const [workMode, setWorkMode] = useState('All');
+  const [expFilter, setExpFilter] = useState('All');
   const [pagination, setPagination] = useState({ current: 1, total: 1, hasNext: false, hasPrev: false, totalJobs: 0 });
   const [error, setError] = useState(null);
 
@@ -491,6 +506,8 @@ const JobBrowse = () => {
         ...(search && { search }),
         ...(locFilter && { location: locFilter }),
         ...(driveType && { driveType }),
+        ...(workMode !== 'All' && { workMode }),
+        ...(expFilter !== 'All' && { experience: expFilter }),
       };
       const res = await studentApi.getAvailableJobs(params);
       if (res?.success) {
@@ -505,7 +522,7 @@ const JobBrowse = () => {
       setError(e?.response?.data?.message || e.message || 'An error occurred');
     }
     setLoading(false);
-  }, [search, sortBy, driveType, locFilter]);
+  }, [search, sortBy, driveType, locFilter, workMode, expFilter]);
 
   useEffect(() => { fetchJobs(1); }, [fetchJobs]);
 
@@ -548,7 +565,7 @@ const JobBrowse = () => {
             <select
               value={locFilter}
               onChange={e => setLocFilter(e.target.value)}
-              className="px-4 py-3 text-sm bg-slate-50 border border-slate-200 rounded text-slate-700 min-w-[150px] focus:outline-none focus:border-slate-400 focus:bg-white transition-colors appearance-none cursor-pointer"
+              className="px-4 py-3 text-sm bg-slate-50 border border-slate-200 rounded text-slate-700 focus:outline-none focus:border-slate-400 focus:bg-white transition-colors appearance-none cursor-pointer font-bold"
             >
               <option value="">All Locations</option>
               <option value="Mumbai">Mumbai</option>
@@ -560,23 +577,45 @@ const JobBrowse = () => {
             </select>
             
             <select
+              value={workMode}
+              onChange={e => setWorkMode(e.target.value)}
+              className="px-4 py-3 text-sm bg-slate-50 border border-slate-200 rounded text-slate-700 focus:outline-none focus:border-slate-400 focus:bg-white transition-colors appearance-none cursor-pointer font-bold"
+            >
+              <option value="All">All Modes</option>
+              <option value="office">On-site</option>
+              <option value="remote">Remote</option>
+              <option value="hybrid">Hybrid</option>
+            </select>
+
+            <select
+              value={expFilter}
+              onChange={e => setExpFilter(e.target.value)}
+              className="px-4 py-3 text-sm bg-slate-50 border border-slate-200 rounded text-slate-700 focus:outline-none focus:border-slate-400 focus:bg-white transition-colors appearance-none cursor-pointer font-bold"
+            >
+              <option value="All">Experience</option>
+              <option value="0">Freshers</option>
+              <option value="1">Entry Level (0-2y)</option>
+              <option value="2-3">Mid Level (2-3y)</option>
+            </select>
+
+            <select
               value={driveType}
               onChange={e => setDriveType(e.target.value)}
-              className="px-4 py-3 text-sm bg-slate-50 border border-slate-200 rounded text-slate-700 min-w-[150px] focus:outline-none focus:border-slate-400 focus:bg-white transition-colors appearance-none cursor-pointer"
+              className="px-4 py-3 text-sm bg-slate-50 border border-slate-200 rounded text-slate-700 focus:outline-none focus:border-slate-400 focus:bg-white transition-colors appearance-none cursor-pointer font-bold"
             >
               <option value="">All Drives</option>
-              <option value="on_campus">On-Campus Drives</option>
-              <option value="off_campus">Off-Campus Direct</option>
+              <option value="on_campus">On-Campus</option>
+              <option value="off_campus">Off-Campus</option>
             </select>
 
             <select
               value={sortBy}
               onChange={e => setSortBy(e.target.value)}
-              className="px-4 py-3 text-sm bg-slate-50 border border-slate-200 rounded text-slate-700 min-w-[150px] focus:outline-none focus:border-slate-400 focus:bg-white transition-colors appearance-none cursor-pointer"
+              className="px-4 py-3 text-sm bg-slate-50 border border-slate-200 rounded text-slate-700 focus:outline-none focus:border-slate-400 focus:bg-white transition-colors appearance-none cursor-pointer font-bold"
             >
-              <option value="postedAt">Newest First</option>
-              <option value="ctc">Highest Salary</option>
-              <option value="applicationDeadline">Earliest Deadline</option>
+              <option value="postedAt">Newest</option>
+              <option value="ctc">Salary</option>
+              <option value="applicationDeadline">Deadline</option>
             </select>
           </div>
         </div>

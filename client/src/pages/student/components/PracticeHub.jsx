@@ -1,413 +1,191 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  FaBookOpen, 
-  FaPlay, 
-  FaClock, 
-  FaTrophy,
-  FaChartBar,
-  FaFilter,
-  FaPlus,
-  FaTimes
-} from 'react-icons/fa';
-import { studentApi } from '../../../services/studentApi';
+import DailyChallenge from '../../../components/PracticeSection/DailyChallenge';
+import ProblemList from '../../../components/PracticeSection/ProblemList';
+import ProblemDescription from '../../../components/PracticeSection/ProblemDescription';
+import CodePractice from './CodePractice';
+import { leetcodeService } from '../../../services/leetcode';
+import { Layout, Maximize2, Minimize2, ChevronLeft, Terminal, LayoutPanelLeft, FileText, Code2, ArrowLeft } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 const PracticeHub = () => {
-  const [sessionsData, setSessionsData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all');
-  const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({
-    topic: '',
-    category: 'data-structures',
-    difficulty: 'medium',
-    score: '',
-    totalQuestions: '',
-    correctAnswers: '',
-    timeSpent: ''
-  });
+  const [activeProblem, setActiveProblem] = useState(null);
+  const [problemDetail, setProblemDetail] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('all');
+  const [mobileView, setMobileView] = useState('description'); // 'description' or 'editor'
 
-  useEffect(() => {
-    fetchSessionsData();
-  }, [filter]);
+  // Mapping Judge0 Language IDs to LeetCode langSlugs
+  const LANG_ID_MAP = {
+    63: 'javascript',
+    71: 'python3',
+    54: 'cpp',
+    62: 'java',
+    50: 'c'
+  };
 
-  const fetchSessionsData = async () => {
+  const handleSolveProblem = async (problem) => {
     try {
       setLoading(true);
-      const response = await studentApi.getPracticeSessions({ category: filter });
-      setSessionsData(response.data);
-    } catch (error) {
-      console.error('Error fetching practice sessions:', error);
-      toast.error('Failed to load practice sessions');
+      setActiveProblem(problem);
+      
+      const detail = await leetcodeService.fetchProblemDetail(problem.titleSlug);
+      setProblemDetail(detail);
+      
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (err) {
+      toast.error('Failed to load problem details.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      await studentApi.createPracticeSession(formData);
-      toast.success('Session saved successfully!');
-      setShowForm(false);
-      setFormData({
-        topic: '',
-        category: 'data-structures',
-        difficulty: 'medium',
-        score: '',
-        totalQuestions: '',
-        correctAnswers: '',
-        timeSpent: ''
-      });
-      fetchSessionsData();
-    } catch (error) {
-      toast.error('Failed to save session');
-    }
+  const getStarterCode = (snippets, langId) => {
+    if (!snippets) return '';
+    const slug = LANG_ID_MAP[langId];
+    const snippet = snippets.find(s => s.langSlug === slug);
+    return snippet ? snippet.code : '';
   };
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => {
-      const newData = { ...prev, [name]: value };
-      
-      if (name === 'totalQuestions' || name === 'correctAnswers') {
-        const total = parseFloat(name === 'totalQuestions' ? value : prev.totalQuestions);
-        const correct = parseFloat(name === 'correctAnswers' ? value : prev.correctAnswers);
-        
-        if (total > 0 && !isNaN(correct)) {
-          // Calculate percentage and cap at 100
-          const calcScore = Math.round((correct / total) * 100);
-          newData.score = Math.min(100, Math.max(0, calcScore)); 
-        } else if (!value) {
-           newData.score = ''; // Clear score if inputs are empty
-        }
-      }
-      return newData;
-    });
-  };
-
-  const categories = [
-    { value: 'all', label: 'All Categories' },
-    { value: 'data-structures', label: 'Data Structures' },
-    { value: 'algorithms', label: 'Algorithms' },
-    { value: 'system-design', label: 'System Design' },
-    { value: 'database', label: 'Database' },
-    { value: 'web-development', label: 'Web Dev' },
-    { value: 'machine-learning', label: 'ML/AI' },
-    { value: 'soft-skills', label: 'Behavioural' }
-  ];
-
-  if (loading) {
+  // Immersive Solver View
+  if (activeProblem && problemDetail) {
     return (
-      <div className="flex flex-col items-center justify-center h-[60vh] animate-fade-in">
-        <div className="w-16 h-16 border-4 border-indigo-50 flex items-center justify-center rounded-2xl relative overflow-hidden">
-           <div className="absolute inset-0 bg-indigo-600 animate-grow h-1 origin-bottom"></div>
-           <FaBookOpen className="text-indigo-200 animate-pulse" size={24} />
+      <div className="flex flex-col h-[calc(100vh-140px)] bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-2xl animate-fade-in relative">
+        {/* Header Bar */}
+        <div className="px-6 py-4 bg-white border-b border-slate-100 flex items-center justify-between z-20">
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => { setActiveProblem(null); setProblemDetail(null); }}
+              className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-500"
+            >
+              <ArrowLeft size={20} />
+            </button>
+            <div>
+              <h2 className="text-sm font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                <Code2 size={16} className="text-indigo-500" />
+                {activeProblem.title}
+              </h2>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Session ID: LC-{activeProblem.titleSlug.slice(0,8)}</p>
+            </div>
+          </div>
+
+          {/* Desktop/Tablet Mode: Side-by-Side indicator or Quit */}
+          <div className="hidden md:flex items-center gap-4">
+             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-3 py-1 bg-slate-50 rounded-full border border-slate-100">Immersive Mode</span>
+             <button 
+                onClick={() => { setActiveProblem(null); setProblemDetail(null); }}
+                className="bg-slate-900 text-white px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg"
+             >
+                Exit Session
+             </button>
+          </div>
+
+          {/* Mobile View Toggle */}
+          <div className="flex md:hidden bg-slate-100 p-1 rounded-xl items-center border border-slate-200">
+             <button 
+               onClick={() => setMobileView('description')}
+               className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${mobileView === 'description' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-400'}`}
+             >
+               Problem
+             </button>
+             <button 
+               onClick={() => setMobileView('editor')}
+               className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${mobileView === 'editor' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-400'}`}
+             >
+               Editor
+             </button>
+          </div>
         </div>
-        <p className="mt-6 text-gray-400 font-bold uppercase tracking-widest text-[10px]">Loading Practice Data...</p>
+
+        {/* Workspace Body */}
+        <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+          {/* Problem Sidebar (Left) */}
+          <div className={`
+             ${mobileView === 'description' ? 'flex' : 'hidden'} md:flex
+             w-full md:w-[40%] lg:w-[35%] h-full border-r border-slate-100 bg-white overflow-hidden
+          `}>
+            <ProblemDescription 
+              titleSlug={activeProblem.titleSlug} 
+              onBack={() => { setActiveProblem(null); setProblemDetail(null); }} 
+            />
+          </div>
+
+          {/* Compiler (Right) */}
+          <div className={`
+             ${mobileView === 'editor' ? 'flex' : 'hidden'} md:flex
+             flex-1 h-full bg-slate-50 overflow-hidden flex flex-col
+          `}>
+             <div className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-8">
+                <div className="max-w-5xl mx-auto h-full">
+                  <CodePractice 
+                     initialCode={getStarterCode(problemDetail.codeSnippets, 63)}
+                     initialLanguageId={63}
+                     initialStdin={problemDetail.sampleTestCase || problemDetail.exampleTestcases}
+                  />
+                </div>
+             </div>
+          </div>
+        </div>
       </div>
     );
   }
 
-  const { sessions, categoryStats } = sessionsData;
-
+  // Main Hub View (Responsive with Sidebar)
   return (
-    <div className="space-y-10 pb-20">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-2">
-        <div>
-          <h2 className="text-3xl font-black text-gray-800 tracking-tight uppercase">Practice Hub</h2>
-          <p className="text-gray-400 text-sm font-bold uppercase tracking-widest mt-1">Log and track your technical practice sessions</p>
-        </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="bg-slate-900 text-white px-6 py-3 rounded shadow-sm hover:bg-slate-800 transition-colors font-bold uppercase tracking-widest text-[11px] flex items-center gap-2"
-        >
-          <FaPlus size={10} />
-          Log New Session
-        </button>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-         {[
-           { label: 'Total Sessions', val: sessions.length, icon: FaPlay, color: 'from-indigo-600 to-blue-600' },
-           { label: 'Avg Accuracy', val: `${Math.round(sessions.reduce((acc, s) => acc + s.score, 0) / (sessions.length || 1))}%`, icon: FaTrophy, color: 'from-amber-500 to-orange-600' },
-           { label: 'Time Spent', val: `${Math.round(sessions.reduce((acc, s) => acc + Number(s.timeSpent), 0) / 60)}h`, icon: FaClock, color: 'from-emerald-500 to-teal-600' },
-           { label: 'Topics Covered', val: categoryStats.length, icon: FaChartBar, color: 'from-rose-500 to-pink-600' }
-         ].map((s, i) => (
-           <div key={i} className="bg-white border border-slate-200 p-6 rounded shadow-sm hover:border-slate-300 transition-colors flex items-center gap-4">
-              <div className={`w-12 h-12 rounded bg-slate-50 flex items-center justify-center text-slate-700 border border-slate-100 shrink-0`}>
-                 <s.icon size={18} />
-              </div>
-              <div className="min-w-0">
-                 <p className="text-2xl font-bold text-slate-900 truncate">{s.val}</p>
-                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5 truncate">{s.label}</p>
-              </div>
-           </div>
-         ))}
-      </div>
-
-      <div className="grid lg:grid-cols-12 gap-10">
-        {/* Left Column - Topics */}
-        <div className="lg:col-span-4 space-y-8">
-           <div className="space-y-4">
-              <h3 className="text-sm font-black text-gray-800 uppercase tracking-widest px-2 flex items-center gap-2">
-                 <div className="w-1.5 h-4 bg-indigo-600 rounded-full"></div>
-                 Categories
-              </h3>
-              <div className="flex flex-wrap gap-2 px-1">
-                 {categories.map(cat => (
-                   <button
-                     key={cat.value}
-                     onClick={() => setFilter(cat.value)}
-                     className={`px-4 py-2 rounded text-[10px] font-bold uppercase tracking-widest transition-colors border ${
-                       filter === cat.value 
-                         ? 'bg-slate-900 text-white border-slate-900 shadow-sm' 
-                         : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
-                     }`}
-                   >
-                     {cat.label}
-                   </button>
-                 ))}
-              </div>
-           </div>
-
-           <div className="space-y-4">
-              <h3 className="text-sm font-black text-gray-800 uppercase tracking-widest px-2">Topic Mastery</h3>
-              <div className="space-y-3">
-                 {categoryStats.map((stat, idx) => (
-                   <div key={idx} className="bg-white border border-slate-200 p-5 rounded shadow-sm hover:border-slate-300 transition-colors relative">
-                      <div className="flex justify-between items-center mb-3">
-                         <p className="text-xs font-bold text-slate-900 uppercase tracking-wider">{stat.category.replace('-', ' ')}</p>
-                         <span className="text-[10px] font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">{stat.count} Sessions</span>
-                      </div>
-                      <div className="relative h-2 bg-slate-100 rounded-full overflow-hidden mb-3">
-                         <div 
-                           className="absolute inset-0 bg-slate-400 transition-all duration-500"
-                           style={{ width: `${stat.averageScore}%` }}
-                         ></div>
-                      </div>
-                      <div className="flex justify-between">
-                         <span className="text-[10px] font-bold text-slate-500 uppercase">Avg Score</span>
-                         <span className="text-[10px] font-bold text-slate-900">{stat.averageScore}%</span>
-                      </div>
-                   </div>
-                 ))}
-              </div>
-           </div>
-        </div>
-
-        {/* Right Column - Timeline */}
-        <div className="lg:col-span-8 space-y-6">
-           <div className="flex items-center justify-between px-2">
-              <h3 className="text-sm font-black text-gray-800 uppercase tracking-widest flex items-center gap-2">
-                 <div className="w-1.5 h-4 bg-indigo-600 rounded-full"></div>
-                 Recent Sessions
-              </h3>
-              <FaFilter className="text-gray-400" size={14} />
-           </div>
-
-           <div className="space-y-4">
-              {sessions.map((session, idx) => (
-                <div key={idx} className="bg-white border border-slate-200 group p-6 rounded shadow-sm hover:border-slate-300 transition-colors flex items-center justify-between">
-                   <div className="flex items-center gap-4 md:gap-6">
-                      <div className="w-12 h-12 bg-slate-50 border border-slate-100 rounded flex items-center justify-center shrink-0">
-                         <FaBookOpen size={16} className="text-slate-400 group-hover:text-slate-700 transition-colors" />
-                      </div>
-                      <div>
-                         <h4 className="text-md md:text-lg font-bold text-slate-900 leading-tight transition-colors">{session.topic}</h4>
-                         <div className="flex items-center gap-3 mt-1">
-                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{session.category.replace('-', ' ')}</span>
-                            <div className="w-1 h-1 bg-slate-200 rounded-full"></div>
-                            <span className={`text-[10px] font-bold uppercase tracking-widest ${
-                               session.difficulty === 'hard' ? 'text-rose-500' : 
-                               session.difficulty === 'medium' ? 'text-amber-500' : 'text-emerald-500'
-                            }`}>{session.difficulty}</span>
-                         </div>
-                      </div>
-                   </div>
-                   <div className="text-right">
-                      <p className="text-2xl font-bold text-slate-900 tracking-tighter">{session.score}%</p>
-                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center justify-end gap-1.5">
-                         <FaClock size={10} />
-                         {session.timeSpent} MIN
-                      </p>
-                   </div>
-                </div>
-              ))}
-
-              {sessions.length === 0 && (
-                <div className="bg-white border border-slate-200 shadow-sm rounded py-20 text-center">
-                  <div className="w-16 h-16 bg-slate-50 border border-slate-100 text-slate-400 rounded flex items-center justify-center mx-auto mb-4">
-                    <FaBookOpen size={24} />
+    <div className="space-y-12 pb-20 selection:bg-indigo-100 animate-fade-in">
+      {/* Header & Daily Challenge */}
+      <div className="pt-2">
+         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
+            <div className="space-y-2">
+               <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center text-white shadow-lg">
+                     <LayoutPanelLeft size={20} />
                   </div>
-                  <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">No practice sessions found</p>
-                </div>
-              )}
-           </div>
-        </div>
-      </div>
-
-      {/* Premium Form Modal */}
-      {showForm && (
-        <div className="fixed inset-0 bg-slate-900/60 flex items-center justify-center z-[100] p-4">
-          <div className="relative w-full max-w-2xl bg-white rounded shadow-sm overflow-hidden border border-slate-200">
-            
-            {/* Modal Header */}
-            <div className="relative px-6 md:px-8 py-6 bg-slate-50 border-b border-slate-200">
-               <div className="flex justify-between items-center relative z-10">
-                  <div>
-                     <h3 className="text-xl font-bold text-slate-900 tracking-tight">Log Session</h3>
-                     <p className="text-slate-500 font-bold text-[10px] uppercase tracking-widest mt-1">Record your practice performance</p>
-                  </div>
-                  <button 
-                    onClick={() => setShowForm(false)} 
-                    className="w-8 h-8 rounded bg-white border border-slate-200 text-slate-500 hover:text-slate-900 hover:bg-slate-50 flex items-center justify-center transition-colors shadow-sm"
-                  >
-                     <FaTimes size={14} />
-                  </button>
+                  <h1 className="text-3xl font-black text-slate-900 tracking-tight">Practice Hub</h1>
                </div>
+               <p className="text-slate-500 font-medium text-sm max-w-lg">
+                  Master your technical skills with real-world LeetCode challenges and our integrated compiler.
+               </p>
             </div>
-
-            <form onSubmit={handleSubmit} className="p-8 space-y-6">
-               <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2">Focus Topic</label>
-                  <div className="relative">
-                     <FaBookOpen className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-                     <input
-                        type="text"
-                        name="topic"
-                        value={formData.topic}
-                        onChange={handleInputChange}
-                        className="w-full bg-white border border-slate-200 rounded pl-12 pr-4 py-3 text-sm font-bold text-slate-900 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 focus:outline-none transition-colors"
-                        placeholder="e.g. Advanced Graph Algorithms"
-                        required
-                     />
-                  </div>
-               </div>
-
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2">Domain Category</label>
-                     <div className="relative">
-                        <select
-                           name="category"
-                           value={formData.category}
-                           onChange={handleInputChange}
-                           className="w-full bg-white border border-slate-200 rounded px-4 py-3 text-sm font-bold text-slate-900 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 focus:outline-none transition-colors appearance-none cursor-pointer"
-                        >
-                           {categories.slice(1).map(cat => (
-                           <option key={cat.value} value={cat.value}>{cat.label}</option>
-                           ))}
-                        </select>
-                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                           <FaFilter size={12} />
-                        </div>
-                     </div>
-                  </div>
-
-                  <div className="space-y-2">
-                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2">Complexity Level</label>
-                     <div className="grid grid-cols-3 gap-2 bg-slate-50 border border-slate-200 p-1 rounded">
-                        {['easy', 'medium', 'hard'].map((level) => (
-                           <button
-                              key={level}
-                              type="button"
-                              onClick={() => setFormData(prev => ({ ...prev, difficulty: level }))}
-                              className={`py-2 rounded text-[10px] font-bold uppercase tracking-wider transition-colors ${
-                                 formData.difficulty === level
-                                 ? level === 'easy' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                 : level === 'medium' ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                                 : 'bg-rose-50 text-rose-700 border border-rose-200'
-                                 : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700 border border-transparent'
-                              }`}
-                           >
-                              {level}
-                           </button>
-                        ))}
-                     </div>
-                  </div>
-               </div>
-
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2">Total Questions</label>
-                     <div className="relative">
-                        <FaBookOpen className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-                        <input
-                           type="number"
-                           name="totalQuestions"
-                           value={formData.totalQuestions}
-                           onChange={handleInputChange}
-                           className="w-full bg-white border border-slate-200 rounded pl-12 pr-4 py-3 text-sm font-bold text-slate-900 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 focus:outline-none transition-colors"
-                           placeholder="20"
-                           required
-                        />
-                     </div>
-                  </div>
-
-                  <div className="space-y-2">
-                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2">Correct Answers</label>
-                     <div className="relative">
-                        <FaTrophy className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-                        <input
-                           type="number"
-                           name="correctAnswers"
-                           value={formData.correctAnswers}
-                           onChange={handleInputChange}
-                           className="w-full bg-white border border-slate-200 rounded pl-12 pr-4 py-3 text-sm font-bold text-slate-900 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 focus:outline-none transition-colors"
-                           placeholder="18"
-                           required
-                        />
-                     </div>
-                  </div>
-               </div>
-
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2">Accuracy Score %</label>
-                     <div className="relative">
-                        <FaChartBar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-                        <input
-                           type="number"
-                           name="score"
-                           value={formData.score}
-                           onChange={handleInputChange}
-                           min="0"
-                           max="100"
-                           className="w-full bg-slate-50 border border-slate-200 rounded pl-12 pr-4 py-3 text-sm font-bold text-slate-500 focus:ring-0 cursor-not-allowed"
-                           placeholder="Calculated automatically"
-                           readOnly
-                        />
-                     </div>
-                  </div>
-
-                  <div className="space-y-2">
-                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2">Time Dedicated (Min)</label>
-                     <div className="relative">
-                        <FaClock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-                        <input
-                           type="number"
-                           name="timeSpent"
-                           value={formData.timeSpent}
-                           onChange={handleInputChange}
-                           className="w-full bg-white border border-slate-200 rounded pl-12 pr-4 py-3 text-sm font-bold text-slate-900 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 focus:outline-none transition-colors"
-                           placeholder="45"
-                           required
-                        />
-                     </div>
-                  </div>
-               </div>
-
-               <button
-                  type="submit"
-                  className="w-full py-4 bg-slate-900 text-white rounded font-bold uppercase tracking-widest text-xs shadow-sm hover:bg-slate-800 transition-colors mt-6"
+            
+            <div className="flex bg-slate-100 p-1.5 rounded-2xl items-center border border-slate-200 w-fit self-start md:self-auto">
+               <button 
+                 onClick={() => setActiveTab('all')}
+                 className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'all' ? 'bg-white shadow-md text-slate-900' : 'text-slate-600 hover:text-slate-900'}`}
                >
-                  Verify & Log Session
+                 All Challenges
                </button>
-            </form>
-          </div>
+               <button 
+                 onClick={() => setActiveTab('topic')}
+                 className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'topic' ? 'bg-white shadow-md text-slate-900' : 'text-slate-600 hover:text-slate-900'}`}
+               >
+                 Topic Explorer
+               </button>
+            </div>
+         </div>
+
+         <DailyChallenge onSolve={handleSolveProblem} />
+      </div>
+
+      <div className="h-px bg-slate-200 w-full" />
+
+      {/* Main Problem Explorer */}
+      <div className="space-y-8">
+         <div className="flex items-center gap-3">
+            <div className="w-1.5 h-6 bg-slate-900 rounded-full" />
+            <h2 className="text-sm font-black text-slate-900 uppercase tracking-[0.25em]">
+               {activeTab === 'all' ? 'Featured Problem Set' : 'Explorer by Category'}
+            </h2>
+         </div>
+         
+         <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
+            <ProblemList onSolve={handleSolveProblem} />
+         </div>
+      </div>
+
+      {loading && (
+        <div className="fixed inset-0 bg-white/60 backdrop-blur-md z-[200] flex flex-col items-center justify-center space-y-4">
+           <div className="w-16 h-1 bg-slate-900 rounded-full animate-pulse shadow-lg" />
+           <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Preparing Session Environment...</p>
         </div>
       )}
     </div>
