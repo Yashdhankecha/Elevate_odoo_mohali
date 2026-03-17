@@ -36,7 +36,7 @@ const MemoizedInput = React.memo(({
   rows,
   icon: Icon
 }) => {
-  const baseClasses = "w-full pl-11 pr-4 py-3 bg-gray-50/50 border border-gray-100 rounded-2xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:bg-white focus:border-blue-200 transition-all duration-300";
+  const baseClasses = "w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded text-sm focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 transition-colors shadow-sm placeholder:text-slate-400 text-slate-700";
 
   return (
     <div className="relative group">
@@ -289,7 +289,7 @@ const ResumeBuilder = () => {
         <div className="flex items-center gap-3">
           <button
             onClick={() => setShowPreview(!showPreview)}
-            className="flex items-center gap-2 px-6 py-3 bg-white border border-gray-100 rounded-2xl shadow-sm text-sm font-bold text-gray-700 hover:bg-gray-50 transition-all active:scale-95"
+            className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 rounded shadow-sm text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors"
           >
             {showPreview ? <FileText size={18} /> : <Eye size={18} />}
             {showPreview ? 'Edit Assets' : 'Live Preview'}
@@ -299,14 +299,14 @@ const ResumeBuilder = () => {
               <button
                 onClick={handleSaveToProfile}
                 disabled={saving}
-                className="flex items-center gap-2 px-6 py-3 bg-white border border-gray-100 text-blue-600 rounded-2xl shadow-sm hover:bg-blue-50 transition-all font-bold text-sm active:scale-95 disabled:opacity-50"
+                className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 text-slate-700 rounded shadow-sm hover:bg-slate-50 transition-colors font-bold text-sm disabled:opacity-50"
               >
-                {saving ? <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div> : <Save size={18} />}
+                {saving ? <div className="w-4 h-4 border-2 border-slate-700 border-t-transparent rounded-full animate-spin"></div> : <Save size={18} />}
                 {saving ? 'Saving...' : 'Save to Profile'}
               </button>
               <button
                 onClick={toPDF}
-                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-2xl shadow-xl shadow-blue-200 hover:shadow-2xl transition-all font-bold text-sm active:scale-95"
+                className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded shadow-sm hover:bg-slate-800 transition-colors font-bold text-sm"
               >
                 <Download size={18} />
                 Export PDF
@@ -324,17 +324,17 @@ const ResumeBuilder = () => {
               <button
                 key={s.id}
                 onClick={() => setCurrentStep(s.id)}
-                className={`w-full flex items-center gap-4 p-4 rounded-[1.5rem] transition-all duration-500 group relative overflow-hidden ${currentStep === s.id
-                    ? 'bg-blue-600 text-white shadow-xl shadow-blue-100'
-                    : 'bg-white hover:bg-gray-50 text-gray-400 hover:text-gray-600'
+                className={`w-full flex items-center gap-4 p-4 rounded transition-colors group relative overflow-hidden ${currentStep === s.id
+                    ? 'bg-slate-900 text-white shadow-sm'
+                    : 'bg-white hover:bg-slate-50 text-slate-500 border border-slate-200 shadow-sm'
                   }`}
               >
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${currentStep === s.id ? 'bg-white/20' : 'bg-gray-50 group-hover:bg-gray-100'
+                <div className={`w-10 h-10 rounded flex items-center justify-center flex-shrink-0 transition-colors ${currentStep === s.id ? 'bg-white/20' : 'bg-slate-100 group-hover:bg-slate-200 text-slate-600'
                   }`}>
                   <s.icon size={18} />
                 </div>
                 <div className="text-left min-w-0">
-                  <p className={`text-[10px] font-black uppercase tracking-widest leading-none ${currentStep === s.id ? 'text-blue-100' : 'text-gray-300'}`}>Step 0{s.id + 1}</p>
+                  <p className={`text-[10px] font-bold uppercase tracking-widest leading-none ${currentStep === s.id ? 'text-slate-300' : 'text-slate-400'}`}>Step 0{s.id + 1}</p>
                   <p className="font-bold text-sm truncate">{s.title}</p>
                 </div>
                 {currentStep > s.id && (
@@ -347,10 +347,10 @@ const ResumeBuilder = () => {
           </div>
 
           {/* Form Area */}
-          <div className="lg:col-span-3 space-y-6 animate-fade-in" key={currentStep}>
+          <div className="lg:col-span-3 space-y-6" key={currentStep}>
             {/* Dynamic Step Content */}
-            <div className="glass-card rounded-[2.5rem] p-8 md:p-10 border-white/50 relative overflow-hidden min-h-[500px]">
-              <div className="absolute top-0 right-0 p-10 opacity-[0.03] scale-150 rotate-12">
+            <div className="bg-white border border-slate-200 shadow-sm rounded p-8 md:p-10 relative overflow-hidden min-h-[500px]">
+              <div className="absolute top-0 right-0 p-10 opacity-[0.03] scale-150 rotate-12 pointer-events-none">
                 <Rocket size={200} />
               </div>
 
@@ -381,20 +381,20 @@ const ResumeBuilder = () => {
               {/* Step 1: Education */}
               {currentStep === 1 && (
                 <div className="space-y-8 relative z-10">
-                  <div className="flex justify-between items-end">
+                  <div className="flex justify-between items-end mb-6">
                     <div className="space-y-2">
-                      <h3 className="text-2xl font-black text-gray-900 tracking-tight">Academic History</h3>
-                      <p className="text-gray-500 text-sm">Institutional milestones and scholarly achievements.</p>
+                       <h3 className="text-2xl font-black text-slate-900 tracking-tight">Academic History</h3>
+                       <p className="text-slate-500 text-sm">Institutional milestones and scholarly achievements.</p>
                     </div>
-                    <button onClick={() => addItem('education')} className="p-3 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm">
-                      <Plus size={20} />
+                    <button onClick={() => addItem('education')} className="p-3 bg-slate-50 text-slate-600 rounded border border-slate-200 hover:bg-slate-900 hover:text-white transition-colors shadow-sm">
+                      <Plus size={18} />
                     </button>
                   </div>
 
                   <div className="space-y-6">
                     {formData.education.map((edu, i) => (
-                      <div key={i} className="p-6 bg-white/40 border border-gray-100 rounded-3xl space-y-4 hover:border-indigo-200 transition-all relative group">
-                        <button onClick={() => removeItem('education', i)} className="absolute top-4 right-4 text-gray-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all p-2 bg-white rounded-lg border border-transparent hover:border-rose-100">
+                      <div key={i} className="p-6 bg-slate-50 border border-slate-200 rounded space-y-4 hover:border-slate-300 transition-colors relative group">
+                        <button onClick={() => removeItem('education', i)} className="absolute top-4 right-4 text-slate-400 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity p-2 bg-white rounded border border-slate-200 shadow-sm">
                           <Trash2 size={14} />
                         </button>
                         <div className="grid md:grid-cols-2 gap-4">
@@ -413,20 +413,20 @@ const ResumeBuilder = () => {
               {/* Step 2: Experience */}
               {currentStep === 2 && (
                 <div className="space-y-8 relative z-10">
-                  <div className="flex justify-between items-end">
+                  <div className="flex justify-between items-end mb-6">
                     <div className="space-y-2">
-                      <h3 className="text-2xl font-black text-gray-900 tracking-tight">Work Experience</h3>
-                      <p className="text-gray-500 text-sm">Professional impact and industry exposure.</p>
+                      <h3 className="text-2xl font-black text-slate-900 tracking-tight">Work Experience</h3>
+                      <p className="text-slate-500 text-sm">Professional impact and industry exposure.</p>
                     </div>
-                    <button onClick={() => addItem('experience')} className="p-3 bg-purple-50 text-purple-600 rounded-xl hover:bg-purple-600 hover:text-white transition-all shadow-sm">
-                      <Plus size={20} />
+                    <button onClick={() => addItem('experience')} className="p-3 bg-slate-50 text-slate-600 rounded border border-slate-200 hover:bg-slate-900 hover:text-white transition-colors shadow-sm">
+                      <Plus size={18} />
                     </button>
                   </div>
 
                   <div className="space-y-6">
                     {formData.experience.map((exp, i) => (
-                      <div key={i} className="p-6 bg-white/40 border border-gray-100 rounded-3xl space-y-4 hover:border-purple-200 transition-all relative group">
-                        <button onClick={() => removeItem('experience', i)} className="absolute top-4 right-4 text-gray-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all p-2 bg-white rounded-lg border border-transparent hover:border-rose-100">
+                      <div key={i} className="p-6 bg-slate-50 border border-slate-200 rounded space-y-4 hover:border-slate-300 transition-colors relative group">
+                        <button onClick={() => removeItem('experience', i)} className="absolute top-4 right-4 text-slate-400 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity p-2 bg-white rounded border border-slate-200 shadow-sm">
                           <Trash2 size={14} />
                         </button>
                         <div className="grid md:grid-cols-2 gap-4">
@@ -444,12 +444,12 @@ const ResumeBuilder = () => {
               {/* Step 3: Skills */}
               {currentStep === 3 && (
                 <div className="space-y-8 relative z-10">
-                  <div className="space-y-2">
-                    <h3 className="text-2xl font-black text-gray-900 tracking-tight">Expertise Engine</h3>
-                    <p className="text-gray-500 text-sm">Comma-separated skills matrix. Think technical & behavioral.</p>
+                  <div className="space-y-2 mb-6">
+                    <h3 className="text-2xl font-black text-slate-900 tracking-tight">Expertise Engine</h3>
+                    <p className="text-slate-500 text-sm">Comma-separated skills matrix. Think technical & behavioral.</p>
                   </div>
 
-                  <div className="p-8 bg-amber-50/30 border border-amber-100 rounded-[2rem] space-y-6">
+                  <div className="p-6 bg-slate-50 border border-slate-200 rounded space-y-6">
                     <MemoizedInput
                       type="textarea"
                       rows={8}
@@ -459,7 +459,7 @@ const ResumeBuilder = () => {
                     />
                     <div className="flex flex-wrap gap-2 pt-2">
                       {(formData.skills.split(',')).filter(s => s.trim()).map((s, i) => (
-                        <span key={i} className="px-4 py-1.5 bg-white border border-amber-100 text-amber-700 font-bold text-[10px] uppercase tracking-widest rounded-full shadow-sm">
+                        <span key={i} className="px-3 py-1.5 bg-white border border-slate-300 text-slate-700 font-bold text-[10px] uppercase tracking-widest rounded shadow-sm">
                           {s.trim()}
                         </span>
                       ))}
@@ -471,20 +471,20 @@ const ResumeBuilder = () => {
               {/* Step 4: Projects */}
               {currentStep === 4 && (
                 <div className="space-y-8 relative z-10">
-                  <div className="flex justify-between items-end">
+                  <div className="flex justify-between items-end mb-6">
                     <div className="space-y-2">
-                      <h3 className="text-2xl font-black text-gray-900 tracking-tight">Project Portfolio</h3>
-                      <p className="text-gray-500 text-sm">Demonstrating technical prowess through practical execution.</p>
+                      <h3 className="text-2xl font-black text-slate-900 tracking-tight">Project Portfolio</h3>
+                      <p className="text-slate-500 text-sm">Demonstrating technical prowess through practical execution.</p>
                     </div>
-                    <button onClick={() => addItem('projects')} className="p-3 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm">
-                      <Plus size={20} />
+                    <button onClick={() => addItem('projects')} className="p-3 bg-slate-50 text-slate-600 rounded border border-slate-200 hover:bg-slate-900 hover:text-white transition-colors shadow-sm">
+                      <Plus size={18} />
                     </button>
                   </div>
 
                   <div className="space-y-6">
                     {formData.projects.map((proj, i) => (
-                      <div key={i} className="p-6 bg-white/40 border border-gray-100 rounded-3xl space-y-4 hover:border-emerald-200 transition-all relative group">
-                        <button onClick={() => removeItem('projects', i)} className="absolute top-4 right-4 text-gray-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all p-2 bg-white rounded-lg border border-transparent hover:border-rose-100">
+                      <div key={i} className="p-6 bg-slate-50 border border-slate-200 rounded space-y-4 hover:border-slate-300 transition-colors relative group">
+                        <button onClick={() => removeItem('projects', i)} className="absolute top-4 right-4 text-slate-400 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity p-2 bg-white rounded border border-slate-200 shadow-sm">
                           <Trash2 size={14} />
                         </button>
                         <div className="grid md:grid-cols-2 gap-4">
@@ -502,20 +502,20 @@ const ResumeBuilder = () => {
               {/* Step 5: Certifications */}
               {currentStep === 5 && (
                 <div className="space-y-8 relative z-10">
-                  <div className="flex justify-between items-end">
+                  <div className="flex justify-between items-end mb-6">
                     <div className="space-y-2">
-                      <h3 className="text-2xl font-black text-gray-900 tracking-tight">Awards & Badges</h3>
-                      <p className="text-gray-500 text-sm">External validation of your expertise.</p>
+                      <h3 className="text-2xl font-black text-slate-900 tracking-tight">Awards & Badges</h3>
+                      <p className="text-slate-500 text-sm">External validation of your expertise.</p>
                     </div>
-                    <button onClick={() => addItem('certifications')} className="p-3 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-600 hover:text-white transition-all shadow-sm">
-                      <Plus size={20} />
+                    <button onClick={() => addItem('certifications')} className="p-3 bg-slate-50 text-slate-600 rounded border border-slate-200 hover:bg-slate-900 hover:text-white transition-colors shadow-sm">
+                      <Plus size={18} />
                     </button>
                   </div>
 
                   <div className="space-y-6">
                     {formData.certifications.map((cert, i) => (
-                      <div key={i} className="p-6 bg-white/40 border border-gray-100 rounded-3xl space-y-4 hover:border-rose-200 transition-all relative group">
-                        <button onClick={() => removeItem('certifications', i)} className="absolute top-4 right-4 text-gray-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all p-2 bg-white rounded-lg border border-transparent hover:border-rose-100">
+                      <div key={i} className="p-6 bg-slate-50 border border-slate-200 rounded space-y-4 hover:border-slate-300 transition-colors relative group">
+                        <button onClick={() => removeItem('certifications', i)} className="absolute top-4 right-4 text-slate-400 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity p-2 bg-white rounded border border-slate-200 shadow-sm">
                           <Trash2 size={14} />
                         </button>
                         <div className="grid md:grid-cols-3 gap-4">
@@ -533,31 +533,31 @@ const ResumeBuilder = () => {
             </div>
 
             {/* Form Navigation Buttons */}
-            <div className="flex justify-between items-center bg-white/80 backdrop-blur-sm border border-gray-100 p-4 rounded-[2rem] shadow-xl shadow-gray-100">
+            <div className="flex justify-between items-center bg-white border border-slate-200 p-6 rounded shadow-sm mt-6">
               <button
                 onClick={prevStep}
                 disabled={currentStep === 0}
-                className="flex items-center gap-2 px-6 py-4 rounded-2xl font-bold text-sm text-gray-500 hover:bg-gray-50 disabled:opacity-30 transition-all active:scale-95"
+                className="flex items-center gap-2 px-6 py-3 rounded border border-slate-200 font-bold text-sm text-slate-600 hover:bg-slate-50 disabled:opacity-50 transition-colors"
               >
-                <ChevronLeft size={18} />
+                <ChevronLeft size={16} />
                 Back
               </button>
 
               {currentStep === steps.length - 1 ? (
                 <button
                   onClick={() => setShowPreview(true)}
-                  className="flex items-center gap-3 px-10 py-4 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:shadow-2xl hover:shadow-blue-200 transition-all active:scale-95 group"
+                  className="flex items-center gap-3 px-8 py-3 bg-amber-500 border border-amber-600 text-white rounded font-bold uppercase text-xs tracking-widest hover:bg-amber-600 transition-colors shadow-sm"
                 >
                   Verify Architecture
-                  <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                  <ArrowRight size={14} />
                 </button>
               ) : (
                 <button
                   onClick={nextStep}
-                  className="flex items-center gap-3 px-10 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:shadow-2xl transition-all active:scale-95 group"
+                  className="flex items-center gap-3 px-8 py-3 bg-slate-900 border border-slate-900 text-white rounded font-bold uppercase text-xs tracking-widest hover:bg-slate-800 transition-colors shadow-sm"
                 >
                   Deploy Next Step
-                  <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                  <ArrowRight size={14} />
                 </button>
               )}
             </div>

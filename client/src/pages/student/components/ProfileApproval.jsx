@@ -145,33 +145,29 @@ const ProfileApproval = () => {
     return ['tpo', 'superadmin'].includes(userRole);
   };
 
-  // --- Premium Loading State ---
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center h-[60vh] animate-fade-in">
-        <div className="relative">
-          <div className="w-20 h-20 border-4 border-blue-50 rounded-full animate-pulse"></div>
-          <div className="absolute top-0 left-0 w-20 h-20 border-t-4 border-blue-600 rounded-full animate-spin"></div>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <FaShieldAlt className="text-blue-400 text-xl" />
-          </div>
+      <div className="flex flex-col items-center justify-center h-[60vh]">
+        <div className="relative w-16 h-16 border-4 border-slate-50 flex items-center justify-center rounded overflow-hidden">
+          <div className="absolute inset-0 bg-slate-800 animate-pulse h-1 origin-bottom"></div>
+          <FaShieldAlt className="text-slate-300" size={24} />
         </div>
-        <p className="mt-6 text-gray-400 font-bold uppercase tracking-widest text-[10px]">Loading Verification Data</p>
+        <p className="mt-6 text-slate-400 font-bold uppercase tracking-widest text-[10px]">Loading Verification Data</p>
       </div>
     );
   }
 
   if (!profileData) {
     return (
-      <div className="glass-card rounded-[2.5rem] p-12 text-center max-w-lg mx-auto mt-20">
-        <div className="w-20 h-20 bg-amber-50 rounded-3xl flex items-center justify-center mx-auto mb-6">
-          <FaExclamationTriangle size={32} className="text-amber-500" />
+      <div className="bg-white border border-slate-200 shadow-sm rounded p-12 text-center max-w-lg mx-auto mt-20">
+        <div className="w-16 h-16 bg-slate-50 border border-slate-100 flex items-center justify-center mx-auto mb-6 rounded">
+          <FaExclamationTriangle size={24} className="text-amber-500" />
         </div>
-        <h3 className="text-xl font-bold text-gray-800 mb-2">No profile data</h3>
-        <p className="text-gray-500 mb-8 text-sm">We couldn't retrieve your profile information at this time.</p>
+        <h3 className="text-lg font-bold text-slate-900 mb-2">No profile data</h3>
+        <p className="text-slate-500 mb-8 text-sm">We couldn't retrieve your profile information at this time.</p>
         <button 
           onClick={loadProfileData}
-          className="px-8 py-3.5 bg-blue-600 text-white rounded-2xl font-bold shadow-xl shadow-blue-200 hover:bg-blue-700 transition-all duration-300"
+          className="px-6 py-3 bg-slate-900 text-white rounded font-bold shadow-sm hover:bg-slate-800 transition-colors uppercase tracking-widest text-xs"
         >
           Retry
         </button>
@@ -185,29 +181,26 @@ const ProfileApproval = () => {
   return (
     <div className="space-y-10 pb-20">
       {/* Hero Status Banner */}
-      <div className={`relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br ${statusCfg.color} shadow-2xl shadow-blue-200/30 p-8 md:p-10`}>
-        <div className="absolute top-0 right-0 w-80 h-80 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
-        <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full blur-2xl -ml-16 -mb-16"></div>
-        
+      <div className={`relative overflow-hidden rounded bg-white border ${statusCfg.border} shadow-sm p-8 md:p-10`}>
         <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="space-y-3">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white text-xs font-bold uppercase tracking-widest">
+            <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold uppercase tracking-widest`}>
               <FaShieldAlt size={12} />
               <span>Verification Center</span>
             </div>
-            <h1 className="text-3xl md:text-4xl font-extrabold text-white leading-tight">
+            <h1 className="text-2xl md:text-3xl font-bold text-slate-900 leading-tight">
               Profile Approval
             </h1>
-            <p className="text-white/80 text-sm max-w-md font-medium leading-relaxed">
+            <p className="text-slate-500 text-sm max-w-md leading-relaxed">
               {statusCfg.message}
             </p>
           </div>
           
           <div className="flex items-center gap-4">
-            <div className="bg-white/15 backdrop-blur-md rounded-2xl px-8 py-5 border border-white/20 text-center text-white">
+            <div className={`bg-slate-50 border border-slate-200 rounded px-6 py-4 text-center ${statusCfg.text}`}>
               <StatusIcon className="mx-auto mb-2 text-2xl" />
-              <p className="text-lg font-black">{statusCfg.label}</p>
-              <p className="text-[10px] uppercase tracking-widest font-bold opacity-60 mt-1">Current Status</p>
+              <p className="text-lg font-bold">{statusCfg.label}</p>
+              <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400 mt-1">Current Status</p>
             </div>
           </div>
         </div>
@@ -216,29 +209,29 @@ const ProfileApproval = () => {
       {/* Profile Information */}
       <div className="grid lg:grid-cols-2 gap-8">
         {/* Personal Information Card */}
-        <div className="glass-card rounded-[2rem] p-8 border-white/50 hover-lift">
+        <div className="bg-white border border-slate-200 rounded p-8 shadow-sm">
           <div className="flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
-              <FaUser size={18} />
+            <div className="w-10 h-10 bg-slate-50 border border-slate-200 text-slate-700 rounded flex items-center justify-center shrink-0">
+              <FaUser size={16} />
             </div>
-            <h3 className="text-lg font-bold text-gray-800">Personal Information</h3>
+            <h3 className="text-lg font-bold text-slate-900">Personal Information</h3>
           </div>
           
           <div className="space-y-5">
             {[
-              { icon: FaUser, label: 'Full Name', value: profileData.name, color: 'bg-blue-50 text-blue-500' },
-              { icon: FaEnvelope, label: 'Email Address', value: profileData.email, color: 'bg-purple-50 text-purple-500' },
-              { icon: FaPhone, label: 'Phone Number', value: profileData.phone, color: 'bg-emerald-50 text-emerald-500' },
+              { icon: FaUser, label: 'Full Name', value: profileData.name },
+              { icon: FaEnvelope, label: 'Email Address', value: profileData.email },
+              { icon: FaPhone, label: 'Phone Number', value: profileData.phone },
             ].map((item, idx) => {
               const Icon = item.icon;
               return (
-                <div key={idx} className="flex items-center gap-4 p-4 bg-gray-50/50 rounded-2xl hover:bg-gray-50 transition-colors">
-                  <div className={`w-10 h-10 ${item.color} rounded-xl flex items-center justify-center flex-shrink-0`}>
-                    <Icon size={16} />
+                <div key={idx} className="flex items-center gap-4 p-4 bg-slate-50 border border-slate-100 rounded hover:border-slate-200 transition-colors">
+                  <div className={`w-10 h-10 bg-white border border-slate-200 text-slate-500 rounded flex items-center justify-center flex-shrink-0`}>
+                    <Icon size={14} />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{item.label}</p>
-                    <p className="text-sm font-bold text-gray-800 truncate">{item.value || 'Not provided'}</p>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{item.label}</p>
+                    <p className="text-sm font-bold text-slate-900 truncate">{item.value || 'Not provided'}</p>
                   </div>
                 </div>
               );
@@ -247,28 +240,28 @@ const ProfileApproval = () => {
         </div>
 
         {/* Academic Information Card */}
-        <div className="glass-card rounded-[2rem] p-8 border-white/50 hover-lift">
+        <div className="bg-white border border-slate-200 rounded p-8 shadow-sm">
           <div className="flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
-              <FaGraduationCap size={18} />
+            <div className="w-10 h-10 bg-slate-50 border border-slate-200 text-slate-700 rounded flex items-center justify-center shrink-0">
+              <FaGraduationCap size={16} />
             </div>
-            <h3 className="text-lg font-bold text-gray-800">Academic Information</h3>
+            <h3 className="text-lg font-bold text-slate-900">Academic Information</h3>
           </div>
           
           <div className="space-y-5">
             {[
-              { icon: FaGraduationCap, label: 'Branch / Department', value: profileData.student?.branch, color: 'bg-indigo-50 text-indigo-500' },
-              { icon: FaBuilding, label: 'College / University', value: profileData.student?.collegeName, color: 'bg-amber-50 text-amber-500' },
+              { icon: FaGraduationCap, label: 'Branch / Department', value: profileData.student?.branch },
+              { icon: FaBuilding, label: 'College / University', value: profileData.student?.collegeName },
             ].map((item, idx) => {
               const Icon = item.icon;
               return (
-                <div key={idx} className="flex items-center gap-4 p-4 bg-gray-50/50 rounded-2xl hover:bg-gray-50 transition-colors">
-                  <div className={`w-10 h-10 ${item.color} rounded-xl flex items-center justify-center flex-shrink-0`}>
-                    <Icon size={16} />
+                <div key={idx} className="flex items-center gap-4 p-4 bg-slate-50 border border-slate-100 rounded hover:border-slate-200 transition-colors">
+                  <div className={`w-10 h-10 bg-white border border-slate-200 text-slate-500 rounded flex items-center justify-center flex-shrink-0`}>
+                    <Icon size={14} />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{item.label}</p>
-                    <p className="text-sm font-bold text-gray-800 truncate">{item.value || 'Not provided'}</p>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{item.label}</p>
+                    <p className="text-sm font-bold text-slate-900 truncate">{item.value || 'Not provided'}</p>
                   </div>
                 </div>
               );
@@ -277,10 +270,10 @@ const ProfileApproval = () => {
 
           {/* Rejection Reason (if rejected) */}
           {profileData.approvalStatus === 'Rejected' && profileData.rejectionReason && (
-            <div className="mt-6 p-5 bg-rose-50/50 border border-rose-100 rounded-2xl">
+            <div className="mt-6 p-5 bg-rose-50 border border-rose-200 rounded">
               <div className="flex items-center gap-2 mb-2">
-                <FaExclamationTriangle className="text-rose-500" size={14} />
-                <p className="text-xs font-black text-rose-700 uppercase tracking-widest">Rejection Reason</p>
+                <FaExclamationTriangle className="text-rose-600" size={14} />
+                <p className="text-xs font-bold text-rose-700 uppercase tracking-widest">Rejection Reason</p>
               </div>
               <p className="text-sm text-rose-600 leading-relaxed italic">{profileData.rejectionReason}</p>
             </div>
@@ -290,14 +283,14 @@ const ProfileApproval = () => {
 
       {/* Approval Actions (for TPO / admin) */}
       {canApproveReject() && profileData.approvalStatus === 'Pending' && (
-        <div className="glass-card rounded-[2rem] p-8 border-white/50">
+        <div className="bg-white border border-slate-200 rounded p-8 shadow-sm">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center">
-              <FaShieldAlt size={18} />
+            <div className="w-10 h-10 bg-slate-50 border border-slate-200 text-slate-700 rounded flex items-center justify-center shrink-0">
+              <FaShieldAlt size={16} />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-gray-800">Verification Actions</h3>
-              <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Review and take action on this profile</p>
+              <h3 className="text-lg font-bold text-slate-900">Verification Actions</h3>
+              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Review and take action on this profile</p>
             </div>
           </div>
           
@@ -305,12 +298,12 @@ const ProfileApproval = () => {
             <button
               onClick={handleApprove}
               disabled={approving}
-              className="flex-1 flex items-center justify-center gap-3 py-4 bg-emerald-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-emerald-200 hover:bg-emerald-700 disabled:opacity-50 transition-all duration-300"
+              className="flex-1 flex items-center justify-center gap-3 py-3 bg-emerald-600 text-white rounded font-bold uppercase tracking-widest text-xs shadow-sm hover:bg-emerald-700 disabled:opacity-50 transition-colors"
             >
               {approving ? (
-                <FaSpinner className="animate-spin" size={16} />
+                <FaSpinner className="animate-spin" size={14} />
               ) : (
-                <FaThumbsUp size={16} />
+                <FaThumbsUp size={14} />
               )}
               {approving ? 'Approving...' : 'Approve Profile'}
             </button>
@@ -318,12 +311,12 @@ const ProfileApproval = () => {
             <button
               onClick={() => setShowRejectModal(true)}
               disabled={rejecting}
-              className="flex-1 flex items-center justify-center gap-3 py-4 bg-white border-2 border-rose-200 text-rose-600 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-rose-50 disabled:opacity-50 transition-all duration-300"
+              className="flex-1 flex items-center justify-center gap-3 py-3 bg-white border border-slate-200 text-rose-600 rounded font-bold uppercase tracking-widest text-xs hover:bg-rose-50 disabled:opacity-50 transition-colors shadow-sm"
             >
               {rejecting ? (
-                <FaSpinner className="animate-spin" size={16} />
+                <FaSpinner className="animate-spin" size={14} />
               ) : (
-                <FaThumbsDown size={16} />
+                <FaThumbsDown size={14} />
               )}
               {rejecting ? 'Rejecting...' : 'Reject Profile'}
             </button>
@@ -333,24 +326,24 @@ const ProfileApproval = () => {
 
       {/* Rejection Reason Modal */}
       {showRejectModal && (
-        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-fade-in">
-          <div className="glass-morphism bg-white rounded-[2.5rem] max-w-md w-full overflow-hidden shadow-2xl">
+        <div className="fixed inset-0 bg-slate-900/60 flex items-center justify-center z-[100] p-4">
+          <div className="bg-white border border-slate-200 rounded shadow-sm max-w-md w-full overflow-hidden">
             {/* Modal Header */}
-            <div className="flex justify-between items-center p-8 border-b border-gray-100/50">
+            <div className="flex justify-between items-center bg-slate-50 p-6 border-b border-slate-200">
               <div>
-                <h2 className="text-xl font-black text-gray-800">Reject Profile</h2>
-                <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Provide justification</p>
+                <h2 className="text-xl font-bold text-slate-900">Reject Profile</h2>
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Provide justification</p>
               </div>
               <button 
                 onClick={() => { setShowRejectModal(false); setRejectReason(''); }}
-                className="w-10 h-10 rounded-xl bg-gray-50 text-gray-400 hover:text-rose-500 hover:bg-rose-50 flex items-center justify-center transition-all duration-300"
+                className="w-8 h-8 rounded bg-white border border-slate-200 text-slate-500 hover:text-slate-900 hover:bg-slate-50 flex items-center justify-center transition-colors shadow-sm"
               >
-                <FaTimes size={18} />
+                <FaTimes size={14} />
               </button>
             </div>
 
-            <div className="p-8 space-y-6">
-              <p className="text-gray-500 text-sm leading-relaxed">
+            <div className="p-6 space-y-6">
+              <p className="text-slate-500 text-sm leading-relaxed">
                 Please provide a clear reason for rejection. This will be shared with the student to help them improve their profile.
               </p>
               
@@ -358,21 +351,21 @@ const ProfileApproval = () => {
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
                 placeholder="Explain why this profile is being rejected..."
-                className="w-full bg-gray-50/50 border border-gray-100 rounded-2xl px-6 py-4 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 focus:bg-white transition-all duration-300 resize-none"
+                className="w-full bg-white border border-slate-200 rounded px-4 py-3 text-sm focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 transition-colors resize-none placeholder:text-slate-400"
                 rows={4}
               />
               
               <div className="flex gap-4">
                 <button
                   onClick={() => { setShowRejectModal(false); setRejectReason(''); }}
-                  className="flex-1 py-4 bg-gray-100 text-gray-600 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-gray-200 transition-all duration-300"
+                  className="flex-1 py-3 bg-white border border-slate-200 text-slate-600 rounded font-bold uppercase tracking-widest text-xs hover:bg-slate-50 transition-colors shadow-sm"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleReject}
                   disabled={rejecting || !rejectReason.trim()}
-                  className="flex-1 py-4 bg-rose-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-rose-200 hover:bg-rose-700 disabled:opacity-50 transition-all duration-300"
+                  className="flex-1 py-3 bg-rose-600 text-white rounded font-bold uppercase tracking-widest text-xs shadow-sm hover:bg-rose-700 disabled:opacity-50 transition-colors"
                 >
                   {rejecting ? 'Rejecting...' : 'Confirm Rejection'}
                 </button>

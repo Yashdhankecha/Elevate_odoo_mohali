@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   FileText, 
   BookOpen, 
@@ -16,21 +17,37 @@ import {
   Rocket,
   ShieldCheck,
   TrendingUp,
-  Loader2
+  Loader2,
+  Newspaper,
+  ExternalLink,
+  Search
 } from 'lucide-react';
 import { studentApi } from '../../../services/studentApi';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../../../contexts/AuthContext';
 import { getUserDisplayName } from '../../../utils/helpers';
+import { useNewsData } from '../../../hooks/useNewsData';
 
 const DashboardOverview = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  const { articles: news, loading: newsLoading, error: newsError, loadMore, loadingMore, hasMore } = useNewsData();
 
   useEffect(() => {
     fetchDashboardData();
   }, []);
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Let's start a beautiful morning,";
+    if (hour < 17) return "Good afternoon,";
+    if (hour < 23) return "Good evening,";
+    return "Hello night owl,";
+  };
 
   const fetchDashboardData = async () => {
     try {
@@ -52,13 +69,13 @@ const DashboardOverview = () => {
   );
 
   if (!dashboardData) return (
-    <div className="glass-card rounded-[2.5rem] md:rounded-[3rem] p-8 md:p-16 text-center max-w-xl mx-auto mt-10 md:mt-20 border-white/50 shadow-2xl shadow-slate-200/50 flex flex-col items-center">
-      <div className="w-20 h-20 md:w-24 md:h-24 bg-rose-50 rounded-[2rem] md:rounded-[2.5rem] flex items-center justify-center mb-6 md:mb-8 border border-rose-100 shadow-inner">
+    <div className="bg-white rounded border border-slate-200 p-8 md:p-16 text-center max-w-xl mx-auto mt-10 md:mt-20 shadow-sm flex flex-col items-center">
+      <div className="w-16 h-16 md:w-20 md:h-20 bg-rose-50 rounded flex items-center justify-center mb-6 md:mb-8 border border-rose-100 shadow-sm">
         <Target size={32} className="text-rose-500" />
       </div>
-      <h3 className="text-xl md:text-2xl font-black text-slate-900 tracking-tighter mb-3 uppercase">Error Connecting</h3>
+      <h3 className="text-xl md:text-2xl font-bold text-slate-900 mb-3">Error Connecting</h3>
       <p className="text-slate-500 text-sm font-medium mb-8 md:mb-10 leading-relaxed max-w-md">We couldn't connect to the server. Please check your internet connection.</p>
-      <button onClick={fetchDashboardData} className="w-full md:w-auto px-10 md:px-12 py-4 bg-slate-900 text-white rounded-[1.2rem] md:rounded-[1.5rem] font-bold uppercase text-[10px] md:text-[11px] tracking-widest hover:bg-blue-600 transition-all shadow-xl shadow-slate-900/10 active:scale-95">Try Again</button>
+      <button onClick={fetchDashboardData} className="w-full md:w-auto px-10 md:px-12 py-3 bg-slate-900 text-white rounded font-bold hover:bg-slate-800 transition-colors shadow-sm">Try Again</button>
     </div>
   );
 
@@ -76,49 +93,22 @@ const DashboardOverview = () => {
   return (
     <div className="space-y-8 md:space-y-12 pb-24">
       {/* Welcome Area */}
-      <div className="relative group overflow-hidden rounded-[2.5rem] md:rounded-[3.5rem] bg-[#0f172a] p-8 md:p-14 shadow-[0_40px_80px_-20px_rgba(15,23,42,0.3)]">
-         <div className="absolute top-[-20%] right-[-10%] w-96 h-96 bg-blue-600/20 rounded-full blur-[120px]"></div>
-         <div className="absolute bottom-[-20%] left-[-10%] w-80 h-80 bg-indigo-600/10 rounded-full blur-[100px]"></div>
-         
+      <div className="relative group overflow-hidden rounded bg-slate-900 p-8 md:p-14 shadow-sm border border-slate-800">
          <div className="relative z-10 grid lg:grid-cols-5 gap-12 items-center">
-            <div className="lg:col-span-3 space-y-6">
-               <div className="inline-flex items-center gap-3 px-5 py-2 rounded-2xl bg-white/5 backdrop-blur-3xl border border-white/10 text-white font-bold text-[10px] uppercase tracking-widest shadow-2xl">
-                  <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
-                  System Status: Active
-               </div>
+            <div className="lg:col-span-5 space-y-6">
                
-               <h1 className="text-3xl md:text-6xl font-black text-white tracking-tighter leading-tight md:leading-none">
-                  Hello, <br />
-                  <span className="text-blue-400">{getUserDisplayName(user)}!</span>
+               <h1 className="text-3xl md:text-5xl font-black text-white tracking-tighter leading-tight">
+                  {getGreeting()} <br />
+                  <span className="text-blue-400">{getUserDisplayName(user)}</span>
                </h1>
                
-               <p className="text-slate-400 text-base md:text-xl font-medium max-w-xl leading-relaxed">
-                  Your progress is looking great! You have <span className="text-white font-bold">{stats.interviewsScheduled} interviews</span> coming up soon.
-               </p>
-               
                <div className="pt-4 md:pt-6 flex flex-col sm:flex-row gap-4">
-                  <button className="px-8 md:px-10 py-4 bg-white text-slate-900 rounded-[1.2rem] md:rounded-[1.5rem] font-bold uppercase text-[10px] md:text-[11px] tracking-widest hover:scale-105 transition-all active:scale-95 flex items-center justify-center md:justify-start gap-2">
+                  <button onClick={() => navigate('/student-dashboard/resume-builder')} className="px-6 py-3 bg-white text-slate-900 rounded font-bold text-sm tracking-wide hover:bg-slate-50 transition-colors flex items-center justify-center md:justify-start gap-2 shadow-sm">
                      Manage Resume <ArrowUpRight size={16} />
                   </button>
-                  <button className="px-8 md:px-10 py-4 bg-white/5 backdrop-blur-3xl border border-white/10 text-white rounded-[1.2rem] md:rounded-[1.5rem] font-bold uppercase text-[10px] md:text-[11px] tracking-widest hover:bg-white/10 transition-all active:scale-95 flex items-center justify-center md:justify-start gap-2">
+                  <button onClick={() => navigate('/student-dashboard/ai-coach')} className="px-6 py-3 bg-slate-800 border border-slate-700 text-white rounded font-bold text-sm tracking-wide hover:bg-slate-700 transition-colors flex items-center justify-center md:justify-start gap-2 shadow-sm">
                      Ask AI Coach <Sparkles size={16} className="text-blue-400" />
                   </button>
-               </div>
-            </div>
-            
-            <div className="lg:col-span-2 flex justify-center lg:justify-end">
-               <div className="relative w-full md:w-64 aspect-square md:h-64">
-                  <div className="absolute inset-0 bg-white/5 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] md:rounded-[4rem] shadow-2xl flex flex-col items-center justify-center text-center p-6 md:p-10">
-                     <div className="w-16 h-16 md:w-20 md:h-20 bg-blue-500/10 rounded-[1.2rem] md:rounded-[1.8rem] flex items-center justify-center mb-4 md:mb-6 border border-blue-400/20">
-                        <Trophy className="text-3xl md:text-4xl text-blue-400" />
-                     </div>
-                     <p className="text-[9px] md:text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 md:mb-2">Global Rank</p>
-                     <p className="text-4xl md:text-5xl font-black text-white tracking-tighter">#124</p>
-                     <div className="mt-6 flex items-center gap-2 px-3 py-1 bg-emerald-400/10 rounded-lg">
-                        <TrendingUp size={12} className="text-emerald-400" />
-                        <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-widest">Top 5% Student</span>
-                     </div>
-                  </div>
                </div>
             </div>
          </div>
@@ -135,103 +125,133 @@ const DashboardOverview = () => {
 
          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 md:gap-6">
             {metrics.map((metric, i) => (
-               <div key={i} className="group glass-card p-4 md:p-6 rounded-[1.8rem] md:rounded-[2.5rem] hover-lift border-white/50 relative overflow-hidden transition-all duration-500 flex flex-col items-center text-center">
-                  <div className={`w-12 h-12 md:w-14 md:h-14 rounded-xl md:rounded-2xl ${metric.bg} ${metric.color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}>
+               <div key={i} className="bg-white p-4 md:p-6 rounded border border-slate-200 shadow-sm transition-colors hover:border-slate-300 flex flex-col items-center text-center">
+                  <div className={`w-12 h-12 md:w-14 md:h-14 rounded ${metric.bg} ${metric.color} flex items-center justify-center`}>
                      <metric.icon size={22} />
                   </div>
                   
                   <div className="mt-4 space-y-1">
-                     <h4 className="text-2xl font-black text-slate-900 tracking-tighter leading-none">{metric.value}</h4>
-                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{metric.title}</p>
+                     <h4 className="text-2xl font-bold text-slate-900 leading-none">{metric.value}</h4>
+                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{metric.title}</p>
                   </div>
                   
-                  <div className="mt-4 px-3 py-1 bg-slate-50 border border-slate-100 rounded-full flex items-center gap-1.5 hover:bg-slate-900 transition-colors group">
-                     <span className={`text-[9px] font-bold uppercase tracking-widest ${metric.color} group-hover:text-white`}>{metric.trend}</span>
+                  <div className="mt-4 px-3 py-1 bg-slate-50 border border-slate-100 rounded flex items-center gap-1.5">
+                     <span className={`text-[9px] font-bold uppercase tracking-widest ${metric.color}`}>{metric.trend}</span>
                   </div>
                </div>
             ))}
          </div>
       </div>
 
-      {/* Activity and Deadlines */}
-      <div className="grid lg:grid-cols-3 gap-10">
-         <div className="lg:col-span-2 space-y-8">
-            <h3 className="text-xl font-black text-slate-900 tracking-tight px-4 uppercase">Recent Activity</h3>
-            
-            <div className="glass-card rounded-[3.5rem] p-4 md:p-10 border-white/50 shadow-2xl shadow-slate-200/40">
-               {recentActivities.length > 0 ? (
-                  <div className="space-y-4">
-                     {recentActivities.map((activity, idx) => (
-                        <div key={idx} className="group flex gap-8 p-6 rounded-[2.5rem] hover:bg-slate-50/50 transition-all duration-500 border border-transparent hover:border-slate-100 flex-col sm:flex-row items-start sm:items-center">
-                           <div className="flex-shrink-0">
-                              <div className={`w-14 h-14 rounded-[1.2rem] flex items-center justify-center shadow-2xl ${
-                                 activity.type === 'success' ? 'bg-emerald-500 text-white' : 
-                                 activity.type === 'warning' ? 'bg-amber-400 text-slate-900' : 
-                                 'bg-blue-600 text-white'
-                              }`}>
-                                 {activity.type === 'success' ? <CheckCircle2 size={24} /> : 
-                                  activity.type === 'warning' ? <Clock size={24} /> : 
-                                  <FileText size={24} />}
+      {/* Full Width News Section */}
+      <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end px-6 gap-4">
+              <div>
+                  <h3 className="text-2xl font-black text-slate-900 tracking-tighter uppercase flex items-center gap-3">
+                      <Zap className="text-blue-600" fill="currentColor" size={24} />
+                      The Tech Pulse
+                  </h3>
+                  <p className="text-slate-400 text-[11px] font-bold uppercase tracking-widest mt-1">Curated placements, hiring & tech news</p>
+              </div>
+              <div className="relative w-full sm:w-64">
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input 
+                  type="text" 
+                  placeholder="Filter news titles..." 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded text-sm text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-shadow bg-white shadow-sm"
+                />
+              </div>
+          </div>
+          
+          <div className="bg-white rounded border border-slate-200 shadow-sm p-6 md:p-10 relative overflow-hidden min-h-[400px]">
+              {/* Decorative elements */}
+              <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
+              
+              {newsLoading ? (
+                  <div className="py-20 flex flex-col items-center justify-center relative z-10 h-full">
+                      <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mb-4 border border-blue-100 shadow-inner">
+                          <Loader2 className="w-8 h-8 animate-spin" />
+                      </div>
+                      <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">Curating your newsfeed...</p>
+                  </div>
+              ) : news.length > 0 ? (
+                  <div className="flex flex-col gap-4 relative z-10">
+                      {news
+                          .filter(item => (item.title || "").toLowerCase().includes(searchQuery.toLowerCase()))
+                          .map((item, idx) => (
+                          <a
+                              key={idx}
+                              href={item.link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="group flex flex-col sm:flex-row rounded border border-slate-200 hover:border-blue-200 hover:shadow-md hover:shadow-blue-500/5 bg-white transition-all overflow-hidden items-stretch"
+                          >
+                              {item.image_url ? (
+                                  <div className="relative bg-slate-100 overflow-hidden w-full sm:w-48 h-48 sm:h-auto shrink-0 border-b sm:border-b-0 sm:border-r border-slate-100">
+                                      <img src={item.image_url} alt="News thumbnail" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-in-out" />
+                                      <div className="absolute inset-0 bg-slate-900/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                                  </div>
+                              ) : (
+                                  <div className="bg-slate-50 flex flex-col items-center justify-center text-slate-300 relative overflow-hidden w-full sm:w-48 h-48 sm:h-auto shrink-0 border-b sm:border-b-0 sm:border-r border-slate-100">
+                                      <Newspaper size={32} className="mb-2 opacity-30" />
+                                      <span className="text-[10px] font-bold uppercase tracking-widest opacity-40">No Image</span>
+                                  </div>
+                              )}
+                              
+                              <div className="flex flex-col flex-1 p-5">
+                                  <div className="flex items-center gap-2 mb-2">
+                                      <span className="px-2 py-0.5 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-widest rounded group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors truncate max-w-[150px]">
+                                          {item.source_id || 'Industry News'}
+                                      </span>
+                                  </div>
+                                  <h4 className="font-bold text-slate-900 text-base leading-snug group-hover:text-blue-600 transition-colors line-clamp-2 mb-2">
+                                      {item.title}
+                                  </h4>
+                                  <p className="text-slate-500 text-xs leading-relaxed line-clamp-2 mb-4">
+                                      {item.description || 'Discover the latest insights and updates from this top tech story.'}
+                                  </p>
+                                  
+                                  <div className="mt-auto flex items-center justify-between pt-3 border-t border-slate-100">
+                                      <span className="text-[11px] font-bold text-slate-400 group-hover:text-blue-600 transition-colors">Read Full Story</span>
+                                      <div className="w-6 h-6 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors text-slate-400">
+                                          <ArrowUpRight size={12} />
+                                      </div>
+                                  </div>
                               </div>
-                           </div>
-                           
-                           <div className="flex-1 space-y-1">
-                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{activity.time}</p>
-                              <p className="text-slate-800 font-bold text-lg leading-snug group-hover:text-blue-600 transition-colors">{activity.message}</p>
-                           </div>
-                        </div>
-                     ))}
-                     <button className="w-full mt-6 py-5 bg-slate-900 text-white rounded-[1.8rem] font-bold uppercase text-[11px] tracking-widest hover:bg-blue-600 transition-all shadow-xl shadow-slate-900/10">
-                        View More Activities
-                     </button>
+                          </a>
+                      ))}
+                      
+                      {news.filter(item => (item.title || "").toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && !newsLoading && (
+                          <div className="py-12 text-center">
+                              <p className="text-sm font-bold text-slate-500 uppercase tracking-widest">No articles match your search.</p>
+                          </div>
+                      )}
+                      
+                      {/* Load More Button */}
+                      {hasMore && news.filter(item => (item.title || "").toLowerCase().includes(searchQuery.toLowerCase())).length > 0 && (
+                          <div className="flex justify-center mt-4">
+                              <button 
+                                  onClick={loadMore}
+                                  disabled={loadingMore}
+                                  className="px-6 py-2 bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-600 font-bold text-xs uppercase tracking-widest rounded-full transition-colors flex items-center gap-2"
+                              >
+                                  {loadingMore ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Load More News'}
+                              </button>
+                          </div>
+                      )}
                   </div>
-               ) : (
-                  <div className="py-24 text-center">
-                     <History size={40} className="text-slate-200 mx-auto mb-4" />
-                     <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">No activities recorded</p>
-                  </div>
-               )}
-            </div>
-         </div>
-
-         <div className="space-y-10">
-            {/* Action Card */}
-            <div className="relative group overflow-hidden rounded-[3.5rem] bg-indigo-600 p-10 shadow-2xl hover-lift transition-all duration-700">
-               <FileText className="text-5xl text-white/30 mb-8" />
-               <h4 className="text-2xl font-black text-white uppercase mb-3">Improve Resume</h4>
-               <p className="text-indigo-100 text-sm font-medium leading-relaxed mb-10">Use our AI tool to get professional feedback on your resume and increase your chances by <span className="text-white font-bold underline">200%</span>.</p>
-               <button className="w-full py-5 bg-white text-slate-900 rounded-[1.5rem] font-bold uppercase text-[11px] tracking-widest shadow-2xl active:scale-95 transition-all">
-                  Open Resume Builder
-               </button>
-            </div>
-
-            {/* Deadlines */}
-            <div className="glass-card rounded-[3.5rem] p-10 border-white/50 bg-white/50 shadow-2xl shadow-slate-200/30">
-               <div className="flex items-center gap-4 mb-10">
-                  <div className="w-12 h-12 bg-rose-50 text-rose-500 rounded-2xl flex items-center justify-center border border-rose-100">
-                     <Clock size={22} className="animate-pulse" />
-                  </div>
-                  <h3 className="text-xl font-black text-slate-900 tracking-tight uppercase">Deadlines</h3>
-               </div>
-
-               <div className="space-y-5">
-                  {[
-                     { title: 'Amazon OA Mock', date: 'In 2 hours', urgency: 'high' },
-                     { title: 'TCS Application', date: 'Tomorrow, 5 PM', urgency: 'mid' }
-                  ].map((item, i) => (
-                     <div key={i} className="flex items-center justify-between p-6 bg-white rounded-[2rem] border border-slate-100 hover:shadow-2xl transition-all">
-                        <div>
-                           <p className="text-sm font-bold text-slate-900 uppercase">{item.title}</p>
-                           <p className="text-[10px] text-slate-400 font-bold uppercase mt-1 flex items-center gap-1.5">
-                              <Calendar size={10} /> {item.date}
-                           </p>
-                        </div>
-                        <div className={`w-3 h-3 rounded-full ${item.urgency === 'high' ? 'bg-rose-500 animate-pulse shadow-[0_0_10px_rgba(244,63,94,0.5)]' : 'bg-blue-500'}`}></div>
+              ) : (
+                 <div className="py-20 flex flex-col items-center justify-center text-center relative z-10">
+                     <div className="w-20 h-20 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center mb-6">
+                         <Rocket size={32} />
                      </div>
-                  ))}
-               </div>
-            </div>
-         </div>
+                     <h3 className="text-lg font-bold text-slate-900 mb-2">No Updates Found</h3>
+                     <p className="text-[12px] font-medium text-slate-500 max-w-sm mx-auto leading-relaxed">{newsError || 'Check back later for curated news on tech placements and hiring opportunities.'}</p>
+                 </div>
+              )}
+          </div>
       </div>
     </div>
   );

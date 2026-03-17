@@ -87,44 +87,30 @@ const TopNavbar = ({ toggleSidebar, sidebarCollapsed }) => {
           <div className="flex items-center gap-4">
             <button
               onClick={toggleSidebar}
-              className="lg:hidden w-10 h-10 flex items-center justify-center rounded-xl bg-gray-50 text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition-all duration-300"
+              className="lg:hidden w-10 h-10 flex items-center justify-center rounded bg-slate-50 text-slate-600 hover:bg-slate-100 transition-colors"
             >
               <Menu size={18} />
             </button>
 
             {/* Context Breadcrumb or Search on Desktop */}
             <div className="hidden lg:flex items-center gap-2">
-              <span className="text-sm font-semibold text-gray-500">Company Portal</span>
-              <span className="text-gray-300">/</span>
-              <span className="text-sm font-bold text-gray-800">Overview</span>
-            </div>
-          </div>
-
-          {/* Center: Search */}
-          <div className="hidden md:flex flex-1 max-w-xl mx-8">
-            <div className="relative w-full group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" size={14} />
-              <input
-                type="text"
-                placeholder="Search candidates, applications, jobs..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-11 pr-4 py-2 bg-gray-50 border border-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all duration-300"
-              />
+              <span className="text-sm font-semibold text-slate-500">Company Portal</span>
+              <span className="text-slate-300">/</span>
+              <span className="text-sm font-bold text-slate-800">Overview</span>
             </div>
           </div>
 
           {/* Right: Actions */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-3">
             {/* Notifications */}
             <div className="relative" ref={notificationRef}>
               <button
                 onClick={() => setShowNotifications(!showNotifications)}
-                className="relative w-10 h-10 flex items-center justify-center rounded-xl bg-gray-50 text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition-all"
+                className="relative w-10 h-10 flex items-center justify-center rounded bg-slate-50 border border-transparent text-slate-600 hover:bg-slate-100 hover:border-slate-200 transition-colors"
               >
                 <Bell size={16} />
                 {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-gradient-to-r from-rose-500 to-pink-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-lg shadow-rose-200">
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-slate-900 text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-sm">
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
                 )}
@@ -177,44 +163,44 @@ const TopNavbar = ({ toggleSidebar, sidebarCollapsed }) => {
             <div className="relative" ref={profileRef}>
               <button
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
-                className="flex items-center gap-2 sm:gap-3 pl-1 pr-3 py-1 rounded-xl hover:bg-gray-50 transition-all"
+                className="flex items-center gap-3 pl-1 pr-3 py-1 rounded hover:bg-slate-50 border border-transparent hover:border-slate-200 transition-colors"
               >
-                <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-200/50">
+                <div className="w-8 h-8 bg-slate-800 rounded flex items-center justify-center shadow-sm">
                   <span className="text-white text-xs font-bold">
                     {getUserInitials(getUserDisplayName(user))}
                   </span>
                 </div>
                 <div className="hidden sm:block text-left">
-                  <p className="text-sm font-bold text-gray-800 leading-tight">
+                  <p className="text-sm font-bold text-slate-800 leading-tight">
                     {getUserDisplayName(user)}
                   </p>
-                  <p className="text-xs text-gray-500">Recruiter</p>
+                  <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest">Recruiter</p>
                 </div>
-                <ChevronDown size={14} className={`hidden sm:block text-gray-400 transition-transform ${isProfileOpen ? 'rotate-180' : ''}`} />
+                <ChevronDown size={14} className={`hidden sm:block text-slate-400 transition-transform ${isProfileOpen ? 'rotate-180' : ''}`} />
               </button>
 
               {/* Profile Dropdown Menu */}
               {isProfileOpen && (
-                <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden animate-fade-in">
-                  <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-100">
-                    <p className="text-sm font-bold text-gray-900">{getUserDisplayName(user)}</p>
-                    <p className="text-xs text-gray-600 mt-0.5 truncate">{user?.email}</p>
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded border border-slate-200 shadow-lg overflow-hidden z-50">
+                  <div className="p-4 bg-slate-50 border-b border-slate-200">
+                    <p className="text-sm font-bold text-slate-900">{getUserDisplayName(user)}</p>
+                    <p className="text-xs font-medium text-slate-600 mt-0.5 truncate">{user?.email}</p>
                   </div>
 
-                  <div className="p-2">
+                  <div className="p-2 space-y-1">
                     <button
                       onClick={handleProfile}
-                      className="w-full text-left px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 rounded-xl flex items-center gap-3 transition-all"
+                      className="w-full text-left px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:text-slate-900 rounded flex items-center gap-3 transition-colors"
                     >
-                      <User size={14} className="text-gray-500" />
+                      <User size={14} className="text-slate-500" />
                       <span>My Profile</span>
                     </button>
 
                     <button
                       onClick={handleLogout}
-                      className="w-full text-left px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 rounded-xl flex items-center gap-3 transition-all mt-1"
+                      className="w-full text-left px-4 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50 rounded flex items-center gap-3 transition-colors"
                     >
-                      <LogOut size={14} className="text-red-500" />
+                      <LogOut size={14} className="text-rose-500" />
                       <span>Sign Out</span>
                     </button>
                   </div>

@@ -3,11 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import DashboardOverview from './components/DashboardOverview';
 import JobManagement from './components/JobManagement';
-import ApplicationsTracking from './components/ApplicationsTracking';
 import InterviewScheduling from './components/InterviewScheduling';
 import ReportsAnalytics from './components/ReportsAnalytics';
 import ApprovalPending from '../tpo/components/ApprovalPending';
 import JobDetailedView from './components/JobDetailedView';
+import Notifications from './components/Notifications';
 
 const CompanyDashboard = () => {
   const { section, id } = useParams();
@@ -50,12 +50,12 @@ const CompanyDashboard = () => {
         return <JobManagement />;
       case 'job-details':
         return <JobDetailedView />;
-      case 'applications':
-        return <ApplicationsTracking />;
       case 'interviews':
         return <InterviewScheduling />;
       case 'reports':
         return <ReportsAnalytics />;
+      case 'notifications':
+        return <Notifications />;
       default:
         return <DashboardOverview />;
     }

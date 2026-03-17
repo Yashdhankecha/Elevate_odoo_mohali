@@ -834,7 +834,7 @@ const DriveRequests = () => {
                                         )}
                                         {(drive.ctc || drive.stipend) && (
                                             <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-md text-[10px] font-bold">
-                                                {drive.ctc ? `₹${(drive.ctc / 100000).toFixed(1)} LPA` : `₹${Number(drive.stipend).toLocaleString()}/mo`}
+                                                {(!isNaN(Number(drive.ctc)) && Number(drive.ctc) > 0) ? `₹${(Number(drive.ctc) / 100000).toFixed(1)} LPA` : (drive.ctc || (drive.stipend ? `₹${Number(drive.stipend).toLocaleString()}/mo` : 'Not Specified'))}
                                             </span>
                                         )}
                                     </div>

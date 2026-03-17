@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   X, ChevronRight, ChevronLeft, Save, Send, Loader2, CheckCircle2,
   AlertCircle, Building2, Briefcase, Users, Award, Calendar, FileText,
@@ -96,9 +96,9 @@ const INITIAL_FORM = {
 };
 
 // ===== REUSABLE FORM ELEMENTS =====
-const inputClass = "w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all placeholder:text-slate-400";
-const labelClass = "block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5";
-const sectionClass = "bg-white rounded-2xl border border-slate-100 p-6 space-y-5";
+const inputClass = "w-compfull bg-slate-50 border border-slate-200 rounded px-4 py-2.5 text-sm font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-400 transition-colors placeholder:text-slate-400";
+const labelClass = "block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5";
+const sectionClass = "bg-white rounded border border-slate-200 p-6 space-y-5 shadow-sm";
 
 const FormField = ({ label, required, children, hint }) => (
   <div className="space-y-1.5">
@@ -117,7 +117,7 @@ const CheckboxGroup = ({ options, selected, onChange }) => (
       return (
         <button key={val} type="button"
           onClick={() => onChange(checked ? selected.filter(s => s !== val) : [...selected, val])}
-          className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${checked ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-200' : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300'
+          className={`px-3 py-1.5 rounded text-xs font-semibold border transition-colors ${checked ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
             }`}>{lbl}</button>
       );
     })}
@@ -130,13 +130,13 @@ const RadioGroup = ({ options, value, onChange, name }) => (
       const val = typeof opt === 'string' ? opt : opt.value;
       const lbl = typeof opt === 'string' ? opt : opt.label;
       return (
-        <label key={val} className={`relative flex flex-1 sm:flex-none items-center gap-2 px-4 py-2.5 rounded-xl border cursor-pointer transition-all text-sm font-medium ${value === val ? 'bg-blue-50 border-blue-400 text-blue-800 shadow-sm' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+        <label key={val} className={`relative flex flex-1 sm:flex-none items-center gap-2 px-4 py-2.5 rounded border cursor-pointer transition-colors text-sm font-medium ${value === val ? 'bg-slate-50 border-slate-400 text-slate-800' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
           }`}>
           <input type="radio" name={name} value={val} checked={value === val}
             onChange={() => onChange(val)} className="absolute opacity-0 w-0 h-0" />
-          <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${value === val ? 'border-blue-600' : 'border-slate-300'
+          <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${value === val ? 'border-slate-600' : 'border-slate-300'
             }`}>
-            {value === val && <div className="w-2 h-2 rounded-full bg-blue-600" />}
+            {value === val && <div className="w-2 h-2 rounded-full bg-slate-600" />}
           </div>
           {lbl}
         </label>
@@ -155,9 +155,9 @@ const TagInput = ({ tags, onChange, placeholder }) => {
     <div>
       <div className="flex flex-wrap gap-1.5 mb-2">
         {tags.map((tag, i) => (
-          <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 rounded-lg text-xs font-semibold">
+          <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 text-slate-700 border border-slate-200 rounded text-xs font-semibold">
             {tag}
-            <button type="button" onClick={() => onChange(tags.filter((_, j) => j !== i))} className="hover:text-red-500"><X size={12} /></button>
+            <button type="button" onClick={() => onChange(tags.filter((_, j) => j !== i))} className="hover:text-rose-500"><X size={12} /></button>
           </span>
         ))}
       </div>
@@ -165,7 +165,7 @@ const TagInput = ({ tags, onChange, placeholder }) => {
         <input type="text" value={input} onChange={e => setInput(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
           placeholder={placeholder} className={inputClass} />
-        <button type="button" onClick={addTag} className="px-3 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-colors">
+        <button type="button" onClick={addTag} className="px-3 py-2 bg-slate-900 text-white rounded text-xs font-bold hover:bg-slate-800 transition-colors">
           <Plus size={14} />
         </button>
       </div>
@@ -248,7 +248,7 @@ const Step1 = ({ form, setField, isUploadingTitle }) => {
           <FormField label="Company Logo" required hint="JPG, PNG. Max 2MB. Uploaded to Cloudinary.">
             <div className="flex items-center gap-3">
               {form.companyLogo && (
-                <img src={form.companyLogo} alt="Logo" className="w-12 h-12 rounded-xl object-contain bg-white border border-slate-200" />
+                <img src={form.companyLogo} alt="Logo" className="w-12 h-12 rounded border border-slate-200 object-contain bg-white" />
               )}
               <div className="flex-1 relative">
                 <input type="file" accept=".jpg,.jpeg,.png" onChange={handleLogoUpload} className={`${inputClass} ${uploadingLogo ? 'opacity-50 cursor-not-allowed' : ''}`} disabled={uploadingLogo} />
@@ -415,7 +415,7 @@ const Step2 = ({ form, setField, setNested }) => {
                 return (
                   <label
                     key={tpo._id}
-                    className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer border transition-all ${isSel ? 'bg-indigo-50 border-indigo-200 text-indigo-800' : 'bg-slate-50 border-slate-100 hover:bg-slate-100 text-slate-700'}`}
+                    className={`flex items-center gap-3 p-3 rounded cursor-pointer border transition-colors ${isSel ? 'bg-slate-50 border-slate-300 text-slate-800' : 'bg-white border-slate-100 hover:bg-slate-50 text-slate-700'}`}
                   >
                     <input
                       type="checkbox"
@@ -483,7 +483,7 @@ const Step3 = ({ form, setField }) => {
             type="button"
             onClick={addRound}
             disabled={form.selectionRounds.length >= 10}
-            className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
+            className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded text-xs font-bold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <Plus size={14} /> Add Round
           </button>
@@ -493,14 +493,14 @@ const Step3 = ({ form, setField }) => {
       {form.selectionRounds.map((round, idx) => (
         <div key={idx} className={`${sectionClass} relative`}>
           <div className="flex items-center justify-between mb-3">
-            <div className="bg-blue-600 text-white text-[10px] font-bold uppercase px-3 py-1 rounded-full tracking-wider">
+            <div className="bg-slate-900 text-white text-[10px] font-bold uppercase px-3 py-1 rounded tracking-wider">
               Round {idx + 1}
             </div>
             {form.selectionRounds.length > 1 && (
               <button
                 type="button"
                 onClick={() => removeRound(idx)}
-                className="flex items-center gap-1 px-3 py-1.5 text-rose-500 hover:bg-rose-50 rounded-lg text-xs font-bold transition-all border border-rose-100 hover:border-rose-200"
+                className="flex items-center gap-1 px-3 py-1.5 text-rose-500 hover:bg-rose-50 rounded text-xs font-bold border border-transparent hover:border-rose-200 transition-colors"
               >
                 <Trash2 size={13} /> Remove
               </button>
@@ -535,7 +535,7 @@ const Step3 = ({ form, setField }) => {
         <button
           type="button"
           onClick={addRound}
-          className="w-full py-3 border-2 border-dashed border-blue-200 rounded-2xl text-blue-500 hover:bg-blue-50 hover:border-blue-400 text-sm font-bold flex items-center justify-center gap-2 transition-all"
+          className="w-full py-3 border border-dashed border-slate-300 rounded text-slate-600 hover:bg-slate-50 text-sm font-bold flex items-center justify-center gap-2 transition-colors"
         >
           <Plus size={16} /> Add Another Round
         </button>
@@ -1079,10 +1079,10 @@ const JobPostingForm = ({ job, onClose, onSuccess, isViewOnly = false }) => {
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-4">
       <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="bg-gradient-to-b from-slate-50 to-white rounded-3xl w-full max-w-4xl max-h-[95vh] flex flex-col relative z-10 shadow-2xl overflow-hidden">
+      <div className="bg-white rounded w-full max-w-4xl max-h-[95vh] flex flex-col relative z-10 shadow-lg overflow-hidden border border-slate-200">
         {/* Toast */}
         {toast && (
-          <div className={`absolute top-4 right-4 z-50 px-4 py-3 rounded-xl shadow-lg flex items-center gap-2 text-sm font-semibold animate-slide-left ${toast.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'
+          <div className={`absolute top-4 right-4 z-50 px-4 py-3 rounded shadow flex items-center gap-2 text-sm font-semibold ${toast.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'
             }`}>
             {toast.type === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
             {toast.message}
@@ -1090,12 +1090,12 @@ const JobPostingForm = ({ job, onClose, onSuccess, isViewOnly = false }) => {
         )}
 
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-white/80 backdrop-blur-md flex-shrink-0">
+        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50 flex-shrink-0">
           <div>
-            <h2 className="text-xl font-black text-slate-900">{isViewOnly ? 'Job Details' : (job ? 'Edit Job Posting' : 'Create Job Posting')}</h2>
-            {!isViewOnly && <p className="text-xs text-slate-400 font-medium">Step {currentStep} of 6 — {STEPS[currentStep - 1]?.title}</p>}
+            <h2 className="text-xl font-bold text-slate-900">{isViewOnly ? 'Job Details' : (job ? 'Edit Job Posting' : 'Create Job Posting')}</h2>
+            {!isViewOnly && <p className="text-xs text-slate-500 font-medium">Step {currentStep} of 6 — {STEPS[currentStep - 1]?.title}</p>}
           </div>
-          <button onClick={onClose} className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-slate-100 text-slate-400"><X size={20} /></button>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded border border-transparent hover:border-slate-200 hover:bg-white text-slate-400 hover:text-slate-600 transition-colors"><X size={18} /></button>
         </div>
 
         {/* Progress */}
@@ -1109,7 +1109,7 @@ const JobPostingForm = ({ job, onClose, onSuccess, isViewOnly = false }) => {
                 return (
                   <React.Fragment key={step.id}>
                     <button onClick={() => goToStep(step.id)}
-                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all cursor-pointer ${isActive ? 'bg-blue-600 text-white shadow-md shadow-blue-200' : isDone ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded text-[10px] font-bold uppercase tracking-wide transition-colors cursor-pointer border ${isActive ? 'bg-slate-900 text-white border-slate-900' : isDone ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' : 'text-slate-500 border-transparent hover:border-slate-300 hover:bg-slate-50'
                         }`}>
                       {isDone ? <CheckCircle2 size={12} /> : <Icon size={12} />}
                       <span className="hidden lg:inline">{step.title}</span>
@@ -1124,9 +1124,9 @@ const JobPostingForm = ({ job, onClose, onSuccess, isViewOnly = false }) => {
         )}
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-6 custom-scrollbar bg-slate-50/50">
           {Object.keys(errors).length > 0 && (
-            <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded-xl text-sm text-rose-700 font-medium flex items-center gap-2">
+            <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded text-sm text-rose-700 font-bold flex items-center gap-2">
               <AlertCircle size={16} /> Please fix the highlighted errors before proceeding.
             </div>
           )}
@@ -1135,25 +1135,25 @@ const JobPostingForm = ({ job, onClose, onSuccess, isViewOnly = false }) => {
 
         {/* Footer */}
         {!isViewOnly && (
-          <div className="px-6 py-4 border-t border-slate-100 bg-white/80 backdrop-blur-md flex items-center justify-between gap-3 flex-shrink-0">
+          <div className="px-6 py-4 border-t border-slate-200 bg-white flex items-center justify-between gap-3 flex-shrink-0">
             <button type="button" onClick={handleSaveDraft} disabled={saving}
-              className="flex items-center gap-2 px-5 py-2.5 border border-slate-200 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all disabled:opacity-50">
+              className="flex items-center gap-2 px-5 py-2 border border-slate-200 rounded text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-50">
               {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Save Draft
             </button>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               {currentStep > 1 && (
-                <button type="button" onClick={prevStep} className="flex items-center gap-1 px-5 py-2.5 border border-slate-200 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50">
+                <button type="button" onClick={prevStep} className="flex items-center gap-1 px-5 py-2 border border-slate-200 rounded text-sm font-bold text-slate-600 hover:bg-slate-50">
                   <ChevronLeft size={16} /> Back
                 </button>
               )}
               {currentStep < 6 ? (
                 <button type="button" onClick={nextStep}
-                  className="flex items-center gap-1 px-6 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all">
+                  className="flex items-center gap-1 px-6 py-2 bg-slate-900 border border-slate-900 text-white rounded text-sm font-bold hover:bg-slate-800 transition-colors">
                   Next <ChevronRight size={16} />
                 </button>
               ) : (
                 <button type="button" onClick={handleSubmit} disabled={submitting || !form.termsAccepted}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition-all disabled:opacity-50">
+                  className="flex items-center gap-2 px-6 py-2 bg-emerald-600 text-white rounded text-sm font-bold hover:bg-emerald-700 transition-colors disabled:opacity-50 shadow-sm">
                   {submitting ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                   {form.driveType === 'on_campus' ? 'Submit for Approval' : 'Publish Job'}
                 </button>

@@ -31,16 +31,16 @@ const Bubble = ({ m }) => {
       <div className={`flex items-start gap-3 max-w-[90%] ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
         {/* Avatar */}
         <div
-          className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs shadow-sm ${isUser ? 'bg-slate-800 text-white' : 'bg-blue-100 text-blue-600'
+          className={`w-8 h-8 rounded flex-shrink-0 flex items-center justify-center text-xs shadow-sm ${isUser ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700 border border-slate-200'
             }`}
         >
           {isUser ? <FaUser /> : <FaRobot />}
         </div>
         {/* Bubble */}
         <div
-          className={`px-4 py-3 rounded-2xl text-sm leading-relaxed break-words min-w-0 ${isUser
-              ? 'bg-blue-600 text-white rounded-tr-none'
-              : 'bg-slate-50 text-slate-700 rounded-tl-none border border-slate-100'
+          className={`px-4 py-3 rounded text-sm leading-relaxed break-words min-w-0 ${isUser
+              ? 'bg-slate-900 text-white'
+              : 'bg-white text-slate-700 border border-slate-200 shadow-sm'
             }`}
         >
           {isUser ? (
@@ -89,13 +89,13 @@ const Bubble = ({ m }) => {
 const TypingDots = () => (
   <div className="flex justify-start">
     <div className="flex items-center gap-3">
-      <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center shadow-sm">
-        <FaRobot size={12} className="animate-spin" />
+      <div className="w-8 h-8 bg-slate-100 text-slate-700 border border-slate-200 rounded flex items-center justify-center shadow-sm">
+        <FaRobot size={12} className="animate-pulse" />
       </div>
-      <div className="flex gap-1.5 px-4 py-3 bg-slate-50 rounded-2xl rounded-tl-none border border-slate-100">
-        <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
-        <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce [animation-delay:-0.15s]" />
-        <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" />
+      <div className="flex gap-1.5 px-4 py-3 bg-white rounded shadow-sm border border-slate-200">
+        <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
+        <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.15s]" />
+        <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" />
       </div>
     </div>
   </div>
@@ -194,16 +194,16 @@ const AICareerCoach = () => {
 
   return (
     <div className="p-4 md:p-0 h-full w-full">
-      <div className="flex flex-col h-[calc(100vh-180px)] md:h-[calc(100vh-140px)] w-full bg-white rounded-3xl border border-slate-100 shadow-2xl shadow-slate-200/50 overflow-hidden relative">
+      <div className="flex flex-col h-[calc(100vh-180px)] md:h-[calc(100vh-140px)] w-full bg-slate-50 rounded border border-slate-200 shadow-sm overflow-hidden relative">
 
         {/* ── Header ── */}
-        <header className="px-5 py-4 md:px-8 md:py-5 border-b border-slate-50 flex items-center justify-between bg-white/90 backdrop-blur-md sticky top-0 z-20 flex-shrink-0">
+        <header className="px-5 py-4 md:px-8 md:py-5 border-b border-slate-200 flex items-center justify-between bg-white sticky top-0 z-20 flex-shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-200 flex-shrink-0">
+            <div className="w-10 h-10 bg-slate-900 rounded flex items-center justify-center text-white shadow-sm flex-shrink-0">
               <FaRobot size={18} />
             </div>
             <div>
-              <h1 className="text-base font-black text-slate-900 tracking-tight">ELEVATE AI</h1>
+              <h1 className="text-base font-bold text-slate-900 tracking-tight">ELEVATE AI</h1>
               <div className="flex items-center gap-1.5">
                 <span
                   className={`w-1.5 h-1.5 rounded-full transition-colors ${healthy === null ? 'bg-slate-300' : healthy ? 'bg-emerald-500 animate-pulse' : 'bg-rose-400'
@@ -215,12 +215,12 @@ const AICareerCoach = () => {
               </div>
             </div>
           </div>
-          <button
+            <button
             onClick={resetChat}
-            className="w-9 h-9 bg-slate-50 hover:bg-slate-100 rounded-xl text-slate-400 hover:text-slate-600 transition-all flex items-center justify-center border border-slate-100"
+            className="w-8 h-8 bg-white hover:bg-slate-50 rounded text-slate-500 hover:text-slate-900 transition-colors flex items-center justify-center border border-slate-200 shadow-sm"
             title="New Chat"
           >
-            <FaPlus size={13} />
+            <FaPlus size={12} />
           </button>
         </header>
 
@@ -233,8 +233,7 @@ const AICareerCoach = () => {
           <div ref={endRef} />
         </div>
 
-        {/* ── Footer ── */}
-        <footer className="p-4 md:p-6 bg-white border-t border-slate-50 sticky bottom-0 flex-shrink-0">
+        <footer className="p-4 md:p-6 bg-white border-t border-slate-200 sticky bottom-0 flex-shrink-0">
           <div className="max-w-4xl mx-auto space-y-3">
 
             {/* Quick suggestions */}
@@ -244,19 +243,18 @@ const AICareerCoach = () => {
                   key={idx}
                   onClick={() => send(s.label)}
                   disabled={loading}
-                  className="flex-shrink-0 flex items-center gap-2 px-3.5 py-2 bg-slate-50 hover:bg-white hover:shadow-md border border-slate-100 rounded-xl transition-all group whitespace-nowrap disabled:opacity-40"
+                  className="flex-shrink-0 flex items-center gap-2 px-3.5 py-2 bg-white hover:bg-slate-50 border border-slate-200 shadow-sm rounded transition-colors group whitespace-nowrap disabled:opacity-40"
                 >
-                  <div className={`w-5 h-5 rounded-md ${s.color} text-white flex items-center justify-center`}>
+                  <div className={`w-5 h-5 rounded ${s.color} text-white flex items-center justify-center`}>
                     <s.icon size={10} />
                   </div>
-                  <span className="text-[10px] font-black text-slate-500 group-hover:text-blue-600 uppercase tracking-wider">
+                  <span className="text-[10px] font-bold text-slate-600 group-hover:text-slate-900 uppercase tracking-wider">
                     {s.label}
                   </span>
                 </button>
               ))}
             </div>
 
-            {/* Input area */}
             <form onSubmit={handleSubmit} className="flex items-center gap-2 md:gap-3">
               <div className="flex-1">
                 <input
@@ -265,13 +263,13 @@ const AICareerCoach = () => {
                   onChange={e => setInput(e.target.value)}
                   placeholder="Ask about placements, interviews, skills..."
                   disabled={loading}
-                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-3.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-100 focus:bg-white focus:border-blue-300 transition-all placeholder:text-slate-400 disabled:opacity-50"
+                  className="w-full bg-white border border-slate-200 rounded px-5 py-3 text-sm font-bold focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-400 transition-colors placeholder:text-slate-400 disabled:opacity-50"
                 />
               </div>
               <button
                 type="submit"
                 disabled={loading || !input.trim()}
-                className="w-12 h-12 bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-2xl shadow-lg shadow-blue-200 flex items-center justify-center hover:shadow-xl hover:shadow-blue-300 hover:-translate-y-0.5 transition-all disabled:opacity-30 disabled:translate-y-0 flex-shrink-0"
+                className="w-12 h-12 bg-slate-900 text-white rounded shadow-sm flex items-center justify-center hover:bg-slate-800 transition-colors disabled:opacity-30 flex-shrink-0"
               >
                 <FaPaperPlane size={15} />
               </button>

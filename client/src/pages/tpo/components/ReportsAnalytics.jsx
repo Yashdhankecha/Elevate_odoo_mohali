@@ -92,7 +92,11 @@ const ReportsAnalytics = () => {
     };
   };
 
-  const formatPackage = (v) => v ? `₹${(v/100000).toFixed(1)}L` : 'N/A';
+  const formatPackage = (v) => {
+    const num = Number(v);
+    if (!isNaN(num) && num > 0) return `₹${(num / 100000).toFixed(1)}L`;
+    return v ? `₹${v}` : 'N/A';
+  };
 
   const exportReport = (format) => {
     if (format === 'excel') {
@@ -218,7 +222,7 @@ const ReportsAnalytics = () => {
                            <p className="text-[10px] font-bold text-slate-400">{dept.placed}/{dept.total} Students Placed</p>
                         </div>
                         <div className="text-right">
-                           <p className="text-sm font-black text-slate-900">{dept.rate.toFixed(1)}%</p>
+                           <p className="text-sm font-black text-slate-900">{Number(dept.rate || 0).toFixed(1)}%</p>
                            <p className="text-[10px] font-bold text-blue-600 uppercase">{formatPackage(dept.avgPackage)} Avg</p>
                         </div>
                      </div>

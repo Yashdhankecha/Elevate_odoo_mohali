@@ -23,12 +23,12 @@ const isValidUrl = (str) => {
 };
 
 const SectionWrapper = ({ title, icon: Icon, children }) => (
-  <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-6 transition-all hover:shadow-md">
-    <div className="bg-gray-50/80 px-6 py-4 border-b border-gray-100 flex items-center gap-3">
-      <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
+  <div className="bg-white rounded border border-slate-200 shadow-sm overflow-hidden mb-6">
+    <div className="bg-slate-50 px-6 py-4 border-b border-slate-200 flex items-center gap-3">
+      <div className="p-2 bg-slate-100 text-slate-700 rounded border border-slate-200">
         <Icon className="w-5 h-5" />
       </div>
-      <h2 className="text-lg font-semibold text-gray-800">{title}</h2>
+      <h2 className="text-lg font-bold text-slate-900">{title}</h2>
     </div>
     <div className="p-6">
       {children}
@@ -254,11 +254,11 @@ const CompanyProfile = () => {
   return (
     <div className="max-w-5xl mx-auto pb-12">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4 bg-white p-6 rounded border border-slate-200 shadow-sm">
         <div className="flex items-center gap-4">
           {/* Company Logo with Upload Button */}
           <div className="relative group">
-            <div className="w-20 h-20 bg-blue-100 rounded-xl flex items-center justify-center overflow-hidden border-2 border-blue-100 shadow-sm">
+            <div className="w-20 h-20 bg-slate-50 rounded border border-slate-200 flex items-center justify-center overflow-hidden shadow-sm">
               {(formData.profilePicture || profile?.profilePicture) ? (
                 <img
                   src={formData.profilePicture || profile?.profilePicture}
@@ -269,7 +269,7 @@ const CompanyProfile = () => {
                 <span className="text-3xl">🏢</span>
               )}
               {savingLogo && (
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center rounded-xl">
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center rounded">
                   <FaSpinner className="text-white animate-spin" size={20} />
                 </div>
               )}
@@ -279,7 +279,7 @@ const CompanyProfile = () => {
               type="button"
               onClick={() => logoInputRef.current?.click()}
               disabled={savingLogo}
-              className="absolute -bottom-2 -right-2 p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md transition-all hover:scale-110 active:scale-95 disabled:opacity-60"
+              className="absolute -bottom-2 -right-2 p-2 bg-slate-900 hover:bg-slate-800 text-white rounded border border-slate-700 shadow-sm transition-colors disabled:opacity-60"
               title="Upload company logo"
             >
               <FaCamera size={12} />
@@ -295,16 +295,16 @@ const CompanyProfile = () => {
           </div>
 
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">{formData.companyName || 'Set up your Company Profile'}</h1>
-            <p className="text-gray-500 text-sm mt-1">This information will be used to auto-fill your job postings.</p>
-            <p className="text-blue-500 text-xs mt-0.5">Click the camera icon to upload your company logo</p>
+            <h1 className="text-2xl font-bold text-slate-900">{formData.companyName || 'Set up your Company Profile'}</h1>
+            <p className="text-slate-500 text-sm mt-1">This information will be used to auto-fill your job postings.</p>
+            <p className="text-slate-500 text-xs mt-0.5">Click the camera icon to upload your company logo</p>
           </div>
         </div>
         <div className="flex gap-2">
           {!isEditing ? (
             <button
               onClick={() => setIsEditing(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 transition-colors font-medium shadow-sm hover:shadow-blue-500/20"
+              className="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded flex items-center gap-2 transition-colors font-bold shadow-sm"
             >
               <FaEdit className="w-4 h-4" />
               Edit Profile
@@ -313,14 +313,14 @@ const CompanyProfile = () => {
             <>
               <button
                 onClick={() => { setIsEditing(false); setUrlErrors({}); }}
-                className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-5 py-2.5 rounded-xl flex items-center gap-2 transition-colors font-medium border border-gray-200"
+                className="bg-white hover:bg-slate-50 text-slate-700 px-5 py-2.5 rounded flex items-center gap-2 transition-colors font-bold border border-slate-300 shadow-sm"
               >
                 <FaTimes className="w-4 h-4" />
                 Cancel
               </button>
               <button
                 onClick={handleSave}
-                className="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 transition-colors font-medium shadow-sm hover:shadow-green-500/20"
+                className="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded flex items-center gap-2 transition-colors font-bold shadow-sm"
               >
                 <FaSave className="w-4 h-4" />
                 Save Profile
@@ -406,28 +406,28 @@ const CompanyProfile = () => {
                 <input type="number" name="defaultMinCGPA" value={formData.defaultMinCGPA} onChange={handleChange} className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50/50" placeholder="e.g. 7.5 or 75" />
               </div>
 
-              <div className="flex flex-col gap-3 p-4 bg-gray-50 rounded-xl border border-gray-100">
+              <div className="flex flex-col gap-3 p-4 bg-slate-50 rounded border border-slate-200">
                 <label className="flex items-center gap-3 cursor-pointer">
-                  <input type="checkbox" name="backlogsAllowed" checked={formData.backlogsAllowed} onChange={handleChange} className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500" />
-                  <span className="text-sm font-medium text-gray-700">Backlogs Allowed by Default?</span>
+                  <input type="checkbox" name="backlogsAllowed" checked={formData.backlogsAllowed} onChange={handleChange} className="w-5 h-5 text-slate-900 rounded border-slate-300 focus:ring-slate-900" />
+                  <span className="text-sm font-bold text-slate-700">Backlogs Allowed by Default?</span>
                 </label>
                 {formData.backlogsAllowed && (
                   <div className="pl-8 transition-all">
-                    <label className="block text-xs text-gray-500 mb-1">Max Backlogs Allowed</label>
-                    <input type="number" name="maxBacklogs" value={formData.maxBacklogs} onChange={handleChange} className="w-24 p-2 border border-gray-300 rounded-md text-sm" min="0" />
+                    <label className="block text-xs font-bold text-slate-500 mb-1">Max Backlogs Allowed</label>
+                    <input type="number" name="maxBacklogs" value={formData.maxBacklogs} onChange={handleChange} className="w-24 p-2 border border-slate-300 rounded text-sm bg-white" min="0" />
                   </div>
                 )}
               </div>
 
-              <div className="flex flex-col gap-3 p-4 bg-gray-50 rounded-xl border border-gray-100">
+              <div className="flex flex-col gap-3 p-4 bg-slate-50 rounded border border-slate-200">
                 <label className="flex items-center gap-3 cursor-pointer">
-                  <input type="checkbox" name="gapYearsAllowed" checked={formData.gapYearsAllowed} onChange={handleChange} className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500" />
-                  <span className="text-sm font-medium text-gray-700">Gap Years Allowed by Default?</span>
+                  <input type="checkbox" name="gapYearsAllowed" checked={formData.gapYearsAllowed} onChange={handleChange} className="w-5 h-5 text-slate-900 rounded border-slate-300 focus:ring-slate-900" />
+                  <span className="text-sm font-bold text-slate-700">Gap Years Allowed by Default?</span>
                 </label>
                 {formData.gapYearsAllowed && (
                   <div className="pl-8 transition-all">
-                    <label className="block text-xs text-gray-500 mb-1">Max Gap Years</label>
-                    <input type="number" name="maxGapYears" value={formData.maxGapYears} onChange={handleChange} className="w-24 p-2 border border-gray-300 rounded-md text-sm" min="0" />
+                    <label className="block text-xs font-bold text-slate-500 mb-1">Max Gap Years</label>
+                    <input type="number" name="maxGapYears" value={formData.maxGapYears} onChange={handleChange} className="w-24 p-2 border border-slate-300 rounded text-sm bg-white" min="0" />
                   </div>
                 )}
               </div>
@@ -438,7 +438,7 @@ const CompanyProfile = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Preferred Degrees</label>
                 <div className="flex flex-wrap gap-2">
                   {MOCK_DEGREES.map(degree => (
-                    <label key={degree} className={`px-4 py-2 rounded-full border text-sm cursor-pointer transition-colors flex items-center gap-2 ${formData.preferredDegrees.includes(degree) ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white border-gray-200 hover:bg-gray-50 text-gray-700'}`}>
+                    <label key={degree} className={`px-4 py-2 rounded border text-sm cursor-pointer transition-colors flex items-center gap-2 font-bold ${formData.preferredDegrees.includes(degree) ? 'bg-slate-900 border-slate-900 text-white' : 'bg-white border-slate-300 hover:bg-slate-50 text-slate-700'}`}>
                       <input type="checkbox" className="hidden" checked={formData.preferredDegrees.includes(degree)} onChange={() => handleArrayToggle('preferredDegrees', degree)} />
                       {degree}
                     </label>
@@ -450,7 +450,7 @@ const CompanyProfile = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Preferred Branches</label>
                 <div className="flex flex-wrap gap-2">
                   {MOCK_BRANCHES.map(branch => (
-                    <label key={branch} className={`px-4 py-2 rounded-full border text-sm cursor-pointer transition-colors flex items-center gap-2 ${formData.preferredBranches.includes(branch) ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-white border-gray-200 hover:bg-gray-50 text-gray-700'}`}>
+                    <label key={branch} className={`px-4 py-2 rounded border text-sm cursor-pointer transition-colors flex items-center gap-2 font-bold ${formData.preferredBranches.includes(branch) ? 'bg-slate-900 border-slate-900 text-white' : 'bg-white border-slate-300 hover:bg-slate-50 text-slate-700'}`}>
                       <input type="checkbox" className="hidden" checked={formData.preferredBranches.includes(branch)} onChange={() => handleArrayToggle('preferredBranches', branch)} />
                       {branch}
                     </label>
@@ -499,8 +499,8 @@ const CompanyProfile = () => {
 
         {/* Section 4: Default Company Contact (Receptionist) */}
         <SectionWrapper title="Default Company Contact" icon={FaAddressCard}>
-          <div className="mb-4 p-3 bg-blue-50 border border-blue-100 rounded-xl">
-            <p className="text-blue-700 text-sm font-medium">
+          <div className="mb-4 p-3 bg-slate-50 border border-slate-200 rounded">
+            <p className="text-slate-600 text-sm font-bold">
               📞 These are the company's main front-desk / receptionist contact details — not HR-specific. They will appear as the primary contact in job postings.
             </p>
           </div>
@@ -550,11 +550,11 @@ const CompanyProfile = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-3">Standard Additional Documents Needed</label>
-              <div className="space-y-3 p-4 bg-gray-50 rounded-xl border border-gray-100">
+              <div className="space-y-3 p-4 bg-slate-50 rounded border border-slate-200">
                 {MOCK_DOCS.map(doc => (
                   <label key={doc} className="flex items-center gap-3 cursor-pointer">
-                    <input type="checkbox" checked={formData.standardRequiredDocuments?.includes(doc)} onChange={() => handleArrayToggle('standardRequiredDocuments', doc)} className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500" />
-                    <span className="text-sm text-gray-700">{doc}</span>
+                    <input type="checkbox" checked={formData.standardRequiredDocuments?.includes(doc)} onChange={() => handleArrayToggle('standardRequiredDocuments', doc)} className="w-5 h-5 text-slate-900 rounded border-slate-300 focus:ring-slate-900" />
+                    <span className="text-sm font-bold text-slate-700">{doc}</span>
                   </label>
                 ))}
               </div>

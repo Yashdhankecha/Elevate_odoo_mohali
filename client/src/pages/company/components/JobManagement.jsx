@@ -87,24 +87,24 @@ const JobManagement = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="space-y-1">
-          <h1 className="text-3xl font-black text-slate-900 tracking-tighter flex items-center gap-3">
-            <Briefcase size={32} className="text-blue-600" />
-            Talent Pipeline
+          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
+            <Briefcase size={28} className="text-slate-700" />
+            Job Positions
           </h1>
-          <p className="text-slate-500 font-medium tracking-tight">Strategize, deploy, and monitor your global workforce acquisitions.</p>
+          <p className="text-sm text-slate-500 font-medium">Manage and track your active job postings and pipelines.</p>
         </div>
 
         <button
           onClick={() => { setSelectedJob(null); setShowJobModal(true); }}
-          className="flex items-center gap-2 px-6 py-3.5 bg-slate-900 text-white rounded-2xl shadow-xl shadow-slate-200 hover:shadow-2xl transition-all font-black uppercase text-[10px] tracking-widest active:scale-95 group"
+          className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white hover:bg-slate-800 rounded shadow-sm transition-colors text-sm font-semibold group"
         >
-          <Plus size={16} className="group-hover:rotate-90 transition-transform" />
-          New Requirement
+          <Plus size={16} />
+          Create Job Posting
         </button>
       </div>
 
       {/* Control Panel */}
-      <div className="glass-card rounded-[2rem] p-4 flex flex-wrap items-center justify-between gap-4 border-white/50">
+      <div className="bg-white rounded border border-slate-200 p-4 flex flex-wrap items-center justify-between gap-4 shadow-sm">
         <div className="flex items-center gap-8 pl-4">
           <div className="flex items-center gap-3">
             <Filter size={14} className="text-slate-400" />
@@ -140,18 +140,18 @@ const JobManagement = () => {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={14} />
           <input
             type="text"
-            placeholder="Query position title..."
-            className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-xs font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:bg-white transition-all shadow-inner"
+            placeholder="Search positions..."
+            className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded text-sm focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 transition-colors"
           />
         </div>
       </div>
 
       {/* Jobs Matrix */}
       {filteredJobs.length === 0 ? (
-        <div className="text-center py-32 bg-white/40 rounded-[3rem] border-2 border-dashed border-slate-100">
-          <Briefcase className="text-slate-200 w-20 h-20 mx-auto mb-6" />
-          <h3 className="text-xl font-bold text-slate-900 mb-2">No active vectors found</h3>
-          <p className="text-slate-400 max-w-xs mx-auto text-sm">Deploy your first position to the talent marketplace to begin acquisitions.</p>
+        <div className="text-center py-20 bg-slate-50 border border-slate-200 rounded">
+          <Briefcase className="text-slate-300 w-16 h-16 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-slate-700 mb-1">No positions found</h3>
+          <p className="text-slate-500 text-sm">Create a new job posting to get started.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
@@ -159,103 +159,101 @@ const JobManagement = () => {
             const jobTitle = job.jobTitle || job.title || 'Untitled';
             const jobDept = job.department || job.category || '';
             const jobLocation = job.companyLocation || job.location || '';
-            const jobSalary = job.ctc ? `₹${(job.ctc / 100000).toFixed(1)} LPA` : (job.salary || job.stipend ? `₹${job.stipend}/mo` : '—');
+            const ctcNum = Number(job.ctc);
+            const jobSalary = (!isNaN(ctcNum) && ctcNum > 0) ? `₹${(ctcNum / 100000).toFixed(1)} LPA` : (job.salary || job.stipend ? `₹${job.salary || job.stipend}` : job.ctc || '—');
             const jobDeadline = job.applicationDeadline || job.deadline;
             const jobDesc = job.jobDescription || job.description || '';
             const jobStatus = (job.status || (job.isActive ? 'active' : 'draft')).toLowerCase();
             const statusColors = {
-              active: { bg: 'bg-emerald-50', border: 'border-emerald-100', dot: 'bg-emerald-500 animate-pulse', text: 'text-emerald-700' },
-              approved: { bg: 'bg-emerald-50', border: 'border-emerald-100', dot: 'bg-emerald-500', text: 'text-emerald-700' },
-              draft: { bg: 'bg-amber-50', border: 'border-amber-100', dot: 'bg-amber-500', text: 'text-amber-700' },
-              pending_approval: { bg: 'bg-blue-50', border: 'border-blue-100', dot: 'bg-blue-500 animate-pulse', text: 'text-blue-700' },
-              rejected: { bg: 'bg-rose-50', border: 'border-rose-100', dot: 'bg-rose-500', text: 'text-rose-700' },
-              changes_requested: { bg: 'bg-orange-50', border: 'border-orange-100', dot: 'bg-orange-500', text: 'text-orange-700' },
-              closed: { bg: 'bg-slate-50', border: 'border-slate-200', dot: 'bg-slate-400', text: 'text-slate-500' },
+              active: { bg: 'bg-emerald-50', border: 'border-emerald-200', dot: 'bg-emerald-500', text: 'text-emerald-700' },
+              approved: { bg: 'bg-emerald-50', border: 'border-emerald-200', dot: 'bg-emerald-500', text: 'text-emerald-700' },
+              draft: { bg: 'bg-amber-50', border: 'border-amber-200', dot: 'bg-amber-500', text: 'text-amber-700' },
+              pending_approval: { bg: 'bg-blue-50', border: 'border-blue-200', dot: 'bg-blue-500', text: 'text-blue-700' },
+              rejected: { bg: 'bg-rose-50', border: 'border-rose-200', dot: 'bg-rose-500', text: 'text-rose-700' },
+              changes_requested: { bg: 'bg-orange-50', border: 'border-orange-200', dot: 'bg-orange-500', text: 'text-orange-700' },
+              closed: { bg: 'bg-slate-100', border: 'border-slate-300', dot: 'bg-slate-500', text: 'text-slate-600' },
             };
             const sc = statusColors[jobStatus] || statusColors.draft;
 
             return (
-              <div key={job._id} className="group glass-card p-6 rounded-[2rem] hover-lift border-white/50 relative overflow-hidden flex flex-col justify-between min-h-[400px] shadow-xl shadow-slate-200/40">
-                <div className="space-y-6">
+              <div key={job._id} className="bg-white border border-slate-200 p-6 rounded hover:border-slate-300 transition-colors flex flex-col justify-between min-h-[360px] shadow-sm">
+                <div className="space-y-5">
                   {/* Job Header with Logo */}
                   <div className="flex justify-between items-start gap-4">
                     <div className="flex gap-4 items-start">
-                      <div className="w-14 h-14 bg-white rounded-xl shadow-sm border border-slate-100 flex items-center justify-center p-1 relative overflow-hidden flex-shrink-0 group-hover:scale-105 transition-transform z-10">
+                      <div className="w-12 h-12 bg-white rounded border border-slate-200 flex items-center justify-center p-1.5 shrink-0">
                         {user?.logo || user?.profilePicture ? (
                           <img src={user.logo || user.profilePicture} alt="Company" className="w-full h-full object-contain" />
                         ) : (
-                          <Building2 size={24} className="text-slate-300" />
+                          <Building2 size={24} className="text-slate-400" />
                         )}
                       </div>
-                      <div className="space-y-1.5 pt-0.5 z-10">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-[10px] font-black uppercase bg-blue-50 text-blue-600 px-2 py-0.5 rounded tracking-widest">{jobDept}</span>
-                          {job.jobId && <span className="text-[10px] font-bold text-slate-400">{job.jobId}</span>}
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap text-xs">
+                          <span className="font-medium text-slate-500">{jobDept || 'Department Not Specified'}</span>
+                          {job.jobId && <span className="text-slate-400">&bull; {job.jobId}</span>}
                         </div>
-                        <h3 className="text-xl font-black text-slate-900 tracking-tight leading-tight group-hover:text-blue-600 transition-colors">{jobTitle}</h3>
+                        <h3 className="text-lg font-bold text-slate-900 leading-tight">{jobTitle}</h3>
                       </div>
                     </div>
-                    <div className={`px-2.5 py-1 rounded-xl border flex items-center gap-1.5 flex-shrink-0 z-10 ${sc.bg} ${sc.border}`}>
-                      <div className={`w-2 h-2 rounded-full ${sc.dot}`}></div>
-                      <span className={`text-[9px] font-bold uppercase ${sc.text}`}>{jobStatus.replace('_', ' ')}</span>
+                    <div className={`px-2 py-1 rounded text-xs border flex items-center gap-1.5 shrink-0 ${sc.bg} ${sc.border}`}>
+                      <div className={`w-1.5 h-1.5 rounded-full ${sc.dot}`}></div>
+                      <span className={`font-semibold capitalize ${sc.text}`}>{jobStatus.replace('_', ' ')}</span>
                     </div>
                   </div>
 
                   {/* Highlights Grid */}
-                  <div className="grid grid-cols-2 gap-y-4 gap-x-4 bg-slate-50/50 p-4 rounded-2xl border border-slate-100/50 relative z-10">
+                  <div className="grid grid-cols-2 gap-y-3 gap-x-4 bg-slate-50 p-4 rounded border border-slate-100">
                     <div className="space-y-1">
-                      <div className="flex items-center gap-1.5 text-slate-400">
-                        <MapPin size={12} className="text-blue-400" />
-                        <span className="text-[9px] font-bold uppercase tracking-widest">Location</span>
+                      <div className="flex items-center gap-1.5 text-slate-500">
+                        <MapPin size={14} />
+                        <span className="text-xs font-semibold">Location</span>
                       </div>
-                      <p className="text-xs font-bold text-slate-700 truncate">{jobLocation}</p>
+                      <p className="text-sm font-medium text-slate-800 truncate">{jobLocation}</p>
                     </div>
                     <div className="space-y-1">
-                      <div className="flex items-center gap-1.5 text-slate-400">
-                        <CircleDollarSign size={12} className="text-emerald-400" />
-                        <span className="text-[9px] font-bold uppercase tracking-widest">Package</span>
+                      <div className="flex items-center gap-1.5 text-slate-500">
+                        <CircleDollarSign size={14} />
+                        <span className="text-xs font-semibold">Package</span>
                       </div>
-                      <p className="text-xs font-bold text-slate-700 truncate">{jobSalary}</p>
+                      <p className="text-sm font-medium text-slate-800 truncate">{jobSalary}</p>
                     </div>
                     <div className="space-y-1">
-                      <div className="flex items-center gap-1.5 text-slate-400">
-                        <Users size={12} className="text-indigo-400" />
-                        <span className="text-[9px] font-bold uppercase tracking-widest">Applied</span>
+                      <div className="flex items-center gap-1.5 text-slate-500">
+                        <Users size={14} />
+                        <span className="text-xs font-semibold">Applied</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <p className="text-xs font-bold text-slate-700">{job.applicationCount || 0}</p>
-                        <div className="flex-1 h-1.5 bg-slate-200 rounded-full overflow-hidden max-w-[60px]">
-                          <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${Math.min((job.applicationCount || 0) * 10, 100)}%` }}></div>
-                        </div>
+                        <p className="text-sm font-medium text-slate-800">{job.applicationCount || 0}</p>
                       </div>
                     </div>
                     <div className="space-y-1">
-                      <div className="flex items-center gap-1.5 text-slate-400">
-                        <Calendar size={12} className="text-rose-400" />
-                        <span className="text-[9px] font-bold uppercase tracking-widest">Deadline</span>
+                      <div className="flex items-center gap-1.5 text-slate-500">
+                        <Calendar size={14} />
+                        <span className="text-xs font-semibold">Deadline</span>
                       </div>
-                      <p className="text-xs font-bold text-slate-700 truncate">{jobDeadline ? new Date(jobDeadline).toLocaleDateString() : '—'}</p>
+                      <p className="text-sm font-medium text-slate-800 truncate">{jobDeadline ? new Date(jobDeadline).toLocaleDateString() : '—'}</p>
                     </div>
                   </div>
 
                   {/* Description Preview */}
-                  <p className="text-[13px] text-slate-600 line-clamp-2 md:line-clamp-3 leading-relaxed font-medium relative z-10">
+                  <p className="text-sm text-slate-600 line-clamp-2 leading-relaxed">
                     {jobDesc}
                   </p>
                 </div>
 
                 {/* Actions Footer */}
-                <div className="flex gap-3 mt-8 pt-5 border-t border-slate-100 relative z-10">
+                <div className="flex gap-2 mt-6 pt-4 border-t border-slate-100">
                   <button
                     onClick={() => navigate(`/company-dashboard/job-details/${job._id}`)}
-                    className="flex-1 py-3 bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white rounded-xl transition-all flex items-center justify-center gap-2 uppercase tracking-widest text-[10px] font-bold group/btn">
-                    <Eye size={14} />
-                    <span>View Details</span>
+                    className="flex-1 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 rounded transition-colors text-sm font-semibold flex items-center justify-center gap-2">
+                    <Eye size={16} />
+                    View Flow
                   </button>
                   <button
                     onClick={() => handleDeleteJob(job._id)}
-                    className="py-3 px-4 bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white rounded-xl transition-all shadow-sm"
-                    title="Terminate Position"
+                    className="px-3 py-2 bg-white hover:bg-rose-50 border border-slate-200 hover:border-rose-200 text-slate-400 hover:text-rose-600 rounded transition-colors"
+                    title="Delete Position"
                   >
                     <Trash2 size={16} />
                   </button>

@@ -63,7 +63,11 @@ const DashboardOverview = () => {
     }
   };
 
-  const formatPackage = (v) => v >= 100000 ? `₹${(v / 100000).toFixed(1)}L` : `₹${v}`;
+  const formatPackage = (v) => {
+    const num = Number(v);
+    if (!isNaN(num) && num >= 100000) return `₹${(num / 100000).toFixed(1)}L`;
+    return v ? `₹${v}` : 'N/A';
+  };
 
   const stats = [
     { title: 'Total Students', value: dashboardData.stats.totalStudents, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },

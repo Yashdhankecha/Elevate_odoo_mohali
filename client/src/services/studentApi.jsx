@@ -63,12 +63,6 @@ export const studentApi = {
     return response.data;
   },
 
-  // Placement History
-  getPlacementHistory: async () => {
-    const response = await api.get('/student/placement-history');
-    return response.data;
-  },
-
   // Practice Sessions
   getPracticeSessions: async (params = {}) => {
     const response = await api.get('/student/practice-sessions', { params });

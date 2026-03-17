@@ -11,7 +11,8 @@ import {
   Plus,
   Settings,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  Activity
 } from 'lucide-react';
 import {
   AreaChart,
@@ -141,10 +142,10 @@ const DashboardOverview = () => {
     return (
       <div className="flex flex-col items-center justify-center h-96 space-y-4">
         <AlertCircle size={36} className="text-rose-500" />
-        <p className="text-gray-700 font-semibold">{error}</p>
+        <p className="text-slate-700 font-semibold">{error}</p>
         <button
           onClick={fetchDashboardData}
-          className="px-5 py-2.5 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all"
+          className="px-5 py-2.5 bg-slate-900 text-white rounded font-bold hover:bg-slate-800 transition-colors shadow-sm"
         >
           Retry
         </button>
@@ -184,12 +185,15 @@ const DashboardOverview = () => {
   ];
 
   return (
-    <div className="space-y-8 pb-10">
+    <div className="space-y-6 pb-10">
       {/* Header Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="space-y-1">
-          <h1 className="text-3xl font-black text-gray-900 tracking-tight">Recruitment Console</h1>
-          <p className="text-gray-500 font-medium">Live data from your recruitment pipeline</p>
+          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
+            <Activity size={28} className="text-slate-700" />
+            Recruitment Overview
+          </h1>
+          <p className="text-sm text-slate-500 font-medium tracking-tight">Real-time data from your recruitment pipeline</p>
         </div>
       </div>
 
@@ -198,19 +202,15 @@ const DashboardOverview = () => {
         {dashboardStats.map((stat, index) => {
           const Icon = stat.icon;
           return (
-            <div key={index} className="group glass-card p-6 rounded-[2rem] hover-lift border-white/50 relative overflow-hidden">
-              <div className={`absolute -right-4 -top-4 w-24 h-24 bg-gradient-to-br ${stat.gradient} opacity-[0.03] rounded-full`}></div>
+            <div key={index} className="bg-white p-5 rounded border border-slate-200 shadow-sm flex items-center gap-4">
+              <div className={`w-12 h-12 rounded border border-slate-100 flex items-center justify-center bg-slate-50 flex-shrink-0`}>
+                <Icon className="text-slate-600" size={24} />
+              </div>
 
-              <div className="flex flex-col gap-4">
-                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-all duration-300`}>
-                  <Icon className="text-white" size={24} />
-                </div>
-
-                <div>
-                  <h4 className="text-3xl font-black text-gray-900 tracking-tight">{stat.value}</h4>
-                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mt-1">{stat.label}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{stat.sub}</p>
-                </div>
+              <div>
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest leading-none mb-1">{stat.label}</p>
+                <h4 className="text-2xl font-bold text-slate-900 tracking-tight leading-none mb-1">{stat.value}</h4>
+                <p className="text-xs text-slate-500">{stat.sub}</p>
               </div>
             </div>
           );
@@ -221,39 +221,39 @@ const DashboardOverview = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Engagement Trends */}
         <div className="lg:col-span-2 space-y-4">
-          <div className="flex items-center justify-between px-2">
-            <h3 className="text-xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
-              <div className="w-1.5 h-6 bg-blue-600 rounded-full"></div>
+          <div className="flex items-center justify-between px-1">
+            <h3 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
+              <TrendingUp size={20} className="text-slate-500" />
               Application Trends (Last 6 Months)
             </h3>
           </div>
 
-          <div className="glass-card rounded-[2.5rem] p-8 min-h-[400px]">
+          <div className="bg-white rounded border border-slate-200 p-6 shadow-sm min-h-[350px]">
             {applicationTrends.length > 0 ? (
-              <ResponsiveContainer width="100%" height={350}>
+              <ResponsiveContainer width="100%" height={300}>
                 <AreaChart data={applicationTrends}>
                   <defs>
                     <linearGradient id="colorApps" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.1} />
-                      <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
+                      <stop offset="5%" stopColor="#cbd5e1" stopOpacity={0.5} />
+                      <stop offset="95%" stopColor="#cbd5e1" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 600 }} dy={15} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 600 }} dx={-10} />
+                  <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12, fontWeight: 500 }} dy={10} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12, fontWeight: 500 }} dx={-10} />
                   <Tooltip
-                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                    cursor={{ stroke: '#3B82F6', strokeWidth: 2, strokeDasharray: '5 5' }}
+                    contentStyle={{ borderRadius: '4px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)' }}
+                    cursor={{ stroke: '#94a3b8', strokeWidth: 1, strokeDasharray: '4 4' }}
                   />
                   <Area
                     type="monotone"
                     dataKey="applications"
-                    stroke="#3B82F6"
-                    strokeWidth={4}
+                    stroke="#475569"
+                    strokeWidth={2}
                     fillOpacity={1}
                     fill="url(#colorApps)"
-                    dot={{ fill: '#3B82F6', strokeWidth: 2, r: 4, stroke: '#fff' }}
-                    activeDot={{ r: 8, strokeWidth: 0 }}
+                    dot={{ fill: '#f8fafc', strokeWidth: 2, r: 4, stroke: '#475569' }}
+                    activeDot={{ r: 6, strokeWidth: 0, fill: '#334155' }}
                   />
                 </AreaChart>
               </ResponsiveContainer>
@@ -268,12 +268,12 @@ const DashboardOverview = () => {
 
         {/* Application Status Distribution */}
         <div className="space-y-4">
-          <h3 className="text-xl font-bold text-gray-900 tracking-tight flex items-center gap-2 px-2">
-            <div className="w-1.5 h-6 bg-purple-600 rounded-full"></div>
+          <h3 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2 px-1">
+            <PieChart size={20} className="text-slate-500" />
             Status Breakdown
           </h3>
 
-          <div className="glass-card rounded-[2.5rem] p-8 flex flex-col items-center justify-center min-h-[400px]">
+          <div className="bg-white rounded border border-slate-200 p-6 flex flex-col items-center justify-center min-h-[350px] shadow-sm">
             {statusDistribution.length > 0 ? (
               <>
                 <ResponsiveContainer width="100%" height={240}>
@@ -293,14 +293,14 @@ const DashboardOverview = () => {
                   </PieChart>
                 </ResponsiveContainer>
 
-                <div className="w-full mt-6 space-y-3">
+                <div className="w-full mt-6 space-y-2">
                   {statusDistribution.map((item, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50/50 rounded-2xl border border-transparent hover:border-gray-100 transition-all">
-                      <div className="flex items-center gap-3">
-                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }}></div>
-                        <span className="text-sm font-bold text-gray-700 capitalize">{item.name}</span>
+                    <div key={index} className="flex items-center justify-between p-2.5 bg-slate-50 rounded border border-slate-100">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: item.color }}></div>
+                        <span className="text-xs font-semibold text-slate-700 capitalize">{item.name}</span>
                       </div>
-                      <span className="text-sm font-black text-gray-900">{item.value}</span>
+                      <span className="text-sm font-bold text-slate-900">{item.value}</span>
                     </div>
                   ))}
                 </div>
@@ -319,35 +319,33 @@ const DashboardOverview = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Real-time Applicant Feed */}
         <div className="space-y-4">
-          <div className="flex items-center justify-between px-2">
-            <h3 className="text-xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
-              <Clock size={20} className="text-blue-600" />
+          <div className="flex items-center justify-between px-1">
+            <h3 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
+              <Clock size={20} className="text-slate-500" />
               Recent Applications
             </h3>
           </div>
 
-          <div className="glass-card rounded-[2.5rem] p-4 space-y-3">
+          <div className="bg-white rounded border border-slate-200 p-4 space-y-2 shadow-sm">
             {recentApplications.length > 0 ? recentApplications.map((app, index) => {
               const studentName = app.student?.name || 'Unknown';
               const role = app.jobPosting?.title || 'Unknown Role';
               const appDate = app.appliedDate || app.createdAt;
               const isNew = Date.now() - new Date(appDate).getTime() < 24 * 60 * 60 * 1000;
               return (
-                <div key={app._id || index} className="flex items-center justify-between p-4 bg-white/50 backdrop-blur-sm rounded-3xl border border-gray-50 hover:border-blue-100 hover:shadow-md transition-all group cursor-pointer">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center text-gray-600 font-black text-sm group-hover:from-blue-600 group-hover:to-indigo-600 group-hover:text-white transition-all duration-500">
+                <div key={app._id || index} className="flex items-center justify-between p-3 bg-slate-50 rounded border border-slate-100 hover:border-slate-300 transition-colors cursor-pointer group">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded border border-slate-200 bg-white flex items-center justify-center text-slate-600 font-bold text-sm">
                       {getInitials(studentName)}
                     </div>
                     <div>
-                      <p className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight">{studentName}</p>
-                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">{role}</p>
+                      <p className="font-semibold text-sm text-slate-900">{studentName}</p>
+                      <p className="text-xs text-slate-500 font-medium">{role}</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${isNew ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600'}`}>
-                      {isNew ? 'New' : 'Viewed'}
-                    </div>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1.5 opacity-60">{getTimeAgo(appDate)}</p>
+                  <div className="text-right flex flex-col items-end">
+                    {isNew && <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 mb-1">New</span>}
+                    <p className="text-xs font-semibold text-slate-400">{getTimeAgo(appDate)}</p>
                   </div>
                 </div>
               );
@@ -362,35 +360,34 @@ const DashboardOverview = () => {
 
         {/* Quick Operations Console */}
         <div className="space-y-4">
-          <h3 className="text-xl font-bold text-gray-900 tracking-tight flex items-center gap-2 px-2">
-            <Settings size={20} className="text-indigo-600" />
+          <h3 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2 px-1">
+            <Settings size={20} className="text-slate-500" />
             Operations Console
           </h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {[
-              { title: 'Job Board', desc: 'Create & manage active roles', icon: Briefcase, color: 'text-blue-600', bg: 'bg-blue-50' },
-              { title: 'Talent Pool', desc: 'Review pending applications', icon: Users, color: 'text-teal-600', bg: 'bg-teal-50' },
-              { title: 'Interviews', desc: 'Coordinate meeting syncs', icon: Calendar, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-              { title: 'Offer Lab', desc: 'Release employment contracts', icon: Trophy, color: 'text-amber-600', bg: 'bg-amber-50' }
+              { title: 'Job Board', desc: 'Manage active roles', icon: Briefcase },
+              { title: 'Talent Pool', desc: 'Review applications', icon: Users },
+              { title: 'Interviews', desc: 'Coordinate syncs', icon: Calendar },
+              { title: 'Offer Lab', desc: 'Release contracts', icon: Trophy }
             ].map((action, i) => (
-              <button key={i} className="flex items-start gap-4 p-6 glass-card rounded-[2.5rem] hover:bg-gray-50/50 transition-all group text-left">
-                <div className={`w-12 h-12 rounded-2xl ${action.bg} ${action.color} flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform`}>
-                  <action.icon size={20} />
+              <button key={i} className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-3 p-4 bg-white border border-slate-200 rounded shadow-sm hover:border-slate-300 hover:bg-slate-50 transition-colors group">
+                <div className={`w-10 h-10 rounded bg-slate-100 flex items-center justify-center flex-shrink-0 text-slate-500 group-hover:bg-white group-hover:border group-hover:border-slate-200`}>
+                  <action.icon size={18} />
                 </div>
                 <div>
-                  <h4 className="font-black text-gray-900 tracking-tight uppercase text-xs">{action.title}</h4>
-                  <p className="text-xs text-gray-500 font-medium mt-1 leading-relaxed">{action.desc}</p>
+                  <h4 className="font-bold text-slate-800 text-sm">{action.title}</h4>
+                  <p className="text-xs text-slate-500 font-medium leading-relaxed mt-0.5">{action.desc}</p>
                 </div>
               </button>
             ))}
 
-            <div className="sm:col-span-2 p-8 bg-gradient-to-br from-gray-900 to-slate-800 rounded-[2.5rem] relative overflow-hidden group cursor-pointer shadow-xl shadow-slate-200">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-700"></div>
+            <div className="sm:col-span-2 p-6 bg-slate-900 border border-slate-800 rounded shadow-sm relative overflow-hidden group cursor-pointer block">
               <div className="relative z-10">
-                <h4 className="text-xl font-bold text-white mb-2">Recruitment Analytics</h4>
-                <p className="text-slate-400 text-sm font-medium mb-6 leading-relaxed">Live metrics powered by your actual recruitment data.</p>
-                <button className="flex items-center gap-2 text-blue-400 font-black uppercase text-[10px] tracking-widest hover:gap-4 transition-all">
+                <h4 className="text-base font-bold text-white mb-1">Recruitment Analytics</h4>
+                <p className="text-slate-400 text-sm font-medium mb-4 leading-relaxed">Live metrics powered by your recruitment data.</p>
+                <button className="flex items-center gap-1 text-slate-300 font-semibold text-xs hover:text-white transition-colors">
                   Access Intelligence Suite
                   <ChevronRight size={14} />
                 </button>

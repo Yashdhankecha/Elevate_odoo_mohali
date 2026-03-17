@@ -159,7 +159,7 @@ const InterviewScheduling = () => {
 
       {/* Interviews Grid */}
       {interviews.length === 0 ? (
-        <div className="text-center py-32 bg-white/40 rounded-[3rem] border-2 border-dashed border-slate-100">
+        <div className="text-center py-32 bg-white/40 rounded border-2 border-dashed border-slate-100">
           <Calendar className="text-slate-200 w-20 h-20 mx-auto mb-6" />
           <h3 className="text-xl font-bold text-slate-900 mb-2">Cycle Empty</h3>
           <p className="text-slate-400 max-w-xs mx-auto text-sm">Synchronize your first evaluation session with candidate vectors.</p>
@@ -167,7 +167,7 @@ const InterviewScheduling = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
           {interviews.map((interview) => (
-            <div key={interview._id} className="group glass-card p-8 rounded-[2.5rem] hover-lift border-white/50 relative overflow-hidden flex flex-col justify-between min-h-[450px]">
+            <div key={interview._id} className="group bg-white rounded border border-slate-200 p-8 hover-lift relative overflow-hidden flex flex-col justify-between min-h-[450px]">
               <div className="space-y-6 relative z-10">
                 <div className="flex justify-between items-start">
                    <div className="space-y-1">
@@ -223,7 +223,7 @@ const InterviewScheduling = () => {
                 {interview.status === 'Scheduled' && (
                   <button 
                     onClick={() => handleStatusUpdate(interview._id, 'In Progress')}
-                    className="flex-1 p-3.5 bg-blue-600 text-white rounded-[1.2rem] shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 transition-all flex items-center justify-center gap-2 group/btn"
+                    className="flex-1 p-3.5 bg-blue-600 text-white rounded-[1.2rem] shadow-lg transition-all flex items-center justify-center gap-2 group/btn"
                   >
                     <Play size={14} className="fill-white group-hover:scale-110 transition-transform" />
                     <span className="text-[10px] font-black uppercase tracking-widest">Execute</span>
@@ -232,7 +232,7 @@ const InterviewScheduling = () => {
                 {interview.status === 'In Progress' && (
                   <button 
                     onClick={() => handleStatusUpdate(interview._id, 'Completed')}
-                    className="flex-1 p-3.5 bg-emerald-600 text-white rounded-[1.2rem] shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 transition-all flex items-center justify-center gap-2"
+                    className="flex-1 p-3.5 bg-emerald-600 text-white rounded-[1.2rem] shadow-lg transition-all flex items-center justify-center gap-2"
                   >
                     <CheckCircle2 size={14} />
                     <span className="text-[10px] font-black uppercase tracking-widest">Finalize</span>
@@ -266,9 +266,9 @@ const InterviewScheduling = () => {
       {/* Modern Modal HUD */}
       {showInterviewModal && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-6 overflow-hidden">
-           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-fade-in" onClick={() => !submitting && setShowInterviewModal(false)}></div>
+           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => !submitting && setShowInterviewModal(false)}></div>
            
-           <div className="bg-white rounded-[3rem] w-full max-w-2xl max-h-[90vh] overflow-y-auto custom-scrollbar relative z-10 animate-slide-up shadow-2xl">
+           <div className="bg-white rounded w-full max-w-2xl max-h-[90vh] overflow-y-auto custom-scrollbar relative z-10 shadow-2xl">
               <div className="p-8 md:p-10 border-b border-slate-50 flex justify-between items-center sticky top-0 bg-white/80 backdrop-blur-xl z-20">
                  <div>
                     <h2 className="text-2xl font-black text-slate-900 tracking-tight">
