@@ -7,9 +7,10 @@ import ApplicationsTracking from './components/ApplicationsTracking';
 import InterviewScheduling from './components/InterviewScheduling';
 import ReportsAnalytics from './components/ReportsAnalytics';
 import ApprovalPending from '../tpo/components/ApprovalPending';
+import JobDetailedView from './components/JobDetailedView';
 
 const CompanyDashboard = () => {
-  const { section } = useParams();
+  const { section, id } = useParams();
   const navigate = useNavigate();
   const activeSection = section || 'dashboard';
 
@@ -47,6 +48,8 @@ const CompanyDashboard = () => {
         return <DashboardOverview />;
       case 'jobs':
         return <JobManagement />;
+      case 'job-details':
+        return <JobDetailedView />;
       case 'applications':
         return <ApplicationsTracking />;
       case 'interviews':

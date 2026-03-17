@@ -102,6 +102,10 @@ function App() {
                   path="/company-dashboard/:section"
                   element={<RoleBasedRoute allowedRoles={['company']} />}
                 />
+                <Route
+                  path="/company-dashboard/:section/:id"
+                  element={<RoleBasedRoute allowedRoles={['company']} />}
+                />
 
                 <Route
                   path="/tpo-dashboard"

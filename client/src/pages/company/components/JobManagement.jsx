@@ -8,14 +8,15 @@ import {
 import { getCompanyJobs, deleteJob } from '../../../services/companyApi';
 import JobPostingForm from './JobPostingForm';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const JobManagement = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showJobModal, setShowJobModal] = useState(false);
-  const [viewJobModal, setViewJobModal] = useState(false);
   const [selectedJob, setSelectedJob] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterDepartment, setFilterDepartment] = useState('');
@@ -246,7 +247,7 @@ const JobManagement = () => {
                 {/* Actions Footer */}
                 <div className="flex gap-3 mt-8 pt-5 border-t border-slate-100 relative z-10">
                   <button
-                    onClick={() => { setSelectedJob(job); setViewJobModal(true); }}
+                    onClick={() => navigate(`/company-dashboard/job-details/${job._id}`)}
                     className="flex-1 py-3 bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white rounded-xl transition-all flex items-center justify-center gap-2 uppercase tracking-widest text-[10px] font-bold group/btn">
                     <Eye size={14} />
                     <span>View Details</span>
@@ -271,15 +272,6 @@ const JobManagement = () => {
           job={selectedJob}
           onClose={() => setShowJobModal(false)}
           onSuccess={() => { setShowJobModal(false); fetchJobs(); }}
-        />
-      )}
-
-      {/* Job Posting View Modal */}
-      {viewJobModal && (
-        <JobPostingForm
-          job={selectedJob}
-          isViewOnly={true}
-          onClose={() => setViewJobModal(false)}
         />
       )}
     </div>

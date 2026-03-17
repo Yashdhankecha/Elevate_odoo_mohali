@@ -18,7 +18,8 @@ import {
   Zap,
   Activity,
   X,
-  Bell
+  Bell,
+  LayoutGrid
 } from 'lucide-react';
 
 const Sidebar = ({
