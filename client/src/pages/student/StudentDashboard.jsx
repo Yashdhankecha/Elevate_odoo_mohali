@@ -4,6 +4,7 @@ import Sidebar from './components/Sidebar';
 import DashboardOverview from './components/DashboardOverview';
 import ResumeBuilder from './components/ResumeBuilder';
 import PracticeHub from './components/PracticeHub';
+import PracticeSession from './components/PracticeSession';
 import Applications from './components/Applications';
 import JobBrowse from './components/JobBrowse';
 import AICareerCoach from './components/AICareerCoach';
@@ -17,6 +18,7 @@ const SLUG_TO_SECTION = {
   'internships': 'internships',
   'applications': 'applications',
   'practice-hub': 'practice',
+  'solve': 'solve',
   'resume-builder': 'resume',
   'ai-coach': 'ai-coach',
   'profile-approval': 'profile-approval',
@@ -24,11 +26,11 @@ const SLUG_TO_SECTION = {
 
 // Map internal section key → URL slug (reverse of above)
 const SECTION_TO_SLUG = Object.fromEntries(
-  Object.entries(SLUG_TO_SECTION).map(([slug, section]) => [section, slug])
+  Object.entries(SLUG_TO_SECTION).map(([slug, section]) => [slug, section])
 );
 
 const StudentDashboard = () => {
-  const { section: sectionParam } = useParams();   // URL slug from /student-dashboard/:section
+  const { section: sectionParam, id } = useParams();   // URL slugs: section and optional id
   const navigate = useNavigate();
 
   // Derive the active section from the URL param; default to 'dashboard'
@@ -60,6 +62,7 @@ const StudentDashboard = () => {
       case 'dashboard': return <DashboardOverview />;
       case 'resume': return <ResumeBuilder />;
       case 'practice': return <PracticeHub />;
+      case 'solve': return <PracticeSession />;
       case 'applications': return <Applications />;
       case 'jobs': return <JobBrowse setActiveSection={setActiveSection} />;
       case 'internships': return <InternshipOffers />;
@@ -76,6 +79,15 @@ const StudentDashboard = () => {
         <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">
           Loading Data...
         </p>
+      </div>
+    );
+  }
+
+  // FORCE FULL PAGE FOR SOLVE SECTION
+  if (activeSection === 'solve') {
+    return (
+      <div className="h-screen w-screen bg-white overflow-hidden">
+        {renderContent()}
       </div>
     );
   }
@@ -104,8 +116,6 @@ const StudentDashboard = () => {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] flex relative overflow-hidden">
-
-
       <Sidebar
         activeSection={activeSection}
         setActiveSection={setActiveSection}
@@ -114,7 +124,6 @@ const StudentDashboard = () => {
         isMobileOpen={isMobileSidebarOpen}
         setIsMobileOpen={setIsMobileSidebarOpen}
       />
-
       <div className={`
         transition-all duration-500 ease-in-out min-h-screen flex-1 relative z-10
         ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'}

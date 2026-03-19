@@ -8,7 +8,7 @@ const InputWrapper = ({ label, icon: Icon, children, error }) => (
     <div className="space-y-1.5">
         <label className="form-label px-1">{label}</label>
         <div className="relative group">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors group-focus-within:text-indigo-600 text-slate-400">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors group-focus-within:text-slate-900 text-slate-400">
                 <Icon className="h-5 w-5" />
             </div>
             {children}
@@ -114,20 +114,20 @@ const Signup = () => {
     return (
         <div className="min-h-screen bg-gradient-mesh relative flex items-center justify-center p-4 overflow-hidden py-12">
             {/* Background Blobs */}
-            <div className="absolute top-0 -left-4 w-72 h-72 bg-indigo-300 rounded-full mix-blend-multiply filter blur-xl opacity-40 animate-blob"></div>
-            <div className="absolute top-0 -right-4 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-40 animate-blob animation-delay-2000"></div>
-            <div className="absolute -bottom-8 left-20 w-72 h-72 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl opacity-40 animate-blob animation-delay-4000"></div>
+            <div className="absolute top-0 -left-4 w-72 h-72 bg-slate-200 rounded-full mix-blend-multiply filter blur-xl opacity-40 animate-blob"></div>
+            <div className="absolute top-0 -right-4 w-72 h-72 bg-slate-300 rounded-full mix-blend-multiply filter blur-xl opacity-40 animate-blob animation-delay-2000"></div>
+            <div className="absolute -bottom-8 left-20 w-72 h-72 bg-slate-100 rounded-full mix-blend-multiply filter blur-xl opacity-40 animate-blob animation-delay-4000"></div>
 
             <div className="max-w-xl w-full relative z-10">
                 <div className="text-center mb-8 animate-fade-in">
-                    <div className="inline-flex items-center justify-center p-3 bg-white rounded-2xl shadow-xl shadow-indigo-100 mb-6 hover-lift">
-                        <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center text-white text-2xl font-bold">E</div>
+                    <div className="inline-flex items-center justify-center p-3 bg-white rounded shadow-xl shadow-slate-100 mb-6 hover-lift">
+                        <div className="w-12 h-12 bg-slate-900 rounded flex items-center justify-center text-white text-2xl font-bold">E</div>
                     </div>
                     <h1 className="text-4xl font-extrabold text-slate-900 mb-2">Create <span className="text-gradient">Account</span></h1>
                     <p className="text-slate-500 font-medium px-4">Join the ultimate placement tracking intelligence platform</p>
                 </div>
 
-                <div className="glass-card rounded-[2.5rem] p-8 md:p-10 animate-slide-up">
+                <div className="glass-card rounded-2xl p-8 md:p-10 animate-slide-up">
                     <div className="mb-10">
                         <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest text-center mb-6">Choose your destination</h3>
                         <div className="grid grid-cols-3 gap-3 md:gap-4">
@@ -140,9 +140,9 @@ const Signup = () => {
                                     key={role.id}
                                     type="button"
                                     onClick={() => handleRoleSelect(role.id)}
-                                    className={`flex flex-col items-center p-4 rounded-2xl border-2 transition-all duration-300 ${selectedRole === role.id
-                                        ? 'border-indigo-600 bg-indigo-600 text-white shadow-xl shadow-indigo-200'
-                                        : 'border-slate-100 bg-white/50 text-slate-500 hover:border-indigo-200 hover:bg-white'
+                                    className={`flex flex-col items-center p-4 rounded-xl border-2 transition-all duration-300 ${selectedRole === role.id
+                                        ? 'border-slate-900 bg-slate-900 text-white shadow-xl shadow-slate-200'
+                                        : 'border-slate-100 bg-white/50 text-slate-500 hover:border-slate-200 hover:bg-white'
                                         }`}
                                 >
                                     <role.icon className={`w-8 h-8 mb-2 transition-transform ${selectedRole === role.id ? 'scale-110' : ''}`} />
@@ -165,14 +165,14 @@ const Signup = () => {
 
                                 <InputWrapper label="Password" icon={Lock}>
                                     <input name="password" type={showPassword ? 'text' : 'password'} required className="input-field pl-12 pr-12" placeholder="••••••••" value={formData.password} onChange={handleInputChange} />
-                                    <button type="button" className="absolute inset-y-0 right-0 pr-4 text-slate-400 hover:text-indigo-600" onClick={() => setShowPassword(!showPassword)}>
+                                    <button type="button" className="absolute inset-y-0 right-0 pr-4 text-slate-400 hover:text-slate-900" onClick={() => setShowPassword(!showPassword)}>
                                         {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                                     </button>
                                 </InputWrapper>
 
                                 <InputWrapper label="Confirm Password" icon={Lock}>
                                     <input name="confirmPassword" type={showConfirmPassword ? 'text' : 'password'} required className="input-field pl-12 pr-12" placeholder="••••••••" value={formData.confirmPassword} onChange={handleInputChange} />
-                                    <button type="button" className="absolute inset-y-0 right-0 pr-4 text-slate-400 hover:text-indigo-600" onClick={() => setShowConfirmPassword(!showConfirmPassword)}>
+                                    <button type="button" className="absolute inset-y-0 right-0 pr-4 text-slate-400 hover:text-slate-900" onClick={() => setShowConfirmPassword(!showConfirmPassword)}>
                                         {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                                     </button>
                                 </InputWrapper>
@@ -195,13 +195,13 @@ const Signup = () => {
                                                     onChange={handleInputChange} onFocus={() => collegeSuggestions.length > 0 && setShowSuggestions(true)}
                                                     onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                                                 />
-                                                {isSearchingColleges && <div className="absolute right-4 top-1/2 -translate-y-1/2"><Loader2 className="animate-spin h-4 w-4 text-indigo-500" /></div>}
+                                                {isSearchingColleges && <div className="absolute right-4 top-1/2 -translate-y-1/2"><Loader2 className="animate-spin h-4 w-4 text-slate-900" /></div>}
                                                 {selectedTPO && <CheckCircle2 className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald-500 h-5 w-5" />}
                                             </InputWrapper>
                                             {showSuggestions && collegeSuggestions.length > 0 && (
-                                                <div className="absolute z-20 w-full mt-2 bg-white/95 backdrop-blur-xl border border-slate-100 rounded-2xl shadow-2xl max-h-60 overflow-y-auto custom-scrollbar animate-fade-in">
+                                                <div className="absolute z-20 w-full mt-2 bg-white/95 backdrop-blur-xl border border-slate-100 rounded-xl shadow-2xl max-h-60 overflow-y-auto custom-scrollbar animate-fade-in">
                                                     {collegeSuggestions.map((c, i) => (
-                                                        <div key={i} onClick={() => selectCollege(c)} className="p-4 hover:bg-indigo-50 cursor-pointer border-b border-slate-50 last:border-0 transition-colors">
+                                                        <div key={i} onClick={() => selectCollege(c)} className="p-4 hover:bg-slate-50 cursor-pointer border-b border-slate-50 last:border-0 transition-colors">
                                                             <p className="font-bold text-slate-800">{c.instituteName}</p>
                                                             <p className="text-xs text-slate-500">TPO: {c.tpoName} • {c.tpoEmail}</p>
                                                         </div>
@@ -209,7 +209,7 @@ const Signup = () => {
                                                 </div>
                                             )}
                                             {selectedTPO && (
-                                                <div className="mt-3 p-3 bg-emerald-50 rounded-xl border border-emerald-100 flex items-start gap-3 animate-fade-in">
+                                                <div className="mt-3 p-3 bg-emerald-50 rounded-lg border border-emerald-100 flex items-start gap-3 animate-fade-in">
                                                     <CheckCircle2 className="text-emerald-500 mt-1 h-4 w-4" />
                                                     <div>
                                                         <p className="text-xs font-bold text-emerald-700">Verified Integration</p>
@@ -258,7 +258,7 @@ const Signup = () => {
                     )}
 
                     <div className="mt-10 pt-8 border-t border-slate-200/50 text-center">
-                        <p className="text-slate-500 font-medium">Already part of Elevate? <Link to="/login" className="text-indigo-600 font-bold hover:text-indigo-700 transition-colors">Sign In</Link></p>
+                        <p className="text-slate-500 font-medium">Already part of Elevate? <Link to="/login" className="text-slate-900 font-bold hover:text-slate-700 transition-colors">Sign In</Link></p>
                     </div>
                 </div>
             </div>

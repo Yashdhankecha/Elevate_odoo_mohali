@@ -62,24 +62,24 @@ const ResetPassword = () => {
 
   return (
     <div className="min-h-screen bg-gradient-mesh relative flex items-center justify-center p-4 overflow-hidden">
-      <div className="absolute top-0 -left-4 w-72 h-72 bg-indigo-300 rounded-full mix-blend-multiply filter blur-xl opacity-40 animate-blob"></div>
-      <div className="absolute top-0 -right-4 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-40 animate-blob animation-delay-2000"></div>
-      <div className="absolute -bottom-8 left-20 w-72 h-72 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl opacity-40 animate-blob animation-delay-4000"></div>
+      <div className="absolute top-0 -left-4 w-72 h-72 bg-slate-200 rounded-full mix-blend-multiply filter blur-xl opacity-40 animate-blob"></div>
+      <div className="absolute top-0 -right-4 w-72 h-72 bg-slate-300 rounded-full mix-blend-multiply filter blur-xl opacity-40 animate-blob animation-delay-2000"></div>
+      <div className="absolute -bottom-8 left-20 w-72 h-72 bg-slate-100 rounded-full mix-blend-multiply filter blur-xl opacity-40 animate-blob animation-delay-4000"></div>
 
       <div className="max-w-md w-full relative z-10">
         <div className="text-center mb-10 animate-fade-in">
-          <div className="inline-flex items-center justify-center p-3 bg-white rounded-2xl shadow-xl shadow-indigo-100 mb-6 font-bold text-indigo-600 text-2xl">E</div>
+          <div className="inline-flex items-center justify-center p-3 bg-white rounded shadow-xl shadow-slate-100 mb-6 font-bold text-slate-900 text-2xl">E</div>
           <h1 className="text-4xl font-extrabold text-slate-900 mb-2 font-display">New <span className="text-gradient">Password</span></h1>
           <p className="text-slate-500 font-medium">Protect your journey with a strong password</p>
         </div>
 
-        <div className="glass-card rounded-[2.5rem] p-8 md:p-10 animate-slide-up">
+        <div className="glass-card rounded-2xl p-8 md:p-10 animate-slide-up">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-5">
               <div>
                 <label className="form-label px-1">New Password</label>
                 <div className="relative group">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors group-focus-within:text-indigo-600 text-slate-400">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors group-focus-within:text-slate-900 text-slate-400">
                     <HiLockClosed className="h-5 w-5" />
                   </div>
                   <input
@@ -87,7 +87,7 @@ const ResetPassword = () => {
                     className={`input-field pl-12 pr-12 ${errors.password ? 'border-rose-300 ring-rose-200 ring-2' : ''}`}
                     placeholder="••••••••" value={formData.password} onChange={handleChange}
                   />
-                  <button type="button" className="absolute inset-y-0 right-0 pr-4 text-slate-400 hover:text-indigo-600" onClick={() => setShowPassword(!showPassword)}>
+                  <button type="button" className="absolute inset-y-0 right-0 pr-4 text-slate-400 hover:text-slate-900" onClick={() => setShowPassword(!showPassword)}>
                     {showPassword ? <HiEyeOff className="h-5 w-5" /> : <HiEye className="h-5 w-5" />}
                   </button>
                 </div>
@@ -97,7 +97,7 @@ const ResetPassword = () => {
               <div>
                 <label className="form-label px-1">Confirm New Password</label>
                 <div className="relative group">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors group-focus-within:text-indigo-600 text-slate-400">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors group-focus-within:text-slate-900 text-slate-400">
                     <HiLockClosed className="h-5 w-5" />
                   </div>
                   <input
@@ -119,7 +119,7 @@ const ResetPassword = () => {
             </button>
 
             <div className="text-center pt-2">
-              <button onClick={() => navigate('/login')} className="text-slate-500 font-medium hover:text-indigo-600 transition-colors flex items-center justify-center gap-2 w-full">
+              <button onClick={() => navigate('/login')} className="text-slate-500 font-medium hover:text-slate-900 transition-colors flex items-center justify-center gap-2 w-full">
                 <HiArrowLeft className="h-4 w-4" /> Back to Login
               </button>
             </div>

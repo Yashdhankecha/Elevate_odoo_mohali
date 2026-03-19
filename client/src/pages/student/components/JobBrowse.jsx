@@ -76,8 +76,13 @@ const JobCard = ({ job, onView }) => {
       <div className="relative z-10 flex flex-col h-full mt-1">
         {/* Header: Logo, Title */}
         <div className="flex items-start gap-4 mb-6">
-          <div className="flex-shrink-0 group-hover:shadow-md transition-shadow duration-300">
+          <div className="flex-shrink-0 group-hover:shadow-md transition-shadow duration-300 relative">
             <Avatar name={job.company} logo={job.companyLogo} />
+            {job.hasApplied && (
+              <div className="absolute -top-1 -right-1 bg-emerald-500 text-white rounded-full p-1 shadow-sm border-2 border-white z-20">
+                <CheckCircle2 size={10} />
+              </div>
+            )}
           </div>
           <div className="flex-1 min-w-0 pr-2">
             <h3 className="font-bold text-lg text-slate-900 leading-tight line-clamp-1 tracking-tight">
@@ -108,6 +113,11 @@ const JobCard = ({ job, onView }) => {
             }`}>
               {job.eligibility.eligible ? <CheckCircle2 size={10} /> : <XCircle size={10} />}
               {job.eligibility.eligible ? 'Eligible' : 'Conflict'}
+            </span>
+          )}
+          {job.hasApplied && (
+            <span className="text-[10px] font-black px-3 py-1 rounded bg-emerald-500 text-white border border-emerald-600 uppercase tracking-widest shadow-sm flex items-center gap-1.5 animate-in fade-in zoom-in duration-300">
+              <CheckCircle2 size={10} /> Applied
             </span>
           )}
         </div>

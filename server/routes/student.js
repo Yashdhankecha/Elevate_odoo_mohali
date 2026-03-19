@@ -285,6 +285,13 @@ router.get('/jobs', authenticateToken, ensureStudent, async (req, res) => {
       return { eligible: issues.length === 0, issues };
     };
 
+    // Check if current user has applied to each job
+    const userApplications = await JobApplication.find({
+      student: student.id || student._id,
+      jobPosting: { $in: jobs.map(job => job._id) }
+    });
+    const appliedJobIds = new Set(userApplications.map(app => app.jobPosting.toString()));
+
     res.json({
       success: true,
       data: {
@@ -293,6 +300,7 @@ router.get('/jobs', authenticateToken, ensureStudent, async (req, res) => {
           const companyDoc = job.company;
           return {
             id: job._id,
+            hasApplied: appliedJobIds.has(job._id.toString()),
             // Legacy fields (existing UI)
             title: job.jobTitle || job.title,
             company: job.companyName || companyDoc?.companyName || companyDoc?.company?.companyName || 'Company',
@@ -1490,7 +1498,7 @@ router.get('/internship-offers', authenticateToken, ensureStudent, async (req, r
 
     // Get internships with pagination
     const internships = await JobPosting.find(filter)
-      .populate('company', 'company email')
+      .populate('company', 'companyName email profilePicture')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
@@ -1511,6 +1519,11 @@ router.get('/internship-offers', authenticateToken, ensureStudent, async (req, r
     // Add application status to each internship
     const internshipsWithStatus = internships.map(internship => {
       const internshipObj = internship.toObject();
+      const companyDoc = internship.company;
+      
+      // Fallback for company logo from company profile (Cloudinary)
+      internshipObj.companyLogo = internship.companyLogo || companyDoc?.profilePicture || null;
+      
       internshipObj.hasApplied = appliedJobIds.has(internship._id.toString());
       internshipObj.applicationCount = internship.applicationCount || 0;
 
@@ -1635,8 +1648,8 @@ router.get('/internship-applications', authenticateToken, ensureStudent, async (
       student: studentId,
       'jobPosting.type': 'internship'
     })
-      .populate('jobPosting', 'title company location deadline description requirements responsibilities skills duration package type')
-      .populate('company', 'company')
+      .populate('jobPosting', 'title company companyLogo location deadline description requirements responsibilities skills duration package type')
+      .populate('company', 'companyName email profilePicture')
       .sort({ appliedDate: -1 });
 
     res.json({
@@ -1645,6 +1658,7 @@ router.get('/internship-applications', authenticateToken, ensureStudent, async (
         applications: applications.map(app => ({
           id: app._id,
           internshipTitle: app.jobPosting?.title,
+          logo: app.jobPosting?.companyLogo || app.company?.profilePicture || null,
           company: app.company?.companyName,
           location: app.jobPosting?.location,
           status: app.status,

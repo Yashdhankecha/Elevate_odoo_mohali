@@ -48,20 +48,20 @@ const ForgotPassword = () => {
   return (
     <div className="min-h-screen bg-gradient-mesh relative flex items-center justify-center p-4 overflow-hidden">
       {/* Background Blobs */}
-      <div className="absolute top-0 -left-4 w-72 h-72 bg-indigo-300 rounded-full mix-blend-multiply filter blur-xl opacity-40 animate-blob"></div>
-      <div className="absolute top-0 -right-4 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-40 animate-blob animation-delay-2000"></div>
-      <div className="absolute -bottom-8 left-20 w-72 h-72 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl opacity-40 animate-blob animation-delay-4000"></div>
+      <div className="absolute top-0 -left-4 w-72 h-72 bg-slate-200 rounded-full mix-blend-multiply filter blur-xl opacity-40 animate-blob"></div>
+      <div className="absolute top-0 -right-4 w-72 h-72 bg-slate-300 rounded-full mix-blend-multiply filter blur-xl opacity-40 animate-blob animation-delay-2000"></div>
+      <div className="absolute -bottom-8 left-20 w-72 h-72 bg-slate-100 rounded-full mix-blend-multiply filter blur-xl opacity-40 animate-blob animation-delay-4000"></div>
 
       <div className="max-w-md w-full relative z-10">
         <div className="text-center mb-8 animate-fade-in">
-          <div className="inline-flex items-center justify-center p-3 bg-white rounded-2xl shadow-xl shadow-indigo-100 mb-6 hover-lift">
-            <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center text-white text-2xl font-bold">E</div>
+          <div className="inline-flex items-center justify-center p-3 bg-white rounded shadow-xl shadow-slate-100 mb-6 hover-lift">
+            <div className="w-12 h-12 bg-slate-900 rounded flex items-center justify-center text-white text-2xl font-bold">E</div>
           </div>
           <h1 className="text-4xl font-extrabold text-slate-900 mb-2">Password <span className="text-gradient">Recovery</span></h1>
           <p className="text-slate-500 font-medium">We'll help you get back on track</p>
         </div>
 
-        <div className="glass-card rounded-[2.5rem] p-8 md:p-10 animate-slide-up">
+        <div className="glass-card rounded-2xl p-8 md:p-10 animate-slide-up">
           {submitted ? (
             <div className="text-center py-4 animate-fade-in">
               <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
@@ -75,7 +75,7 @@ const ForgotPassword = () => {
               <div className="space-y-4">
                 <button
                   onClick={() => setSubmitted(false)}
-                  className="w-full py-4 text-indigo-600 font-bold hover:text-indigo-700 transition-colors"
+                  className="w-full py-4 text-slate-900 font-bold hover:text-slate-700 transition-colors"
                 >
                   Didn't get the email? Try again
                 </button>
@@ -87,7 +87,7 @@ const ForgotPassword = () => {
           ) : (
             <form onSubmit={handleSubmit} className="space-y-6">
               {errors.general && (
-                <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl animate-fade-in text-rose-600 text-sm font-semibold text-center">
+                <div className="p-4 bg-rose-50 border border-rose-100 rounded-xl animate-fade-in text-rose-600 text-sm font-semibold text-center">
                   {errors.general}
                 </div>
               )}
@@ -95,7 +95,7 @@ const ForgotPassword = () => {
               <div>
                 <label className="form-label px-1">Email Address</label>
                 <div className="relative group">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors group-focus-within:text-indigo-600 text-slate-400">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors group-focus-within:text-slate-900 text-slate-400">
                     <HiMail className="h-5 w-5" />
                   </div>
                   <input
@@ -128,7 +128,7 @@ const ForgotPassword = () => {
               </div>
 
               <div className="text-center pt-2">
-                <Link to="/login" className="text-slate-500 font-medium hover:text-indigo-600 transition-colors flex items-center justify-center gap-2">
+                <Link to="/login" className="text-slate-500 font-medium hover:text-slate-900 transition-colors flex items-center justify-center gap-2">
                   <HiArrowLeft className="h-4 w-4" /> Back to Login
                 </Link>
               </div>

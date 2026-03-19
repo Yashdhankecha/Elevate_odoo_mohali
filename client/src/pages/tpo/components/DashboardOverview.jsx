@@ -87,33 +87,44 @@ const DashboardOverview = () => {
 
   return (
     <div className="space-y-10 pb-24">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-        <div className="space-y-1">
-          <h1 className="text-3xl font-black text-slate-900 tracking-tighter flex items-center gap-3 uppercase">
-             <ShieldCheck size={32} className="text-blue-600" />
-             TPO Dashboard
-          </h1>
-          <p className="text-slate-500 font-medium tracking-tight">Overview of student placements, company drives, and institutional success.</p>
-        </div>
-        
-        <div className="flex items-center gap-3">
-          <button onClick={() => fetchDashboardData(true)} className="p-3 bg-white border border-slate-100 rounded-2xl shadow-sm hover:bg-slate-50 transition-all active:scale-95 text-slate-400">
-            <RefreshCw size={20} className={refreshing ? 'animate-spin' : ''} />
-          </button>
-          <button className="flex items-center gap-2 px-8 py-3.5 bg-slate-900 text-white rounded-2xl shadow-xl shadow-slate-200 hover:shadow-2xl transition-all font-bold uppercase text-[11px] tracking-widest active:scale-95 group">
-            <Plus size={18} className="group-hover:rotate-90 transition-transform" />
-             Create New Drive
-          </button>
-        </div>
+      {/* Welcome Area */}
+      <div className="relative group overflow-hidden rounded bg-slate-900 p-8 md:p-14 shadow-sm border border-slate-800">
+         <div className="relative z-10 grid lg:grid-cols-5 gap-12 items-center">
+            <div className="lg:col-span-5 space-y-6">
+               <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white/10 rounded flex items-center justify-center backdrop-blur-xl">
+                     <ShieldCheck className="text-white w-6 h-6" strokeWidth={2.5} />
+                  </div>
+                  <span className="text-[10px] font-bold text-blue-400 uppercase tracking-[0.3em]">TPO Administration</span>
+               </div>
+               
+               <h1 className="text-3xl md:text-5xl font-black text-white tracking-tighter leading-tight">
+                  Welcome to the <br />
+                  <span className="text-blue-400">Placement Command Center</span>
+               </h1>
+               
+               <div className="pt-4 md:pt-6 flex flex-col sm:flex-row gap-4">
+                  <button className="px-6 py-3 bg-white text-slate-900 rounded font-bold text-sm tracking-wide hover:bg-slate-50 transition-colors flex items-center justify-center md:justify-start gap-2 shadow-sm group active:scale-95">
+                     <Plus size={16} className="group-hover:rotate-90 transition-transform" /> Create New Drive
+                  </button>
+                  <button onClick={() => fetchDashboardData(true)} className="px-6 py-3 bg-slate-800 border border-slate-700 text-white rounded font-bold text-sm tracking-wide hover:bg-slate-700 transition-colors flex items-center justify-center md:justify-start gap-2 shadow-sm active:scale-95">
+                     Refresh Data <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
+                  </button>
+               </div>
+            </div>
+         </div>
+
+         {/* Decorative background elements */}
+         <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/3 pointer-events-none group-hover:bg-blue-500/20 transition-colors duration-1000"></div>
+         <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-500/10 rounded-full blur-3xl opacity-30 translate-y-1/3 -translate-x-1/4 pointer-events-none group-hover:bg-purple-500/20 transition-colors duration-1000"></div>
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
         {stats.map((stat, index) => (
-          <div key={index} className="group glass-card p-6 rounded-[2.5rem] hover-lift border-white/50 relative overflow-hidden transition-all duration-500">
+          <div key={index} className="group bg-white p-6 rounded border border-slate-200 shadow-sm relative overflow-hidden transition-all duration-500">
              <div className="flex flex-col gap-5 relative z-10">
-                <div className={`w-12 h-12 rounded-2xl ${stat.bg} ${stat.color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}>
+                <div className={`w-12 h-12 rounded-lg ${stat.bg} ${stat.color} flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform`}>
                    <stat.icon size={20} />
                 </div>
                 <div>
@@ -136,12 +147,12 @@ const DashboardOverview = () => {
                <Activity size={20} className="text-blue-600" />
                Placement Growth
             </h3>
-            <div className="flex items-center gap-2 px-4 py-2 bg-slate-100/50 rounded-2xl border border-slate-100">
+            <div className="flex items-center gap-2 px-4 py-2 bg-slate-100/50 rounded border border-slate-100">
                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-600">Batch 2024 Records</span>
             </div>
           </div>
           
-          <div className="glass-card rounded-[3rem] p-10 h-[450px] shadow-2xl shadow-slate-200/50">
+          <div className="bg-white border border-slate-200 rounded p-10 h-[450px] shadow-sm">
              <ResponsiveContainer width="100%" height="100%">
                <AreaChart data={[
                  {name: 'Jan', val: 30}, {name: 'Feb', val: 45}, {name: 'Mar', val: 62}, 
@@ -170,13 +181,13 @@ const DashboardOverview = () => {
              <Target size={20} className="text-rose-600" />
              Current Drives
           </h3>
-          <div className="glass-card rounded-[3rem] p-8 space-y-5 relative overflow-hidden h-[450px] flex flex-col justify-between shadow-2xl shadow-slate-200/50">
+          <div className="bg-white border border-slate-200 rounded p-8 space-y-5 relative overflow-hidden h-[450px] flex flex-col justify-between shadow-sm">
              <div className="space-y-5 relative z-10 overflow-y-auto custom-scrollbar pr-2">
                 {dashboardData.upcomingDrives.length > 0 ? (
                   dashboardData.upcomingDrives.slice(0, 5).map((drive) => (
-                    <div key={drive._id || Math.random()} className="flex items-center justify-between p-4 bg-white/60 backdrop-blur-md rounded-[2rem] border border-slate-50 hover:border-blue-100 transition-all group cursor-pointer hover:shadow-xl hover:shadow-slate-100">
+                    <div key={drive._id || Math.random()} className="flex items-center justify-between p-4 bg-slate-50 rounded border border-slate-100 hover:border-blue-100 transition-all group cursor-pointer hover:shadow-sm">
                       <div className="flex items-center gap-4">
-                        <div className="w-11 h-11 rounded-2xl bg-slate-900 text-white flex items-center justify-center group-hover:bg-blue-600 transition-all shadow-xl">
+                        <div className="w-11 h-11 rounded-lg bg-slate-900 text-white flex items-center justify-center group-hover:bg-blue-600 transition-all shadow-sm">
                           <Building2 size={18} />
                         </div>
                         <div>
@@ -194,7 +205,7 @@ const DashboardOverview = () => {
                   ))
                 ) : (
                   <div className="py-20 text-center space-y-4">
-                    <div className="w-20 h-20 bg-slate-50 rounded-[2.5rem] flex items-center justify-center mx-auto ring-4 ring-slate-100/50 shadow-inner">
+                    <div className="w-20 h-20 bg-slate-50 rounded-xl flex items-center justify-center mx-auto ring-4 ring-slate-100/50 shadow-inner">
                        <Calendar size={28} className="text-slate-300" />
                     </div>
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-xs">No active drives</p>
@@ -202,7 +213,7 @@ const DashboardOverview = () => {
                 )}
              </div>
              
-             <button className="w-full py-4 text-[11px] font-bold text-blue-600 uppercase tracking-widest bg-blue-50/50 hover:bg-blue-600 hover:text-white rounded-[1.5rem] transition-all border border-blue-100 relative z-10 active:scale-95">
+             <button className="w-full py-3 text-sm font-bold text-blue-600 tracking-wide bg-blue-50/50 hover:bg-blue-600 hover:text-white rounded transition-colors border border-blue-100 relative z-10 active:scale-95">
                View All Drives
              </button>
           </div>
@@ -216,13 +227,13 @@ const DashboardOverview = () => {
                <Clock size={20} className="text-amber-500" />
                Recent Activities
             </h3>
-            <div className="glass-card rounded-[3rem] p-8 space-y-5 shadow-2xl shadow-slate-200/50">
+            <div className="bg-white border border-slate-200 rounded p-8 space-y-5 shadow-sm">
                {[
                  {msg: 'TCS released shortlist for 45 students', time: '2 hours ago', type: 'info'},
                  {msg: 'Adobe interview schedule finalized', time: '5 hours ago', type: 'success'},
                  {msg: '12 resumes pending for verification', time: '8 hours ago', type: 'warning'}
                ].map((event, i) => (
-                 <div key={i} className="flex gap-4 items-start p-5 hover:bg-slate-50/50 rounded-[2rem] transition-all border border-transparent hover:border-slate-100 group">
+                 <div key={i} className="flex gap-4 items-start p-5 hover:bg-slate-50/50 rounded transition-all border border-transparent hover:border-slate-100 group">
                     <div className={`w-2.5 h-2.5 rounded-full mt-2.5 flex-shrink-0 ${
                       event.type === 'warning' ? 'bg-amber-500 animate-pulse' : 
                       event.type === 'success' ? 'bg-emerald-500' : 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]'
@@ -236,13 +247,13 @@ const DashboardOverview = () => {
             </div>
          </div>
          
-         <div className="bg-slate-900 rounded-[3rem] p-12 relative overflow-hidden group shadow-2xl shadow-slate-300">
+         <div className="bg-slate-900 rounded p-12 relative overflow-hidden group shadow-sm border border-slate-800">
             <div className="absolute top-0 right-0 p-12 opacity-10 group-hover:scale-125 transition-transform duration-1000">
                <Layers size={250} className="text-white" />
             </div>
             <div className="relative z-10 flex flex-col h-full justify-between gap-10">
                <div className="space-y-4">
-                  <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-xl">
+                  <div className="w-14 h-14 bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-xl">
                      <Zap className="text-white" size={24} />
                   </div>
                   <h4 className="text-4xl font-black text-white leading-[1.1] tracking-tighter uppercase">
@@ -250,9 +261,9 @@ const DashboardOverview = () => {
                   </h4>
                   <p className="text-slate-400 font-medium opacity-80 max-w-xs leading-relaxed text-sm">Download detailed placement performance reports for the current academic session.</p>
                </div>
-               <button className="flex items-center gap-3 px-10 py-5 bg-white text-slate-900 rounded-3xl font-bold uppercase text-[11px] tracking-widest hover:gap-6 transition-all w-fit shadow-2xl active:scale-95 group">
+               <button className="flex items-center gap-3 px-8 py-3 bg-white text-slate-900 rounded font-bold text-sm tracking-wide hover:bg-slate-50 transition-colors w-fit shadow-sm active:scale-95 group">
                   Open Reports Portal
-                  <ArrowRight size={18} className="group-hover:translate-x-1" />
+                  <ArrowRight size={16} className="group-hover:translate-x-1" />
                </button>
             </div>
          </div>

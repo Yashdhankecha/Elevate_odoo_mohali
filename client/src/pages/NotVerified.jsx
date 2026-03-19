@@ -46,27 +46,27 @@ const NotVerified = () => {
 
     return (
         <div className="min-h-screen bg-gradient-mesh relative flex items-center justify-center p-4 overflow-hidden py-12">
-            <div className="absolute top-0 -left-4 w-96 h-96 bg-indigo-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
-            <div className="absolute -bottom-8 right-20 w-96 h-96 bg-purple-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000"></div>
+             <div className="absolute top-0 -left-4 w-96 h-96 bg-slate-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
+            <div className="absolute -bottom-8 right-20 w-96 h-96 bg-slate-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000"></div>
 
             <div className="max-w-xl w-full relative z-10">
-                <div className="glass-card rounded-[2.5rem] p-8 md:p-12 animate-slide-up">
+                <div className="glass-card rounded-2xl p-8 md:p-12 animate-slide-up">
                     <div className="text-center mb-10">
                         <div className="w-20 h-20 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm border border-rose-100">
                             <ShieldAlert className="h-10 w-10 text-rose-500 animate-pulse" />
                         </div>
                         <h1 className="text-3xl font-extrabold text-slate-900 mb-2">Almost There!</h1>
-                        <p className="text-slate-500 font-medium italic">We need to verify <span className="text-indigo-600 font-bold">{userEmail}</span></p>
+                        <p className="text-slate-500 font-medium italic">We need to verify <span className="text-slate-900 font-bold">{userEmail}</span></p>
                     </div>
 
-                    <div className="bg-indigo-50/50 rounded-3xl p-6 mb-8 border border-indigo-100 backdrop-blur-sm">
-                        <h3 className="flex items-center gap-2 text-indigo-900 font-bold mb-4 uppercase tracking-wider text-xs">
-                            <Sparkles className="h-4 w-4" /> Why verify?
+                    <div className="bg-slate-50 border border-slate-100 rounded-xl p-6 mb-8 backdrop-blur-sm">
+                        <h3 className="flex items-center gap-2 text-slate-900 font-bold mb-4 uppercase tracking-wider text-xs">
+                            <Sparkles className="h-4 w-4 text-slate-900" /> Why verify?
                         </h3>
                         <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             {features.map((f, i) => (
                                 <li key={i} className="flex items-center gap-3 text-slate-600 text-sm font-medium">
-                                    <div className="h-1.5 w-1.5 rounded-full bg-indigo-400" />
+                                    <div className="h-1.5 w-1.5 rounded-full bg-slate-400" />
                                     {f}
                                 </li>
                             ))}

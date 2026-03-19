@@ -50,8 +50,8 @@ const TPODashboard = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex flex-col items-center justify-center">
         <div className="relative">
-          <div className="w-20 h-20 border-4 border-indigo-100 rounded-full animate-pulse"></div>
-          <div className="absolute top-0 left-0 w-20 h-20 border-t-4 border-indigo-600 rounded-full animate-spin"></div>
+          <div className="w-20 h-20 border-4 border-slate-100 rounded-full animate-pulse"></div>
+          <div className="absolute top-0 left-0 w-20 h-20 border-t-4 border-slate-900 rounded-full animate-spin"></div>
         </div>
         <p className="mt-8 text-gray-500 font-bold tracking-widest uppercase text-xs animate-pulse">
           Loading Admin Portal...
@@ -65,7 +65,7 @@ const TPODashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-indigo-50/20 to-purple-50/20">
+    <div className="min-h-screen bg-slate-50">
       {/* Sidebar - Desktop & Tablet */}
       <Sidebar
         activeSection={activeSection}

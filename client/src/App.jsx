@@ -61,7 +61,7 @@ function App() {
     <Router>
       <AuthProvider>
         <NotificationProvider>
-          <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+          <div className="min-h-screen bg-slate-50">
             <ConditionalNavbar />
             <ConditionalMain>
               <Routes>
@@ -91,6 +91,10 @@ function App() {
                 />
                 <Route
                   path="/student-dashboard/:section"
+                  element={<RoleBasedRoute allowedRoles={['student']} />}
+                />
+                <Route
+                  path="/student-dashboard/:section/:id"
                   element={<RoleBasedRoute allowedRoles={['student']} />}
                 />
 
@@ -164,4 +168,3 @@ function App() {
 }
 
 export default App;
-

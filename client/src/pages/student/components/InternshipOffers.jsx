@@ -57,8 +57,13 @@ const InternshipCard = ({ internship, onView }) => {
       <div className="absolute top-0 left-0 w-full h-1 bg-slate-100 group-hover:bg-slate-800 transition-colors"></div>
       
       <div className="flex items-start gap-4 mb-6 relative z-10">
-        <div className="flex-shrink-0 group-hover:shadow-md transition-shadow">
+        <div className="flex-shrink-0 group-hover:shadow-md transition-shadow relative">
           <Avatar name={internship.company?.companyName || internship.companyName} logo={internship.companyLogo} />
+          {internship.hasApplied && (
+            <div className="absolute -top-1 -right-1 bg-emerald-500 text-white rounded-full p-1 shadow-sm border-2 border-white z-20">
+              <CheckCircle2 size={10} />
+            </div>
+          )}
         </div>
         <div className="flex-1 min-w-0 pr-2">
           <h3 className="font-bold text-lg text-slate-900 leading-tight line-clamp-1 tracking-tight">
@@ -78,6 +83,11 @@ const InternshipCard = ({ internship, onView }) => {
         <span className="text-[10px] font-black px-2.5 py-1 rounded bg-blue-50 text-blue-600 border border-blue-100 uppercase tracking-widest shadow-sm flex items-center gap-1.5">
           <Icon size={10} /> {mode}
         </span>
+        {internship.hasApplied && (
+          <span className="text-[10px] font-black px-2.5 py-1 rounded bg-emerald-500 text-white border border-emerald-600 uppercase tracking-widest shadow-sm flex items-center gap-1.5 animate-in fade-in zoom-in duration-300">
+            <CheckCircle2 size={10} /> Applied
+          </span>
+        )}
         {internship.ppoPossibility && internship.ppoPossibility !== 'no' && (
           <span className="text-[10px] font-black px-2.5 py-1 rounded bg-emerald-50 text-emerald-600 border border-emerald-100 uppercase tracking-widest shadow-sm">
             PPO Possible

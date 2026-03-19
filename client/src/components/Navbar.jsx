@@ -19,7 +19,7 @@ const Navbar = () => {
                 <div className="flex justify-between h-16 items-center">
                     {/* Logo */}
                     <Link to="/" className="flex items-center gap-3 group">
-                        <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-200/50 group-hover:shadow-blue-300/50 transition-all duration-300 transform group-hover:rotate-3">
+                        <div className="w-10 h-10 bg-slate-900 rounded flex items-center justify-center shadow-lg shadow-slate-200 group-hover:shadow-slate-300 transition-all duration-300 transform group-hover:rotate-3">
                             <FaGraduationCap className="text-white text-lg" />
                         </div>
                         <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-800 to-gray-600">
@@ -29,12 +29,12 @@ const Navbar = () => {
 
                     {/* Desktop Nav Links */}
                     <div className="hidden md:flex items-center gap-6">
-                        <Link to="/" className="text-sm font-semibold text-gray-600 hover:text-blue-600 transition-colors">
+                        <Link to="/" className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">
                             Home
                         </Link>
                         {isAuthenticated ? (
                             <>
-                                <Link to="/dashboard" className="text-sm font-semibold text-gray-600 hover:text-blue-600 transition-colors">
+                                <Link to="/dashboard" className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">
                                     Dashboard
                                 </Link>
                                 <button
@@ -47,12 +47,12 @@ const Navbar = () => {
                             </>
                         ) : (
                             <>
-                                <Link to="/login" className="text-sm font-semibold text-gray-600 hover:text-blue-600 transition-colors">
+                                <Link to="/login" className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">
                                     Login
                                 </Link>
                                 <Link
                                     to="/signup"
-                                    className="px-5 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all duration-300"
+                                    className="px-5 py-2.5 bg-slate-900 text-white text-sm font-bold rounded shadow-lg shadow-slate-200 hover:bg-slate-800 transition-all duration-300"
                                 >
                                     Sign Up
                                 </Link>
@@ -89,7 +89,7 @@ const Navbar = () => {
                                 <Link to="/login" onClick={() => setMobileMenuOpen(false)} className="block px-4 py-3 text-sm font-semibold text-gray-600 hover:bg-gray-50 rounded-xl">
                                     Login
                                 </Link>
-                                <Link to="/signup" onClick={() => setMobileMenuOpen(false)} className="block px-4 py-3 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl text-center">
+                                <Link to="/signup" onClick={() => setMobileMenuOpen(false)} className="block px-4 py-3 text-sm font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded text-center">
                                     Sign Up
                                 </Link>
                             </>

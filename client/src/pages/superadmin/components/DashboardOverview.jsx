@@ -82,46 +82,59 @@ const DashboardOverview = ({ onNavigateToSection }) => {
 
    const stats = [
       { label: 'Total Students', value: dashboardData.totalStudents, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50', trend: 'Growing' },
-      { label: 'Total Companies', value: dashboardData.totalCompanies, icon: Building2, color: 'text-indigo-600', bg: 'bg-indigo-50', trend: 'Active' },
+      { label: 'Total Companies', value: dashboardData.totalCompanies, icon: Building2, color: 'text-blue-600', bg: 'bg-blue-50', trend: 'Active' },
       { label: 'Job Postings', value: dashboardData.totalJobPostings, icon: Briefcase, color: 'text-emerald-600', bg: 'bg-emerald-50', trend: 'Live' },
       { label: 'Total Applications', value: dashboardData.totalApplications, icon: Activity, color: 'text-rose-600', bg: 'bg-rose-50', trend: 'Processing' }
    ];
 
    return (
       <div className="space-y-10 pb-24">
-         {/* Header */}
-         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-            <div className="space-y-1">
-               <h1 className="text-3xl font-black text-slate-900 tracking-tighter flex items-center gap-3 uppercase">
-                  Dashboard Overview
-               </h1>
-               <p className="text-slate-500 font-medium tracking-tight">Overview of all students, companies, and platforms activities.</p>
-            </div>
-
-            <div className="flex items-center gap-3">
-               <div className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-100 shadow-sm rounded-2xl font-bold text-[11px] uppercase tracking-widest text-emerald-600">
-                  <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
-                  System Status: Online
+      {/* Welcome Area */}
+      <div className="relative group overflow-hidden rounded bg-slate-900 p-8 md:p-14 shadow-sm border border-slate-800">
+         <div className="relative z-10 grid lg:grid-cols-5 gap-12 items-center">
+            <div className="lg:col-span-5 space-y-6">
+               <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white/10 rounded flex items-center justify-center backdrop-blur-xl">
+                     <ShieldCheck className="text-white w-6 h-6" strokeWidth={2.5} />
+                  </div>
+                  <span className="text-[10px] font-bold text-blue-400 uppercase tracking-[0.3em]">Super Admin Control</span>
                </div>
-               <button onClick={fetchDashboardData} className="p-3.5 bg-white border border-slate-100 rounded-2xl shadow-sm text-slate-400 hover:text-blue-600 hover:bg-white transition-all active:scale-95">
-                  <RefreshCw size={18} />
-               </button>
+               
+               <h1 className="text-3xl md:text-5xl font-black text-white tracking-tighter leading-tight">
+                  System <br />
+                  <span className="text-blue-400">Master Overview</span>
+               </h1>
+               
+               <div className="pt-4 md:pt-6 flex flex-col sm:flex-row gap-4">
+                  <div className="flex items-center gap-2 px-5 py-3 bg-white/5 border border-white/10 backdrop-blur-md rounded font-bold text-[11px] uppercase tracking-widest text-emerald-400 shadow-sm">
+                     <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
+                     System: Online
+                  </div>
+                  <button onClick={fetchDashboardData} className="px-6 py-3 bg-slate-800 border border-slate-700 text-white rounded font-bold text-sm tracking-wide hover:bg-slate-700 transition-colors flex items-center justify-center md:justify-start gap-2 shadow-sm active:scale-95">
+                     Refresh System <RefreshCw size={16} />
+                  </button>
+               </div>
             </div>
          </div>
+
+         {/* Decorative background elements */}
+         <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/3 pointer-events-none group-hover:bg-blue-500/20 transition-colors duration-1000"></div>
+         <div className="absolute bottom-0 left-0 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl opacity-30 translate-y-1/3 -translate-x-1/4 pointer-events-none group-hover:bg-emerald-500/20 transition-colors duration-1000"></div>
+      </div>
 
          {/* Main Stats */}
          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {stats.map((stat, i) => (
-               <div key={i} className="group glass-card p-6 rounded-[2.5rem] hover-lift border-white/50 relative overflow-hidden transition-all duration-500">
+               <div key={i} className="group bg-white p-6 rounded border border-slate-200 shadow-sm relative overflow-hidden transition-all duration-500">
                   <div className="flex flex-col gap-6 relative z-10">
-                     <div className={`w-12 h-12 rounded-2xl ${stat.bg} ${stat.color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}>
+                     <div className={`w-12 h-12 rounded ${stat.bg} ${stat.color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}>
                         <stat.icon size={20} />
                      </div>
                      <div>
                         <h4 className="text-3xl font-black text-slate-900 tracking-tighter">{stat.value.toLocaleString()}</h4>
                         <div className="flex items-center justify-between mt-1">
                            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">{stat.label}</p>
-                           <p className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">{stat.trend}</p>
+                           <p className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">{stat.trend}</p>
                         </div>
                      </div>
                   </div>
@@ -134,7 +147,7 @@ const DashboardOverview = ({ onNavigateToSection }) => {
 
          {/* Pending Approvals */}
          {(dashboardData.pendingTPOs > 0 || dashboardData.pendingCompanies > 0) && (
-            <div className="bg-slate-900 rounded-[3rem] p-1.5 shadow-2xl shadow-slate-300 overflow-hidden relative group">
+            <div className="bg-slate-900 rounded p-1.5 shadow-sm overflow-hidden relative group border border-slate-800">
                {/* Background Decoration */}
                <div className="absolute top-0 right-0 p-10 opacity-10 blur-2xl group-hover:scale-150 transition-transform duration-1000">
                   <Zap size={200} className="text-amber-400" />
@@ -149,11 +162,11 @@ const DashboardOverview = ({ onNavigateToSection }) => {
                      <p className="text-slate-400 font-medium text-sm leading-relaxed">There are registration requests waiting for your approval.</p>
                   </div>
 
-                  <div className="lg:w-2/3 grid md:grid-cols-2 gap-1.5 p-1.5 bg-slate-800/30 rounded-[2.5rem]">
+                  <div className="lg:w-2/3 grid md:grid-cols-2 gap-1.5 p-1.5 bg-slate-800/30 rounded">
                      {dashboardData.pendingTPOs > 0 && (
-                        <div className="bg-slate-800/60 backdrop-blur-xl hover:bg-slate-800 transition-all p-7 rounded-[2.2rem] flex items-center justify-between group/card border border-white/5">
+                        <div className="bg-slate-800/60 backdrop-blur-xl hover:bg-slate-800 transition-all p-7 rounded flex items-center justify-between group/card border border-white/5">
                            <div className="flex items-center gap-5">
-                              <div className="w-16 h-16 bg-amber-400/10 text-amber-400 rounded-3xl flex items-center justify-center group-hover/card:scale-110 group-hover/card:shadow-[0_0_30px_rgba(251,191,36,0.2)] transition-all">
+                              <div className="w-16 h-16 bg-amber-400/10 text-amber-400 rounded-lg flex items-center justify-center group-hover/card:scale-110 group-hover/card:shadow-[0_0_30px_rgba(251,191,36,0.2)] transition-all">
                                  <UserPlus size={28} />
                               </div>
                               <div>
@@ -161,16 +174,16 @@ const DashboardOverview = ({ onNavigateToSection }) => {
                                  <h4 className="text-2xl font-black text-white leading-none whitespace-nowrap">{dashboardData.pendingTPOs} Requests</h4>
                               </div>
                            </div>
-                           <button onClick={() => onNavigateToSection('tpo-approval')} className="p-3 bg-amber-400 text-slate-900 rounded-2xl hover:bg-white transition-all shadow-xl shadow-amber-400/10 active:scale-90">
-                              <ArrowUpRight size={20} strokeWidth={3} />
+                           <button onClick={() => onNavigateToSection('tpo-approval')} className="p-3 bg-amber-400 text-slate-900 rounded hover:bg-white transition-colors shadow-sm active:scale-90">
+                              <ArrowUpRight size={18} strokeWidth={3} />
                            </button>
                         </div>
                      )}
 
                      {dashboardData.pendingCompanies > 0 && (
-                        <div className="bg-slate-800/60 backdrop-blur-xl hover:bg-slate-800 transition-all p-7 rounded-[2.2rem] flex items-center justify-between group/card border border-white/5">
+                        <div className="bg-slate-800/60 backdrop-blur-xl hover:bg-slate-800 transition-all p-7 rounded flex items-center justify-between group/card border border-white/5">
                            <div className="flex items-center gap-5">
-                              <div className="w-16 h-16 bg-blue-400/10 text-blue-400 rounded-3xl flex items-center justify-center group-hover/card:scale-110 group-hover/card:shadow-[0_0_30px_rgba(96,165,250,0.2)] transition-all">
+                              <div className="w-16 h-16 bg-blue-400/10 text-blue-400 rounded-lg flex items-center justify-center group-hover/card:scale-110 group-hover/card:shadow-[0_0_30px_rgba(96,165,250,0.2)] transition-all">
                                  <Building2 size={28} />
                               </div>
                               <div>
@@ -178,8 +191,8 @@ const DashboardOverview = ({ onNavigateToSection }) => {
                                  <h4 className="text-2xl font-black text-white leading-none whitespace-nowrap">{dashboardData.pendingCompanies} Requests</h4>
                               </div>
                            </div>
-                           <button onClick={() => onNavigateToSection('company-approval')} className="p-3 bg-blue-400 text-white rounded-2xl hover:bg-white hover:text-slate-900 transition-all shadow-xl shadow-blue-400/10 active:scale-90">
-                              <ArrowUpRight size={20} strokeWidth={3} />
+                           <button onClick={() => onNavigateToSection('company-approval')} className="p-3 bg-blue-400 text-white rounded hover:bg-white hover:text-slate-900 transition-colors shadow-sm active:scale-90">
+                              <ArrowUpRight size={18} strokeWidth={3} />
                            </button>
                         </div>
                      )}
@@ -200,7 +213,7 @@ const DashboardOverview = ({ onNavigateToSection }) => {
                      Weekly Progress Analytics
                   </div>
                </div>
-               <div className="glass-card rounded-[3rem] p-10 h-[450px] shadow-2xl shadow-slate-200/50">
+               <div className="bg-white border border-slate-200 rounded p-10 h-[450px] shadow-sm">
                   <ResponsiveContainer width="100%" height="100%">
                      <AreaChart data={[
                         { name: 'W1', s: 100 }, { name: 'W2', s: 220 }, { name: 'W3', s: 380 },
@@ -226,15 +239,15 @@ const DashboardOverview = ({ onNavigateToSection }) => {
             <div className="space-y-6">
                <h3 className="text-xl font-black text-slate-900 tracking-tight px-4 flex items-center justify-between uppercase">
                   Recent Activity
-                  <span className="flex items-center gap-1.5 px-3 py-1 bg-rose-50 text-rose-600 rounded-full text-[9px] font-black uppercase tracking-widest">
+                  <span className="flex items-center gap-1.5 px-3 py-1 bg-rose-50 text-rose-600 rounded text-[9px] font-black uppercase tracking-widest">
                      <div className="w-1.5 h-1.5 bg-rose-600 rounded-full animate-pulse" /> Live Updates
                   </span>
                </h3>
-               <div className="glass-card rounded-[3rem] p-8 space-y-5 max-h-[450px] overflow-y-auto custom-scrollbar shadow-2xl shadow-slate-200/50">
+               <div className="bg-white border border-slate-200 rounded p-8 space-y-5 max-h-[450px] overflow-y-auto custom-scrollbar shadow-sm">
                   {dashboardData.recentActivities.length > 0 ? (
                      dashboardData.recentActivities.map((activity, i) => (
-                        <div key={i} className="flex gap-5 p-5 hover:bg-slate-50 rounded-[2rem] transition-all border border-transparent hover:border-slate-100 group">
-                           <div className="w-11 h-11 bg-slate-100 rounded-2xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
+                        <div key={i} className="flex gap-5 p-5 hover:bg-slate-50 rounded transition-all border border-transparent hover:border-slate-100 group">
+                           <div className="w-11 h-11 bg-slate-100 rounded flex items-center justify-center flex-shrink-0 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
                               <Clock size={18} />
                            </div>
                            <div className="flex-1 min-w-0">
@@ -249,7 +262,7 @@ const DashboardOverview = ({ onNavigateToSection }) => {
                      ))
                   ) : (
                      <div className="py-24 text-center">
-                        <div className="w-20 h-20 bg-slate-50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-4 border border-slate-100 shadow-inner">
+                         <div className="w-20 h-20 bg-slate-50 rounded flex items-center justify-center mx-auto mb-4 border border-slate-100 shadow-inner">
                            <Database size={28} className="text-slate-200" />
                         </div>
                         <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest text-xs">No activity yet</p>

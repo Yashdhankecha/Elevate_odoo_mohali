@@ -21,12 +21,12 @@ const Field = ({ label, children }) => (
     </div>
 );
 
-const inputCls = "w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-800 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all disabled:opacity-60 disabled:cursor-not-allowed";
+const inputCls = "w-full px-3 py-2.5 border border-gray-200 rounded text-sm text-gray-800 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all disabled:opacity-60 disabled:cursor-not-allowed";
 
 const SectionCard = ({ title, icon: Icon, children }) => (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-5">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-5">
         <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex items-center gap-3">
-            <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
+            <div className="p-2 bg-blue-100 text-blue-600 rounded">
                 <Icon className="w-4 h-4" />
             </div>
             <h2 className="text-base font-semibold text-gray-800">{title}</h2>
@@ -215,17 +215,17 @@ const StudentProfilePage = () => {
                     <div className="max-w-4xl mx-auto pb-16 animate-fade-in">
 
                         {/* ── Header card ── */}
-                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
                             <div className="flex items-center gap-4">
                                 {/* Avatar */}
                                 <div className="relative group">
-                                    <div className="w-20 h-20 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center overflow-hidden border-2 border-white shadow-md text-white font-bold text-2xl uppercase">
+                                    <div className="w-20 h-20 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center overflow-hidden border-2 border-white shadow-md text-white font-bold text-2xl uppercase">
                                         {formData.profilePicture
                                             ? <img src={formData.profilePicture} alt={formData.name} className="w-full h-full object-cover" />
                                             : getUserInitials(formData.name || user?.name)
                                         }
                                         {savingPic && (
-                                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center rounded-xl">
+                                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center rounded-lg">
                                                 <FaSpinner className="text-white animate-spin" size={22} />
                                             </div>
                                         )}
@@ -234,7 +234,7 @@ const StudentProfilePage = () => {
                                         type="button"
                                         onClick={() => logoInputRef.current?.click()}
                                         disabled={savingPic}
-                                        className="absolute -bottom-2 -right-2 p-2 bg-white text-blue-600 hover:bg-blue-600 hover:text-white border border-gray-100 rounded-xl shadow transition-all disabled:opacity-60"
+                                        className="absolute -bottom-2 -right-2 p-2 bg-white text-blue-600 hover:bg-blue-600 hover:text-white border border-gray-100 rounded-lg shadow transition-all disabled:opacity-60"
                                         title="Upload photo"
                                     >
                                         <Camera className="w-4 h-4" />
@@ -262,7 +262,7 @@ const StudentProfilePage = () => {
                                 {!isEditing ? (
                                     <button
                                         onClick={() => { setIsEditing(true); setSaveError(''); }}
-                                        className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-sm font-semibold transition-colors shadow-sm"
+                                        className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded flex items-center gap-2 text-sm font-semibold transition-colors shadow-sm"
                                     >
                                         <FaEdit /> Edit Profile
                                     </button>
@@ -270,14 +270,14 @@ const StudentProfilePage = () => {
                                     <>
                                         <button
                                             onClick={() => { setIsEditing(false); setSaveError(''); fetchProfile(); }}
-                                            className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2.5 rounded-xl flex items-center gap-2 text-sm font-semibold border border-gray-200 transition-colors"
+                                            className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2.5 rounded flex items-center gap-2 text-sm font-semibold border border-gray-200 transition-colors"
                                         >
                                             <FaTimes /> Discard
                                         </button>
                                         <button
                                             onClick={handleSaveProfile}
                                             disabled={saving}
-                                            className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-sm font-semibold transition-colors shadow-sm disabled:opacity-60"
+                                            className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded flex items-center gap-2 text-sm font-semibold transition-colors shadow-sm disabled:opacity-60"
                                         >
                                             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <FaSave />}
                                             {saving ? 'Saving…' : 'Save Profile'}
@@ -289,7 +289,7 @@ const StudentProfilePage = () => {
 
                         {/* ── Inline save error ── */}
                         {saveError && (
-                            <div className="mb-4 flex items-start gap-3 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm font-medium">
+                            <div className="mb-4 flex items-start gap-3 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm font-medium">
                                 <FaExclamationCircle className="mt-0.5 flex-shrink-0" />
                                 <span>{saveError}</span>
                             </div>
@@ -391,7 +391,7 @@ const StudentProfilePage = () => {
                                             </Field>
                                         </div>
                                         <button type="submit" disabled={passwordLoading}
-                                            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm disabled:opacity-60">
+                                            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm disabled:opacity-60">
                                             {passwordLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <HiKey className="w-4 h-4" />}
                                             {passwordLoading ? 'Updating…' : 'Update Password'}
                                         </button>
