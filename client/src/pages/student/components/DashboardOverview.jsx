@@ -25,8 +25,35 @@ import {
 import { studentApi } from '../../../services/studentApi';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../../../contexts/AuthContext';
-import { getUserDisplayName } from '../../../utils/helpers';
 import { useNewsData } from '../../../hooks/useNewsData';
+
+const Typewriter = ({ text, delay = 70 }) => {
+  const [currentText, setCurrentText] = useState('');
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    // Reset if text changes
+    setCurrentText('');
+    setCurrentIndex(0);
+  }, [text]);
+
+  useEffect(() => {
+    if (currentIndex < text.length) {
+      const timeout = setTimeout(() => {
+        setCurrentText(prev => prev + text[currentIndex]);
+        setCurrentIndex(prev => prev + 1);
+      }, delay);
+      return () => clearTimeout(timeout);
+    }
+  }, [currentIndex, delay, text]);
+
+  return (
+    <span className="inline-block relative">
+      {currentText}
+      <span className="inline-block w-[3px] h-[0.9em] bg-blue-600 ml-1 animate-pulse align-middle" />
+    </span>
+  );
+};
 
 const DashboardOverview = () => {
   const { user } = useAuth();
@@ -79,7 +106,7 @@ const DashboardOverview = () => {
     </div>
   );
 
-  const { stats, recentActivities } = dashboardData;
+  const { student: studentProfile, stats, recentActivities } = dashboardData;
 
   const metrics = [
     { title: 'Applications', value: stats.applicationsSubmitted, icon: Briefcase, color: 'text-blue-600', bg: 'bg-blue-50', trend: 'Submitted' },
@@ -92,24 +119,20 @@ const DashboardOverview = () => {
 
   return (
     <div className="space-y-8 md:space-y-12 pb-24">
-      {/* Welcome Area */}
-      <div className="relative group overflow-hidden rounded bg-slate-900 p-8 md:p-14 shadow-sm border border-slate-800">
-         <div className="relative z-10 grid lg:grid-cols-5 gap-12 items-center">
-            <div className="lg:col-span-5 space-y-6">
-               
-               <h1 className="text-3xl md:text-5xl font-black text-white tracking-tighter leading-tight">
-                  {getGreeting()} <br />
-                  <span className="text-blue-400">{getUserDisplayName(user)}</span>
-               </h1>
-               
-               <div className="pt-4 md:pt-6 flex flex-col sm:flex-row gap-4">
-                  <button onClick={() => navigate('/student-dashboard/resume-builder')} className="px-6 py-3 bg-white text-slate-900 rounded font-bold text-sm tracking-wide hover:bg-slate-50 transition-colors flex items-center justify-center md:justify-start gap-2 shadow-sm">
-                     Manage Resume <ArrowUpRight size={16} />
-                  </button>
-                  <button onClick={() => navigate('/student-dashboard/ai-coach')} className="px-6 py-3 bg-slate-800 border border-slate-700 text-white rounded font-bold text-sm tracking-wide hover:bg-slate-700 transition-colors flex items-center justify-center md:justify-start gap-2 shadow-sm">
-                     Ask AI Coach <Sparkles size={16} className="text-blue-400" />
-                  </button>
-               </div>
+      {/* Welcome Area - Updated to Plain Style with Typewriter */}
+      <div className="py-2 md:py-6">
+         <div className="flex flex-col gap-6">
+            <h1 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tighter leading-tight min-h-[1.2em]">
+               <Typewriter text={`${getGreeting()} ${studentProfile?.name ? studentProfile.name.split(' ')[0] : 'Student'}`} />
+            </h1>
+            
+            <div className="flex flex-col sm:flex-row gap-3">
+               <button onClick={() => navigate('/student-dashboard/resume-builder')} className="px-6 py-2.5 bg-slate-900 text-white rounded font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all flex items-center justify-center sm:justify-start gap-2 shadow-sm">
+                  Manage Resume <ArrowUpRight size={14} />
+               </button>
+               <button onClick={() => navigate('/student-dashboard/ai-coach')} className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 rounded font-bold text-xs uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center sm:justify-start gap-2 shadow-sm">
+                  Ask AI Coach <Sparkles size={14} className="text-blue-500" />
+               </button>
             </div>
          </div>
       </div>

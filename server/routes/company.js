@@ -301,7 +301,35 @@ router.put('/jobs/:id', auth, ensureCompany, async (req, res) => {
   }
 });
 
-// Delete a job
+// Toggle a job's active status (open/close applications)
+router.patch('/jobs/:id/toggle-active', auth, ensureCompany, async (req, res) => {
+  try {
+    const job = await JobPosting.findOne({ _id: req.params.id, company: req.user._id });
+    if (!job) return res.status(404).json({ message: 'Job not found' });
+
+    const newIsActive = !job.isActive;
+    const newStatus = newIsActive
+      ? (job.status === 'closed' ? 'active' : job.status)
+      : 'closed';
+
+    // Use findByIdAndUpdate to bypass full-document validation on required fields
+    const updated = await JobPosting.findByIdAndUpdate(
+      job._id,
+      { $set: { isActive: newIsActive, status: newStatus } },
+      { new: true, runValidators: false }
+    );
+
+    res.json({
+      isActive: updated.isActive,
+      status: updated.status,
+      message: `Job is now ${updated.isActive ? 'open' : 'closed'}`
+    });
+  } catch (error) {
+    console.error('Error toggling job status:', error);
+    res.status(500).json({ message: 'Server error', details: error.message });
+  }
+});
+
 // Delete a job
 router.delete('/jobs/:id', auth, ensureCompany, async (req, res) => {
   try {
@@ -331,7 +359,7 @@ router.get('/jobs/:id/applications', auth, ensureCompany, async (req, res) => {
     }
 
     const applications = await JobApplication.find({ jobPosting: req.params.id })
-      .populate('student', 'name email phoneNumber') // Student model fields
+      .populate('student', 'name email phoneNumber collegeName branch cgpa graduationYear resume profilePicture')
       .populate('jobPosting', 'title')
       .sort({ appliedDate: -1 });
 

@@ -10,6 +10,7 @@ import JobBrowse from './components/JobBrowse';
 import AICareerCoach from './components/AICareerCoach';
 import ProfileApproval from './components/ProfileApproval';
 import InternshipOffers from './components/InternshipOffers';
+import ApplicationTracking from './components/ApplicationTracking';
 import { Loader2 } from 'lucide-react';
 
 // Map URL slug → internal section key
@@ -22,6 +23,7 @@ const SLUG_TO_SECTION = {
   'resume-builder': 'resume',
   'ai-coach': 'ai-coach',
   'profile-approval': 'profile-approval',
+  'application-tracking': 'tracking',
 };
 
 // Map internal section key → URL slug (reverse of above)
@@ -68,6 +70,7 @@ const StudentDashboard = () => {
       case 'internships': return <InternshipOffers />;
       case 'ai-coach': return <AICareerCoach />;
       case 'profile-approval': return <ProfileApproval />;
+      case 'tracking': return <ApplicationTracking />;
       default: return <DashboardOverview />;
     }
   };

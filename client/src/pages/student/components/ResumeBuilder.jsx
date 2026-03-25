@@ -685,10 +685,7 @@ const ResumeBuilder = () => {
                 </section>
               )}
 
-              {/* Footer Timestamp */}
-              <footer className="mt-20 pt-10 border-t border-slate-100 text-[8px] font-bold text-slate-300 uppercase tracking-[0.5em] text-center">
-                Verified Asset • Build 829.4 • Elevate Recruitment Protocol
-              </footer>
+
             </div>
           </div>
         </div>

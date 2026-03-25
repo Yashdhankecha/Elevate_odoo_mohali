@@ -150,6 +150,7 @@ router.get('/jobs', authenticateToken, ensureStudent, async (req, res) => {
       minSalary,
       maxSalary,
       experience,
+      eligibleOnly = 'false',
       page = 1,
       limit = 10,
       sortBy = 'postedAt',
@@ -200,6 +201,52 @@ router.get('/jobs', authenticateToken, ensureStudent, async (req, res) => {
         { $or: collegeConditions }
       ]
     };
+
+    // Eligibility filtering
+    if (eligibleOnly === 'true' && student) {
+      // 1. CGPA / Percentage Check
+      query.$and.push({
+        $or: [
+          { 'eligibilityCriteria.minCgpaPercentage.value': { $exists: false } },
+          { 'eligibilityCriteria.minCgpaPercentage.value': null },
+          { 'eligibilityCriteria.minCgpaPercentage.value': 0 },
+          { 'eligibilityCriteria.minCgpaPercentage.value': { $lte: student.cgpa || 0 } }
+        ]
+      });
+
+      // 2. Branch Check
+      if (student.branch) {
+        query.$and.push({
+          $or: [
+            { eligibleBranches: { $exists: false } },
+            { eligibleBranches: { $size: 0 } },
+            { eligibleBranches: { $regex: new RegExp(`^${student.branch.trim()}$`, 'i') } },
+            { eligibleBranches: { $elemMatch: { $regex: new RegExp(`^${student.branch.trim()}$`, 'i') } } }
+          ]
+        });
+      }
+
+      // 3. Batch Check
+      if (student.graduationYear) {
+        query.$and.push({
+          $or: [
+            { targetBatches: { $exists: false } },
+            { targetBatches: { $size: 0 } },
+            { targetBatches: String(student.graduationYear) },
+            { targetBatches: { $elemMatch: { $eq: String(student.graduationYear) } } }
+          ]
+        });
+      }
+
+      // 4. Backlogs Check
+      query.$and.push({
+        $or: [
+          { 'eligibilityCriteria.backlogsAllowed': true, $or: [ { 'eligibilityCriteria.maxActiveBacklogs': { $exists: false } }, { 'eligibilityCriteria.maxActiveBacklogs': { $gte: student.currentBacklogs || 0 } } ] },
+          { 'eligibilityCriteria.backlogsAllowed': false, $or: [ { 'eligibilityCriteria.maxActiveBacklogs': { $gte: student.currentBacklogs || 0 } }, { $expr: { $lte: [ { $ifNull: [student.currentBacklogs, 0] }, 0 ] } } ] },
+          { 'eligibilityCriteria.backlogsAllowed': { $exists: false } }
+        ]
+      });
+    }
 
     // Optional filters
     if (search) {
@@ -377,9 +424,21 @@ router.get('/jobs', authenticateToken, ensureStudent, async (req, res) => {
 router.post('/jobs/:jobId/apply', authenticateToken, ensureStudent, async (req, res) => {
   try {
     const multer = require('multer');
-    const upload = multer().any();
+    const cloudinary = require('cloudinary').v2;
 
-    // Run multer as a promise to parse fields from FormData
+    // Configure Cloudinary
+    cloudinary.config({
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+      api_key: process.env.CLOUDINARY_API_KEY,
+      api_secret: process.env.CLOUDINARY_API_SECRET
+    });
+
+    const upload = multer({
+      storage: multer.memoryStorage(),
+      limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB for resumes
+    }).any();
+
+    // Run multer as a promise to parse fields and files from FormData
     await new Promise((resolve, reject) => {
       upload(req, res, (err) => {
         if (err) reject(err);
@@ -392,7 +451,14 @@ router.post('/jobs/:jobId/apply', authenticateToken, ensureStudent, async (req, 
   }
 
   try {
-    const studentId = req.user._id;
+    const studentId = req.user.constructor.modelName === 'Student' 
+      ? req.user._id 
+      : (req.user.student || (await require('../models/User').findById(req.user._id).select('student'))?.student);
+    
+    if (!studentId) {
+      return res.status(404).json({ success: false, message: 'Student profile not found' });
+    }
+
     const jobId = req.params.jobId;
     const { coverLetter, portfolio, availability, salary } = req.body;
 
@@ -405,7 +471,7 @@ router.post('/jobs/:jobId/apply', authenticateToken, ensureStudent, async (req, 
     // ── Eligibility gate for on-campus drives ──────────────────────────
     if (job.driveType === 'on_campus') {
       const student = await Student.findById(studentId)
-        .select('collegeName cgpa branch graduationYear currentBacklogs');
+        .select('collegeName cgpa branch graduationYear currentBacklogs resume');
 
       if (!student) {
         return res.status(404).json({ success: false, message: 'Student profile not found' });
@@ -475,11 +541,54 @@ router.post('/jobs/:jobId/apply', authenticateToken, ensureStudent, async (req, 
       return res.status(400).json({ success: false, message: 'You have already applied for this position.' });
     }
 
+    // Handle Resume Upload / Selection
+    let resumeUrl = null;
+    const resumeFile = req.files ? req.files.find(f => f.fieldname === 'resume') : null;
+
+    if (resumeFile) {
+      // Upload new resume to Cloudinary
+      try {
+        const uploadResult = await new Promise((resolve, reject) => {
+          const uploadStream = cloudinary.uploader.upload_stream(
+            {
+              folder: 'student_resumes',
+              public_id: `resume_${studentId}_${Date.now()}`,
+              resource_type: 'auto'
+            },
+            (error, result) => {
+              if (error) reject(error);
+              else resolve(result);
+            }
+          );
+          uploadStream.end(resumeFile.buffer);
+        });
+        resumeUrl = uploadResult.secure_url;
+      } catch (uploadError) {
+        console.error('Resume upload error:', uploadError);
+        return res.status(500).json({ success: false, message: 'Error uploading resume' });
+      }
+    } else {
+      // Fallback to profile resume if none uploaded now
+      // We need to fetch the student profile if it wasn't fetched during eligibility check
+      let student = null;
+      if (job.driveType === 'on_campus') {
+        // Already fetched above
+      } else {
+        student = await Student.findById(studentId).select('resume');
+      }
+      
+      // If we already have student from eligibility check, use it
+      const studentDoc = student || (await Student.findById(studentId).select('resume'));
+      resumeUrl = studentDoc?.resume || '';
+    }
+
     const application = new JobApplication({
       student: studentId,
       jobPosting: jobId,
       company: job.company,
       coverLetter,
+      resume: resumeUrl,
+      employmentType: job.employmentType || job.type || 'full-time',
       status: 'applied',
       appliedDate: new Date()
     });
@@ -504,7 +613,15 @@ router.post('/jobs/:jobId/apply', authenticateToken, ensureStudent, async (req, 
 // @access  Private (Student)
 router.get('/applications', authenticateToken, ensureStudent, async (req, res) => {
   try {
-    const studentId = req.user._id;
+    // Consistently resolve student ID (handle legacy User vs new Student collection)
+    const studentId = req.user.constructor.modelName === 'Student' 
+      ? req.user._id 
+      : (req.user.student || (await User.findById(req.user._id).select('student'))?.student);
+    
+    if (!studentId) {
+      return res.status(404).json({ success: false, message: 'Student profile not found' });
+    }
+
     const { status, page = 1, limit = 10 } = req.query;
 
     const query = { student: studentId };
@@ -513,8 +630,8 @@ router.get('/applications', authenticateToken, ensureStudent, async (req, res) =
     }
 
     const applications = await JobApplication.find(query)
-      .populate('jobPosting', 'title category jobCategory package location type description requirements responsibilities skills duration deadline')
-      .populate('company', 'companyName email profilePicture')
+      .populate('jobPosting', 'title category jobCategory package location type description employmentType stipend ctc jobDescription requiredSkills internshipDuration applicationDeadline workLocations requirements responsibilities skills duration deadline')
+      .populate('company', 'companyName email profilePicture company')
       .sort({ appliedDate: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit);
@@ -549,31 +666,41 @@ router.get('/applications', authenticateToken, ensureStudent, async (req, res) =
     const getCategorySalary = (cat) => '₹8-15 LPA'; // Backend placeholder
     const getCategoryColor = (cat) => 'text-indigo-600'; // Backend placeholder
 
+
     res.json({
       success: true,
       data: {
         applications: applications.map(app => ({
           id: app._id,
-          logo: null,
-          role: app.jobPosting?.title || 'Position',
-          company: app.company?.companyName || 'Company',
-          salary: app.jobPosting?.package ?
-            `₹${app.jobPosting.package.min / 100000}-${app.jobPosting.package.max / 100000} LPA` :
-            'Not specified',
+          role: app.jobPosting?.title || app.jobPosting?.jobTitle || 'Position',
+          company: app.company?.companyName || app.company?.company?.companyName || 'Company',
+          salary: app.jobPosting?.employmentType === 'internship'
+            ? (app.jobPosting.stipend > 0 ? `₹${Number(app.jobPosting.stipend).toLocaleString()}/mo` : 'Unpaid')
+            : (app.jobPosting?.ctc ? `₹${(app.jobPosting.ctc / 100000).toFixed(1)} LPA`
+              : (app.jobPosting?.package ? `₹${app.jobPosting.package.min / 100000}-${app.jobPosting.package.max / 100000} LPA` : 'Not specified')),
           status: app.status,
           appliedDate: new Date(app.appliedDate).toLocaleDateString(),
-          description: app.jobPosting?.description,
-          requirements: app.jobPosting?.requirements,
+          description: app.jobPosting?.description || app.jobPosting?.jobDescription,
+          requirements: app.jobPosting?.requirements || app.jobPosting?.requiredSkills,
           responsibilities: app.jobPosting?.responsibilities,
-          skills: app.jobPosting?.skills,
-          duration: app.jobPosting?.duration,
-          deadline: app.jobPosting?.deadline,
-          location: app.jobPosting?.location,
-          type: app.jobPosting?.type,
+          skills: app.jobPosting?.skills || app.jobPosting?.requiredSkills,
+          duration: app.jobPosting?.duration || app.jobPosting?.internshipDuration,
+          deadline: app.jobPosting?.deadline || app.jobPosting?.applicationDeadline,
+          location: app.jobPosting?.location || app.jobPosting?.workLocations?.[0],
+          // employmentType is the canonical field; type is legacy — check both
+          type: app.employmentType || app.jobPosting?.employmentType || app.jobPosting?.type || 'full-time',
           coverLetter: app.coverLetter,
           resume: app.resume,
           notes: app.notes,
           timeline: app.timeline
+        })),
+        _debug: applications.map(app => ({
+          id: app._id,
+          appEmploymentType: app.employmentType,
+          jobPostingNull: !app.jobPosting,
+          jobPostingEmploymentType: app.jobPosting?.employmentType,
+          jobPostingType: app.jobPosting?.type,
+          resolvedType: app.employmentType || app.jobPosting?.employmentType || app.jobPosting?.type || 'full-time'
         })),
         stats,
         categoryStats: categoryStats.map(cat => ({
@@ -597,6 +724,60 @@ router.get('/applications', authenticateToken, ensureStudent, async (req, res) =
       success: false,
       message: 'Server error'
     });
+  }
+});
+
+// @route   GET /api/student/applications/:applicationId
+// @desc    Get a single application's details
+// @access  Private (Student)
+router.get('/applications/:applicationId', authenticateToken, ensureStudent, async (req, res) => {
+  try {
+    const studentId = req.user._id;
+    const applicationId = req.params.applicationId;
+
+    const application = await JobApplication.findOne({
+      _id: applicationId,
+      student: studentId
+    })
+      .populate('jobPosting', 'title category jobCategory package ctc stipend location type description requirements responsibilities skills duration deadline employmentType jobDescription requiredSkills internshipDuration applicationDeadline workLocations')
+      .populate('company', 'companyName email profilePicture');
+
+    if (!application) {
+      return res.status(404).json({
+        success: false,
+        message: 'Application not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        id: application._id,
+        role: application.jobPosting?.title || application.jobPosting?.jobTitle || 'Position',
+        company: application.company?.companyName || 'Company',
+        salary: application.jobPosting?.employmentType === 'internship' ? 
+          (application.jobPosting.stipend > 0 ? `₹${Number(application.jobPosting.stipend).toLocaleString()}/mo` : 'Unpaid') :
+          (application.jobPosting?.ctc ? `₹${(application.jobPosting.ctc / 100000).toFixed(1)} LPA` : 
+           (application.jobPosting?.package ? `₹${application.jobPosting.package.min / 100000}-${application.jobPosting.package.max / 100000} LPA` : 'Not specified')),
+        status: application.status,
+        appliedDate: new Date(application.appliedDate).toLocaleDateString(),
+        description: application.jobPosting?.description || application.jobPosting?.jobDescription,
+        requirements: application.jobPosting?.requirements || application.jobPosting?.requiredSkills,
+        responsibilities: application.jobPosting?.responsibilities,
+        skills: application.jobPosting?.skills || application.jobPosting?.requiredSkills,
+        duration: application.jobPosting?.duration || application.jobPosting?.internshipDuration,
+        deadline: application.jobPosting?.deadline || application.jobPosting?.applicationDeadline,
+        location: application.jobPosting?.location || application.jobPosting?.workLocations?.[0],
+        type: application.jobPosting?.employmentType || application.jobPosting?.type,
+        coverLetter: application.coverLetter,
+        resume: application.resume,
+        notes: application.notes,
+        timeline: application.timeline || []
+      }
+    });
+  } catch (error) {
+    console.error('Get application error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 
@@ -1436,15 +1617,27 @@ router.get('/internship-offers', authenticateToken, ensureStudent, async (req, r
       });
     }
 
-    // Build filter query
+    // Build filter query — check both employmentType (new form) and legacy type field
     const filter = {
-      type: 'internship',
-      isActive: true,
-      deadline: { $gte: new Date() }, // Only show active internships
       $or: [
-        { targetColleges: { $in: [collegeName] } }, // College-specific internships
-        { targetColleges: { $exists: false } }, // Legacy internships without college targeting
-        { targetColleges: { $size: 0 } } // Internships with empty target colleges (global)
+        { employmentType: 'internship' },
+        { type: 'internship' }
+      ],
+      isActive: true,
+      $and: [
+        {
+          $or: [
+            { applicationDeadline: { $gte: new Date() } },
+            { deadline: { $gte: new Date() } }
+          ]
+        },
+        {
+          $or: [
+            { targetColleges: { $in: [collegeName] } },
+            { targetColleges: { $exists: false } },
+            { targetColleges: { $size: 0 } }
+          ]
+        }
       ]
     };
 

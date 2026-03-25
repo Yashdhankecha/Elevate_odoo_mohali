@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ChevronRight } from 'lucide-react';
 import {
   FaBriefcase,
   FaFilter,
@@ -241,6 +243,7 @@ const ApplicationModal = ({ application, mode, onClose, onUpdate, updating, onMo
 };
 
 const Applications = () => {
+  const navigate = useNavigate();
   const [applicationsData, setApplicationsData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
@@ -316,8 +319,8 @@ const Applications = () => {
   }
 
   const { applications, stats } = applicationsData;
-  const filteredApps = applications.filter(app => 
-    activeTab === 'jobs' ? app.type !== 'internship' : app.type === 'internship'
+  const filteredApps = applications.filter(app =>
+    activeTab === 'internships' ? app.type === 'internship' : app.type !== 'internship'
   );
 
   return (
@@ -343,20 +346,6 @@ const Applications = () => {
           </button>
         </div>
 
-        <div className="flex bg-white border border-slate-200 rounded overflow-hidden shadow-sm max-w-full overflow-x-auto">
-          {['all', 'applied', 'interview_scheduled', 'offer_received'].map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-4 md:px-6 py-3 text-[10px] md:text-xs font-bold uppercase tracking-widest transition-colors whitespace-nowrap border-r border-slate-200 last:border-0 ${filter === f
-                ? 'bg-slate-100 text-slate-900'
-                : 'text-slate-500 hover:bg-slate-50'
-                }`}
-            >
-              {f === 'interview_scheduled' ? 'Interviews' : f === 'offer_received' ? 'Offers' : f.replace('_', ' ')}
-            </button>
-          ))}
-        </div>
       </div>
 
       {/* Main List Section */}
@@ -365,48 +354,43 @@ const Applications = () => {
           {filteredApps?.map((app, idx) => {
             const info = getStatusInfo(app.status);
             return (
-              <div key={app.id || idx} className="bg-white rounded p-6 border border-slate-200 hover:border-slate-800 shadow-sm flex flex-col group transition-colors relative">
-                <div className="absolute top-0 left-0 w-full h-1 bg-slate-100 group-hover:bg-slate-800 transition-colors rounded-t"></div>
+              <div 
+                key={app.id || idx} 
+                onClick={() => navigate(`/student-dashboard/application-tracking/${app.id}`)}
+                className="group bg-white rounded-none border-2 border-slate-200 hover:border-slate-900 hover:shadow-2xl hover:shadow-slate-200/50 transition-all duration-500 flex flex-col cursor-pointer relative overflow-hidden"
+              >
+                {/* Visual Accent */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-slate-50 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-blue-50 transition-colors"></div>
                 
-                {/* Status & Date */}
-                <div className="flex justify-between items-start mb-6 mt-1">
-                  <div className={`px-3 py-1 rounded text-[9px] font-bold uppercase tracking-widest ${info.color} flex items-center gap-1.5 border`}>
-                    <info.icon size={10} />
-                    {info.label}
+                <div className="p-8 relative z-10 space-y-8">
+                  {/* Status & Date */}
+                  <div className="flex justify-between items-start">
+                    <div className={`px-4 py-1.5 rounded-none text-[10px] font-black uppercase tracking-[0.2em] ${info.color} flex items-center gap-1.5 border-2 border-current bg-white shadow-sm`}>
+                      <info.icon size={12} />
+                      {info.label}
+                    </div>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-3 py-1.5 rounded">{app.appliedDate}</span>
                   </div>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{app.appliedDate}</span>
-                </div>
 
-                {/* Body */}
-                <div className="flex-1 space-y-2">
-                  <h4 className="text-lg font-bold text-slate-900 leading-tight">{app.role}</h4>
-                  <div className="flex items-center gap-2 text-slate-500 font-medium text-xs">
-                    <FaBuilding size={12} className="text-slate-400" />
-                    {app.company}
+                  {/* Body */}
+                  <div className="space-y-4">
+                    <h4 className="text-2xl font-black text-slate-900 leading-none tracking-tighter group-hover:text-blue-600 transition-colors">{app.role}</h4>
+                    <div className="flex items-center gap-2 text-slate-500 font-bold text-sm">
+                      <FaBuilding size={14} className="text-slate-400" />
+                      {app.company}
+                    </div>
                   </div>
-                </div>
 
-                {/* Footer Stats & Actions */}
-                <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
-                  <div>
-                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">{activeTab === 'jobs' ? 'Package' : 'Stipend'}</p>
-                    <p className="text-sm font-bold text-emerald-600 tracking-tight">{app.salary}</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => { setSelectedApplication(app); setModalMode('view'); setShowModal(true); }}
-                      className="w-9 h-9 rounded bg-white text-slate-500 hover:text-slate-900 hover:bg-slate-50 transition-colors flex items-center justify-center border border-slate-200 shadow-sm"
-                      title="View Details"
-                    >
-                      <FaEye size={14} />
-                    </button>
-                    <button
-                      onClick={() => { setSelectedApplication(app); setModalMode('edit'); setShowModal(true); }}
-                      className="w-9 h-9 rounded bg-white text-slate-500 hover:text-slate-900 hover:bg-slate-50 transition-colors flex items-center justify-center border border-slate-200 shadow-sm"
-                      title="Update Application"
-                    >
-                      <FaEdit size={14} />
-                    </button>
+                  {/* Footer Stats & Actions */}
+                  <div className="pt-8 border-t-2 border-slate-50 flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">{activeTab === 'jobs' ? 'Launch Package' : 'Stipend Protocol'}</p>
+                      <p className="text-lg font-black text-emerald-600 tracking-tight">{app.salary}</p>
+                    </div>
+                    <div className="flex items-center gap-2 text-slate-900 group-hover:translate-x-1 transition-transform">
+                       <span className="text-[10px] font-black uppercase tracking-widest">Track Mission</span>
+                       <ChevronRight size={16} strokeWidth={3} className="text-blue-600" />
+                    </div>
                   </div>
                 </div>
               </div>

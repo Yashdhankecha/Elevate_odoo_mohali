@@ -58,6 +58,11 @@ export const studentApi = {
     return response.data;
   },
 
+  getApplicationById: async (applicationId) => {
+    const response = await api.get(`/student/applications/${applicationId}`);
+    return response.data;
+  },
+
   updateApplication: async (applicationId, updateData) => {
     const response = await api.put(`/student/applications/${applicationId}`, updateData);
     return response.data;

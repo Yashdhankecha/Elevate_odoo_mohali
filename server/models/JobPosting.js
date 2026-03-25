@@ -259,18 +259,37 @@ const jobPostingSchema = new mongoose.Schema({
 // Auto-generate Job ID before saving
 jobPostingSchema.pre('save', async function (next) {
   if (this.isNew && !this.jobId) {
-    try {
-      const year = new Date().getFullYear();
-      const counter = await Counter.findByIdAndUpdate(
-        'jobPostingId',
-        { $inc: { seq: 1 } },
-        { new: true, upsert: true }
-      );
-      const paddedSeq = String(counter.seq).padStart(4, '0');
-      this.jobId = `JOB-${year}-${paddedSeq}`;
-    } catch (err) {
-      // Fallback to timestamp-based ID
-      this.jobId = `JOB-${new Date().getFullYear()}-${Date.now().toString().slice(-4)}`;
+    const year = new Date().getFullYear();
+    let generated = false;
+    let attempts = 0;
+
+    while (!generated && attempts < 20) {
+      try {
+        const counter = await Counter.findByIdAndUpdate(
+          'jobPostingId',
+          { $inc: { seq: 1 } },
+          { new: true, upsert: true }
+        );
+        const candidate = `JOB-${year}-${String(counter.seq).padStart(4, '0')}`;
+
+        // Check if this ID already exists in the collection
+        const existing = await mongoose.model('JobPosting').findOne({ jobId: candidate }).select('_id').lean();
+        if (!existing) {
+          this.jobId = candidate;
+          generated = true;
+        }
+        // If it exists, loop again — counter already incremented, try next seq
+        attempts++;
+      } catch (err) {
+        // Fallback to timestamp-based ID on any error
+        this.jobId = `JOB-${year}-${Date.now().toString().slice(-6)}`;
+        generated = true;
+      }
+    }
+
+    if (!generated) {
+      // Last-resort fallback
+      this.jobId = `JOB-${year}-${Date.now().toString().slice(-6)}`;
     }
   }
 

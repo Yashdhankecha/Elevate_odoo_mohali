@@ -18,6 +18,8 @@ import {
    Database
 } from 'lucide-react';
 import axios from 'axios';
+import { useAuth } from '../../../contexts/AuthContext';
+import { getUserDisplayName } from '../../../utils/helpers';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const api = axios.create({
@@ -33,12 +35,21 @@ api.interceptors.request.use((config) => {
 }, (error) => Promise.reject(error));
 
 const DashboardOverview = ({ onNavigateToSection }) => {
+   const { user } = useAuth();
    const [loading, setLoading] = useState(true);
    const [error, setError] = useState(null);
    const [dashboardData, setDashboardData] = useState({
       totalStudents: 0, totalCompanies: 0, totalJobPostings: 0, totalApplications: 0,
       pendingTPOs: 0, pendingCompanies: 0, recentActivities: []
    });
+
+   const getGreeting = () => {
+      const hour = new Date().getHours();
+      if (hour < 12) return "Good morning,";
+      if (hour < 17) return "Good afternoon,";
+      if (hour < 23) return "Good evening,";
+      return "Hello,";
+   };
 
    useEffect(() => {
       fetchDashboardData();
@@ -92,28 +103,21 @@ const DashboardOverview = ({ onNavigateToSection }) => {
       {/* Welcome Area */}
       <div className="relative group overflow-hidden rounded bg-slate-900 p-8 md:p-14 shadow-sm border border-slate-800">
          <div className="relative z-10 grid lg:grid-cols-5 gap-12 items-center">
-            <div className="lg:col-span-5 space-y-6">
-               <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-white/10 rounded flex items-center justify-center backdrop-blur-xl">
-                     <ShieldCheck className="text-white w-6 h-6" strokeWidth={2.5} />
+            <div className="lg:col-span-5 space-y-6 text-center md:text-left">
+               <div className="flex items-center justify-center md:justify-start gap-4">
+                  <div className="w-12 h-12 bg-white/10 border border-white/20 rounded flex items-center justify-center backdrop-blur-xl shadow-inner">
+                     <ShieldCheck className="text-white w-6 h-6" strokeWidth={2} />
                   </div>
-                  <span className="text-[10px] font-bold text-blue-400 uppercase tracking-[0.3em]">Super Admin Control</span>
                </div>
                
-               <h1 className="text-3xl md:text-5xl font-black text-white tracking-tighter leading-tight">
-                  System <br />
-                  <span className="text-blue-400">Master Overview</span>
+               <h1 className="text-4xl md:text-6xl font-black text-white tracking-tighter leading-tight animate-fade-in">
+                  {getGreeting()} <br />
+                  <span className="text-emerald-400">{getUserDisplayName(user)}</span>
                </h1>
                
-               <div className="pt-4 md:pt-6 flex flex-col sm:flex-row gap-4">
-                  <div className="flex items-center gap-2 px-5 py-3 bg-white/5 border border-white/10 backdrop-blur-md rounded font-bold text-[11px] uppercase tracking-widest text-emerald-400 shadow-sm">
-                     <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
-                     System: Online
-                  </div>
-                  <button onClick={fetchDashboardData} className="px-6 py-3 bg-slate-800 border border-slate-700 text-white rounded font-bold text-sm tracking-wide hover:bg-slate-700 transition-colors flex items-center justify-center md:justify-start gap-2 shadow-sm active:scale-95">
-                     Refresh System <RefreshCw size={16} />
-                  </button>
-               </div>
+               <p className="text-slate-400 font-medium max-w-lg leading-relaxed text-sm md:text-base opacity-80">
+                  Total system control and platform oversight at your fingertips.
+               </p>
             </div>
          </div>
 

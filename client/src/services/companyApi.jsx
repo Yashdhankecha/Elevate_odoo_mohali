@@ -83,6 +83,16 @@ export const submitJobPosting = async (jobId) => {
   }
 };
 
+export const toggleJobActive = async (jobId) => {
+  try {
+    const response = await apiCall('PATCH', `/company/jobs/${jobId}/toggle-active`);
+    return response.data;
+  } catch (error) {
+    console.error('Error toggling job status:', error);
+    throw error;
+  }
+};
+
 export const getJobDetails = async (jobId) => {
   try {
     const response = await apiCall('GET', `/company/jobs/${jobId}`);

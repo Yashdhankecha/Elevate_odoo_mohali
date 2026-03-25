@@ -37,6 +37,7 @@ const jobApplicationSchema = new mongoose.Schema({
   notes: String,
   resume: String, // URL to uploaded resume
   coverLetter: String, // URL to uploaded cover letter
+  employmentType: { type: String }, // snapshot of job type at apply-time (no default — fall back to jobPosting)
   attachments: [String], // Array of URLs to additional documents
   timeline: [{
     action: String,

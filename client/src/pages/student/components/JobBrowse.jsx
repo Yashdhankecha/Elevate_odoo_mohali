@@ -4,9 +4,11 @@ import {
   X, ChevronRight, ChevronLeft, Send, GraduationCap,
   CheckCircle2, AlertCircle, BookOpen, Code2, Users, Calendar,
   DollarSign, Globe, Wifi, Monitor, Star, TrendingUp, Award,
-  ExternalLink, Phone, Mail, RefreshCw, XCircle, Eye, Layers
+  ExternalLink, Phone, Mail, RefreshCw, XCircle, Eye, Layers, File
 } from 'lucide-react';
 import { studentApi } from '../../../services/studentApi';
+import { useAuth } from '../../../contexts/AuthContext';
+import toast from 'react-hot-toast';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 const timeAgo = (date) => {
@@ -63,104 +65,99 @@ const Avatar = ({ name, logo, size = 'md' }) => {
 };
 
 // ─── Job Card ────────────────────────────────────────────────────────────────
+const ACCENT_COLORS = [
+  { bar: 'bg-blue-500',   pill: 'bg-blue-50 text-blue-700 border-blue-200',   salary: 'text-blue-700 bg-blue-50 border-blue-200' },
+  { bar: 'bg-violet-500', pill: 'bg-violet-50 text-violet-700 border-violet-200', salary: 'text-violet-700 bg-violet-50 border-violet-200' },
+  { bar: 'bg-emerald-500',pill: 'bg-emerald-50 text-emerald-700 border-emerald-200', salary: 'text-emerald-700 bg-emerald-50 border-emerald-200' },
+  { bar: 'bg-rose-500',   pill: 'bg-rose-50 text-rose-700 border-rose-200',   salary: 'text-rose-700 bg-rose-50 border-rose-200' },
+  { bar: 'bg-amber-500',  pill: 'bg-amber-50 text-amber-700 border-amber-200', salary: 'text-amber-700 bg-amber-50 border-amber-200' },
+];
+const getAccent = (name = '') => ACCENT_COLORS[(name.charCodeAt(0) || 0) % ACCENT_COLORS.length];
+
 const JobCard = ({ job, onView }) => {
-  const deadline = fmtDeadline(job.deadline);
+  const deadline = fmtDeadline(job.deadline || job.applicationDeadline);
   const drive    = DRIVE[job.driveType] || DRIVE.off_campus;
-  
+  const accent   = getAccent(job.company);
+  const WorkIcon = WORK_ICON[job.workMode] || Globe;
+  const salary   = job.salary || (job.ctc ? `₹${(job.ctc / 100000).toFixed(1)} LPA` : null) || (job.stipend ? `₹${Number(job.stipend).toLocaleString()}/mo` : null) || 'Competitive';
+
   return (
     <div
       onClick={() => onView(job)}
-      className="group bg-white rounded border border-slate-200 hover:border-slate-800 transition-colors p-6 shadow-sm overflow-hidden flex flex-col cursor-pointer relative"
+      className="group bg-white rounded-lg border border-slate-200 hover:border-slate-300 hover:shadow-xl hover:shadow-slate-200/60 transition-all duration-300 flex flex-col cursor-pointer overflow-hidden relative"
     >
-      <div className="absolute top-0 left-0 w-full h-1 bg-slate-100 group-hover:bg-slate-800 transition-colors"></div>
-      <div className="relative z-10 flex flex-col h-full mt-1">
-        {/* Header: Logo, Title */}
-        <div className="flex items-start gap-4 mb-6">
-          <div className="flex-shrink-0 group-hover:shadow-md transition-shadow duration-300 relative">
+      {/* Top accent bar */}
+      <div className={`h-1 w-full ${accent.bar} transition-all duration-300 group-hover:h-1.5`} />
+
+      {/* Applied badge */}
+      {job.hasApplied && (
+        <div className="absolute top-4 right-4 bg-emerald-500 text-white text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm z-10">
+          <CheckCircle2 size={9} /> Applied
+        </div>
+      )}
+
+      <div className="p-5 flex flex-col h-full">
+        {/* Header */}
+        <div className="flex items-start gap-3 mb-4">
+          <div className="flex-shrink-0">
             <Avatar name={job.company} logo={job.companyLogo} />
-            {job.hasApplied && (
-              <div className="absolute -top-1 -right-1 bg-emerald-500 text-white rounded-full p-1 shadow-sm border-2 border-white z-20">
-                <CheckCircle2 size={10} />
-              </div>
-            )}
           </div>
-          <div className="flex-1 min-w-0 pr-2">
-            <h3 className="font-bold text-lg text-slate-900 leading-tight line-clamp-1 tracking-tight">
-              {job.title}
+          <div className="flex-1 min-w-0">
+            <h3 className="font-bold text-base text-slate-900 leading-tight line-clamp-2 group-hover:text-blue-600 transition-colors">
+              {job.title || job.jobTitle}
             </h3>
-            <div className="flex items-center gap-1.5 text-slate-500 font-medium text-sm mt-1">
-              <Building2 size={14} className="text-slate-400" />
-              <span className="line-clamp-1">{job.company}</span>
+            <div className="flex items-center gap-1.5 text-slate-500 text-xs mt-0.5">
+              <Building2 size={11} className="text-slate-400 flex-shrink-0" />
+              <span className="line-clamp-1 font-medium">{job.company}</span>
             </div>
           </div>
         </div>
 
-        {/* Chips & Badges */}
-        <div className="flex flex-wrap gap-2 mb-6">
-          <span className={`text-[10px] font-black px-3 py-1 rounded border tracking-widest uppercase shadow-sm ${drive.cls}`}>
+        {/* Chips */}
+        <div className="flex flex-wrap gap-1.5 mb-4">
+          <span className={`text-[9px] font-black px-2.5 py-1 rounded border tracking-widest uppercase ${drive.cls}`}>
             {drive.label}
           </span>
-          {job.jobType && (
-            <span className="text-[10px] font-black px-3 py-1 rounded bg-slate-50 text-slate-500 border border-slate-200 uppercase tracking-widest shadow-sm">
-              {job.jobType}
+          {job.workMode && (
+            <span className="text-[9px] font-bold px-2.5 py-1 rounded bg-slate-50 text-slate-500 border border-slate-200 uppercase tracking-widest flex items-center gap-1">
+              <WorkIcon size={9} /> {job.workMode}
             </span>
           )}
-          {job.eligibility && (
-            <span className={`text-[10px] font-black px-3 py-1 rounded border flex items-center gap-1.5 uppercase tracking-widest shadow-sm ${
-              job.eligibility.eligible
-                ? 'bg-emerald-50 text-emerald-600 border-emerald-200'
-                : 'bg-rose-50 text-rose-500 border-rose-200'
-            }`}>
-              {job.eligibility.eligible ? <CheckCircle2 size={10} /> : <XCircle size={10} />}
-              {job.eligibility.eligible ? 'Eligible' : 'Conflict'}
-            </span>
-          )}
-          {job.hasApplied && (
-            <span className="text-[10px] font-black px-3 py-1 rounded bg-emerald-500 text-white border border-emerald-600 uppercase tracking-widest shadow-sm flex items-center gap-1.5 animate-in fade-in zoom-in duration-300">
-              <CheckCircle2 size={10} /> Applied
+          {(job.employmentType || job.type) && (
+            <span className="text-[9px] font-bold px-2.5 py-1 rounded bg-slate-50 text-slate-500 border border-slate-200 uppercase tracking-widest capitalize">
+              {job.employmentType || job.type}
             </span>
           )}
         </div>
 
-        {/* Key Stats */}
-        <div className="grid grid-cols-2 gap-4 mb-6 pt-6 border-t border-slate-100">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded bg-emerald-50 flex items-center justify-center flex-shrink-0">
-              <DollarSign size={14} className="text-emerald-500" />
-            </div>
-            <div>
-              <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Rewards</p>
-              <p className="text-xs font-black text-emerald-700">{job.salary}</p>
-            </div>
+        {/* Location */}
+        {job.location && (
+          <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium mb-4">
+            <MapPin size={11} className="text-slate-400 flex-shrink-0" />
+            <span className="line-clamp-1">{job.location}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded bg-blue-50 flex items-center justify-center flex-shrink-0">
-              <MapPin size={14} className="text-blue-500" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Nexus</p>
-              <p className="text-xs font-black text-slate-700 line-clamp-1">{job.location || 'Remote'}</p>
-            </div>
-          </div>
+        )}
+
+        {/* Salary highlight */}
+        <div className={`w-full text-center py-2.5 rounded border text-sm font-black mb-4 ${accent.salary} tracking-tight`}>
+          {salary}
         </div>
 
-        {/* Action / Footer */}
-        <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-100">
-          <div className="flex items-center gap-3">
-             <div className="flex -space-x-2">
-                {[1,2,3].map(i => (
-                  <div key={i} className={`w-6 h-6 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center text-[8px] font-black text-slate-500`}>
-                    {i}
-                  </div>
-                ))}
-             </div>
-             <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
-               {job.applicationCount || 0} Applicants
-             </p>
+        {/* Footer */}
+        <div className="flex items-center justify-between mt-auto pt-3 border-t border-slate-100">
+          <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
+            <Users size={11} />
+            <span>{job.applicationCount || 0} applied</span>
           </div>
-          <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-            <Clock size={12} />
-            {timeAgo(job.postedDate)}
+          <div className="flex items-center gap-2">
+            {deadline && (
+              <span className={`text-[9px] font-black uppercase tracking-widest flex items-center gap-1 ${deadline.cls}`}>
+                <Clock size={9} /> {deadline.label}
+              </span>
+            )}
+            <div className={`flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-white ${accent.bar} px-2.5 py-1 rounded-full shadow-sm group-hover:scale-105 transition-transform`}>
+              View <ChevronRight size={10} strokeWidth={3} />
+            </div>
           </div>
         </div>
       </div>
@@ -216,6 +213,9 @@ const JobDetailModal = ({ job, onClose, onApply }) => {
   const [applying, setApplying] = useState(false);
   const [applied, setApplied] = useState(false);
   const [coverLetter, setCoverLetter] = useState('');
+  const [resumeFile, setResumeFile] = useState(null);
+  const { user } = useAuth();
+  const [useProfileResume, setUseProfileResume] = useState(!!user?.resume);
 
   if (!job) return null;
 
@@ -223,8 +223,31 @@ const JobDetailModal = ({ job, onClose, onApply }) => {
   const drive    = DRIVE[job.driveType] || DRIVE.off_campus;
 
   const handleApply = async () => {
+    if (!useProfileResume && !resumeFile && !user?.resume) {
+      toast.error('Please upload a resume or complete your profile resume.');
+      setTab('apply');
+      return;
+    }
+
     setApplying(true);
-    try { await onApply({ ...job, coverLetter }); setApplied(true); } catch (_) {}
+    try {
+      await onApply({
+        ...job,
+        coverLetter,
+        resume: useProfileResume ? null : resumeFile // null tells backend to use profile resume
+      });
+      setApplied(true);
+      toast.success('Application submitted successfully!');
+    } catch (error) {
+      console.error('Application failed:', error);
+      const message = error.response?.data?.message || 'Failed to submit application';
+      toast.error(message);
+      
+      // If there are specific eligibility issues, they might be in error.response.data.issues
+      if (error.response?.data?.issues) {
+        setTab('eligibility');
+      }
+    }
     setApplying(false);
   };
 
@@ -465,10 +488,60 @@ const JobDetailModal = ({ job, onClose, onApply }) => {
                   value={coverLetter}
                   onChange={e => setCoverLetter(e.target.value)}
                   placeholder="Tell the company why you're a great fit for this role..."
-                  rows={5}
+                  rows={4}
                   className="w-full text-sm border border-slate-200 rounded p-3 focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 resize-none placeholder-slate-400"
                 />
-                <p className="text-[11px] text-slate-500 mt-1 font-bold">{coverLetter.length}/500 characters</p>
+                <p className="text-[10px] text-slate-500 mt-1 font-bold">{coverLetter.length}/500 characters</p>
+              </Section>
+
+              <Section title="Resume" icon={File}>
+                <div className="space-y-3">
+                  {user?.resume && (
+                    <label className="flex items-center gap-3 p-3 rounded border border-slate-200 bg-slate-50 cursor-pointer hover:bg-white transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={useProfileResume}
+                        onChange={e => {
+                          setUseProfileResume(e.target.checked);
+                          if (e.target.checked) setResumeFile(null);
+                        }}
+                        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <div className="flex-1">
+                        <p className="text-xs font-bold text-slate-900">Use resume from profile</p>
+                        <p className="text-[10px] text-slate-500 truncate max-w-[200px]">{user.resume.split('/').pop()}</p>
+                      </div>
+                      <CheckCircle2 size={14} className="text-emerald-500" />
+                    </label>
+                  )}
+
+                  <div className={`p-3 rounded border-2 border-dashed transition-colors ${!useProfileResume ? 'border-blue-400 bg-blue-50/30' : 'border-slate-200 bg-slate-50 opacity-60'}`}>
+                    <input
+                      type="file"
+                      id="resume-upload"
+                      className="hidden"
+                      accept=".pdf,.doc,.docx"
+                      disabled={useProfileResume}
+                      onChange={e => {
+                        const file = e.target.files[0];
+                        if (file) {
+                          setResumeFile(file);
+                          setUseProfileResume(false);
+                        }
+                      }}
+                    />
+                    <label
+                      htmlFor="resume-upload"
+                      className={`flex flex-col items-center justify-center gap-1 cursor-pointer ${useProfileResume ? 'cursor-not-allowed' : ''}`}
+                    >
+                      <Layers size={20} className={resumeFile ? 'text-blue-500' : 'text-slate-400'} />
+                      <p className="text-xs font-bold text-slate-700">
+                        {resumeFile ? resumeFile.name : 'Upload New Resume'}
+                      </p>
+                      <p className="text-[9px] text-slate-500 uppercase tracking-widest">PDF, DOC up to 10MB</p>
+                    </label>
+                  </div>
+                </div>
               </Section>
 
               {applied ? (
@@ -504,6 +577,7 @@ const JobBrowse = () => {
   const [locFilter, setLocFilter] = useState('');
   const [workMode, setWorkMode] = useState('All');
   const [expFilter, setExpFilter] = useState('All');
+  const [eligibleOnly, setEligibleOnly] = useState(true);
   const [pagination, setPagination] = useState({ current: 1, total: 1, hasNext: false, hasPrev: false, totalJobs: 0 });
   const [error, setError] = useState(null);
 
@@ -513,6 +587,7 @@ const JobBrowse = () => {
     try {
       const params = {
         page, limit: 12, sortBy, sortOrder: 'desc',
+        eligibleOnly: eligibleOnly ? 'true' : 'false',
         ...(search && { search }),
         ...(locFilter && { location: locFilter }),
         ...(driveType && { driveType }),
@@ -532,12 +607,17 @@ const JobBrowse = () => {
       setError(e?.response?.data?.message || e.message || 'An error occurred');
     }
     setLoading(false);
-  }, [search, sortBy, driveType, locFilter, workMode, expFilter]);
+  }, [search, sortBy, driveType, locFilter, workMode, expFilter, eligibleOnly]);
 
   useEffect(() => { fetchJobs(1); }, [fetchJobs]);
 
   const handleApply = async (job) => {
-    await studentApi.applyForJob(job.id || job._id, { coverLetter: job.coverLetter || '' });
+    await studentApi.applyForJob(job.id || job._id, { 
+      coverLetter: job.coverLetter || '',
+      resume: job.resume 
+    });
+    // Refresh jobs to show "Applied" status
+    fetchJobs(pagination.current);
   };
 
   return (
@@ -553,6 +633,21 @@ const JobBrowse = () => {
             <p className="text-xs text-slate-500 font-medium">{loading ? 'Loading...' : `${jobs.length} ${pagination.totalJobs > 12 ? `of ${pagination.totalJobs}` : ''} opportunities`}</p>
           </div>
         </div>
+
+        {/* Eligibility Toggle */}
+        <button
+          onClick={() => setEligibleOnly(!eligibleOnly)}
+          className={`flex items-center gap-2 px-4 py-2 rounded border-2 transition-all ${
+            eligibleOnly 
+              ? 'bg-emerald-50 border-emerald-500 text-emerald-700 shadow-sm' 
+              : 'bg-white border-slate-200 text-slate-500 hover:border-slate-400'
+          }`}
+        >
+          {eligibleOnly ? <CheckCircle2 size={16} /> : <Filter size={16} />}
+          <span className="text-xs font-black uppercase tracking-widest">
+            {eligibleOnly ? 'Eligible Only' : 'Show All'}
+          </span>
+        </button>
       </div>
 
       {/* Search and Filters Array */}
