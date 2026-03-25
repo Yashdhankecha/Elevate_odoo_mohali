@@ -1,695 +1,692 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
-  FileText,
-  Download,
-  Eye,
-  User,
-  Mail,
-  Phone,
-  MapPin,
-  GraduationCap,
-  Briefcase,
-  Star,
-  Plus,
-  ChevronLeft,
-  ChevronRight,
-  Check,
-  Linkedin,
-  Trash2,
-  Save,
-  Rocket,
-  ArrowRight,
-  Award,
-  Layers
+  FileText, Download, User, Mail, Phone, MapPin, GraduationCap,
+  Briefcase, Star, Plus, ChevronLeft, ChevronRight, Check,
+  Linkedin, Trash2, Save, Rocket, ArrowRight, Award, Layers,
+  Palette, Github, Globe, Eye, X
 } from 'lucide-react';
-import { usePDF } from 'react-to-pdf';
+import { PDFDownloadLink, PDFViewer } from '@react-pdf/renderer';
+import { ClassicTemplate } from './templates/ClassicTemplate';
+import { SidebarTemplate } from './templates/SidebarTemplate';
+import { MinimalTemplate } from './templates/MinimalTemplate';
+import { BoldTemplate }    from './templates/BoldTemplate';
 import { studentApi } from '../../../services/studentApi';
 import { toast } from 'react-hot-toast';
 
-// Memoized Input Component for performance
-const MemoizedInput = React.memo(({
-  type = "text",
-  value,
-  onChange,
-  placeholder,
-  className,
-  rows,
-  icon: Icon
-}) => {
-  const baseClasses = "w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded text-sm focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 transition-colors shadow-sm placeholder:text-slate-400 text-slate-700";
+// ─── Template Catalog ────────────────────────────────────────────────────────
+const TEMPLATES = [
+  {
+    id: 'classic',
+    name: 'Classic',
+    desc: 'Traditional single-column. Timeless and ATS-friendly.',
+    accent: 'bg-slate-800',
+    previewLines: ['━━━━━━━━━━━━━━━', '▋▋▋▋▋▋▋▋▋', '▋▋▋▋▋▋', '━━━━━━━━━━━━━━━', '▋▋▋▋▋▋▋▋▋▋▋▋', '▋▋▋▋▋▋▋▋'],
+    component: ClassicTemplate,
+  },
+  {
+    id: 'sidebar',
+    name: 'Sidebar',
+    desc: 'Two-column with coloured sidebar. Modern & eye-catching.',
+    accent: 'bg-blue-600',
+    previewLines: null,
+    sidebar: true,
+    component: SidebarTemplate,
+  },
+  {
+    id: 'minimal',
+    name: 'Minimal',
+    desc: 'Ultra-clean typography. Designed for creatives & writers.',
+    accent: 'bg-zinc-200',
+    previewLines: ['EXPERIENCE ──────────────', '  Lead Developer  2023', '  Google', '', 'EDUCATION ────────────────', '  MIT  2019'],
+    component: MinimalTemplate,
+  },
+  {
+    id: 'bold',
+    name: 'Bold',
+    desc: 'Creative header + photo. Stand out in competitive fields.',
+    accent: 'bg-indigo-600',
+    previewLines: null,
+    bold: true,
+    component: BoldTemplate,
+  },
+];
 
+const ACCENT_PRESETS = [
+  '#2563eb','#16a34a','#dc2626','#9333ea','#ea580c','#0891b2','#111827',
+];
+
+// ─── Mini Input ───────────────────────────────────────────────────────────────
+const Field = ({ label, icon: Icon, value, onChange, type = 'text', placeholder, rows }) => {
+  const base = 'w-full bg-white border border-slate-200 rounded text-sm focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-300 transition-colors text-slate-700 placeholder:text-slate-400 shadow-sm';
   return (
-    <div className="relative group">
-      {Icon && (
-        <div className="absolute left-4 top-[14px] text-gray-400 group-focus-within:text-blue-500 transition-colors">
-          <Icon size={14} />
-        </div>
-      )}
-      {type === "textarea" ? (
-        <textarea
-          value={value}
-          onChange={onChange}
-          rows={rows || 4}
-          className={`${baseClasses} ${Icon ? '' : 'pl-4'}`}
-          placeholder={placeholder}
-        />
-      ) : (
-        <input
-          type={type}
-          value={value}
-          onChange={onChange}
-          className={`${baseClasses} ${Icon ? '' : 'pl-4'}`}
-          placeholder={placeholder}
-        />
-      )}
+    <div className="space-y-1.5">
+      {label && <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</label>}
+      <div className="relative">
+        {Icon && <div className="absolute left-3 top-3 text-slate-400"><Icon size={13} /></div>}
+        {type === 'textarea'
+          ? <textarea rows={rows || 3} value={value} onChange={onChange} placeholder={placeholder} className={`${base} p-3 ${Icon ? 'pl-9' : 'pl-4'}`} />
+          : <input type={type} value={value} onChange={onChange} placeholder={placeholder} className={`${base} py-3 ${Icon ? 'pl-9' : 'pl-4'} pr-4`} />
+        }
+      </div>
     </div>
   );
-});
+};
+
+// ─── Template Preview Card (Premium) ────────────────────────────────────────
+const TemplateCard = ({ tpl, selected, onSelect, accent }) => {
+  const ring = selected ? `ring-2 ring-offset-2` : 'ring-0';
+  const shadow = selected ? 'shadow-2xl shadow-blue-200/60' : 'shadow-md hover:shadow-xl';
+
+  return (
+    <button
+      onClick={() => onSelect(tpl.id)}
+      className={`relative text-left rounded-2xl overflow-hidden transition-all duration-300 group border-2 ${
+        selected ? 'border-blue-500' : 'border-transparent hover:border-slate-200'
+      } ${shadow} bg-white`}
+    >
+      {/* ── Large Visual Preview ── */}
+      <div className="h-52 relative overflow-hidden bg-slate-50">
+
+        {/* Classic */}
+        {tpl.id === 'classic' && (
+          <div className="absolute inset-0 bg-white p-5 flex flex-col">
+            <div className="w-36 h-4 rounded bg-slate-800 mb-1" />
+            <div className="w-24 h-2.5 rounded bg-slate-400 mb-3" />
+            <div className="w-full h-px bg-slate-200 mb-3" />
+            <div className="w-20 h-2 rounded mb-2" style={{ backgroundColor: accent + '90' }} />
+            {['w-full','w-4/5','w-full','w-3/5'].map((w,i)=>(
+              <div key={i} className={`${w} h-1.5 rounded bg-slate-200 mb-1.5`} />
+            ))}
+            <div className="w-full h-px bg-slate-200 mt-2 mb-3" />
+            <div className="w-20 h-2 rounded mb-2" style={{ backgroundColor: accent + '90' }} />
+            {['w-full','w-4/5','w-3/4'].map((w,i)=>(
+              <div key={i} className={`${w} h-1.5 rounded bg-slate-200 mb-1.5`} />
+            ))}
+          </div>
+        )}
+
+        {/* Sidebar */}
+        {tpl.id === 'sidebar' && (
+          <div className="absolute inset-0 flex">
+            <div className="w-2/5 h-full flex flex-col items-center pt-5 gap-2 px-2" style={{ backgroundColor: accent }}>
+              <div className="w-14 h-14 rounded-full bg-white/30 border-2 border-white/60 mb-1" />
+              <div className="w-20 h-2.5 rounded bg-white/70" />
+              <div className="w-14 h-1.5 rounded bg-white/50" />
+              <div className="w-full h-px bg-white/20 my-2" />
+              {['w-16','w-20','w-14','w-18'].map((w,i)=>(
+                <div key={i} className={`${w} h-1.5 rounded bg-white/40 mb-1`} />
+              ))}
+            </div>
+            <div className="flex-1 bg-white p-4 flex flex-col gap-2">
+              <div className="w-3/4 h-2.5 rounded bg-slate-800 mb-1" />
+              <div className="w-1/2 h-2 rounded bg-slate-400 mb-2" />
+              {['w-full','w-4/5','w-full','w-3/5','w-full'].map((w,i)=>(
+                <div key={i} className={`${w} h-1.5 rounded bg-slate-200`} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Minimal */}
+        {tpl.id === 'minimal' && (
+          <div className="absolute inset-0 bg-white p-5">
+            <div className="flex items-baseline gap-1 mb-1">
+              <div className="w-20 h-5 rounded bg-slate-200" />
+              <div className="w-28 h-5 rounded bg-slate-800" />
+            </div>
+            <div className="w-28 h-2 rounded bg-slate-300 mb-1" />
+            <div className="w-40 h-1.5 rounded bg-slate-200 mb-4" />
+            {[['EXPERIENCE','w-full','w-4/5'],['EDUCATION','w-4/5','w-3/5'],['SKILLS','w-full','']].map(([label,l1,l2],i)=>(
+              <div key={i} className="flex gap-3 mb-3">
+                <div className="w-16 flex flex-col items-end gap-1 pt-0.5">
+                  <div className="w-full h-1.5 rounded bg-slate-300" />
+                </div>
+                <div className="flex-1 space-y-1">
+                  <div className={`${l1} h-1.5 rounded bg-slate-700`} />
+                  {l2 && <div className={`${l2} h-1.5 rounded bg-slate-300`} />}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Bold */}
+        {tpl.id === 'bold' && (
+          <div className="absolute inset-0">
+            <div className="h-[42%] flex items-center px-4 gap-3" style={{ backgroundColor: accent }}>
+              <div className="flex-1">
+                <div className="w-32 h-4 rounded bg-white/85 mb-1.5" />
+                <div className="w-24 h-2.5 rounded bg-white/50" />
+              </div>
+              <div className="w-16 h-16 rounded-full bg-white/30 border-2 border-white/70 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full bg-white/40" />
+              </div>
+            </div>
+            <div className="h-[58%] flex">
+              <div className="w-[38%] bg-slate-100 p-3 space-y-1.5">
+                <div className="w-full h-1.5 rounded bg-slate-400" />
+                <div className="w-3/4 h-1 rounded bg-slate-300" />
+                <div className="w-full h-1 rounded bg-slate-300" />
+                <div className="flex gap-1 flex-wrap mt-1">
+                  {[1,2,3].map(i=>(
+                    <div key={i} className="h-4 px-1.5 rounded text-[0px]" style={{ backgroundColor: accent + '30', width:'30%' }} />
+                  ))}
+                </div>
+              </div>
+              <div className="flex-1 bg-white p-3 space-y-1.5">
+                <div className="w-3/4 h-1.5 rounded bg-slate-700" />
+                <div className="w-full h-1 rounded bg-slate-200" />
+                <div className="w-4/5 h-1 rounded bg-slate-200" />
+                <div className="w-full h-1 rounded bg-slate-200" />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Selection overlay glow */}
+        {selected && (
+          <div className="absolute inset-0 pointer-events-none" style={{ background: `radial-gradient(ellipse at 50% 0%, ${accent}25 0%, transparent 70%)` }} />
+        )}
+
+        {/* Selected tick */}
+        {selected
+          ? <div className="absolute top-3 right-3 w-7 h-7 rounded-full bg-blue-500 flex items-center justify-center shadow-lg shadow-blue-300/50 transition-all">
+              <Check size={13} className="text-white" strokeWidth={3} />
+            </div>
+          : null
+        }
+      </div>
+
+      {/* ── Card Footer ── */}
+      <div className="px-4 py-3 bg-white border-t border-slate-100">
+        <div className="flex items-center justify-between mb-1">
+          <p className={`font-black text-sm transition-colors ${selected ? 'text-blue-600' : 'text-slate-900'}`}>{tpl.name}</p>
+          <div className="flex gap-1">
+            {tpl.sidebar || tpl.bold ? <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-violet-50 text-violet-600 border border-violet-200 uppercase tracking-wider">Photo</span> : null}
+            {tpl.id === 'sidebar' || tpl.id === 'bold' ? <span className="text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider" style={{ backgroundColor: accent + '20', color: accent }}>Colour</span> : null}
+          </div>
+        </div>
+        <p className="text-[10px] text-slate-400 leading-relaxed">{tpl.desc}</p>
+      </div>
+    </button>
+  );
+};
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+// Templates that support a circular photo
+const PHOTO_TEMPLATES = ['sidebar', 'bold'];
+
+// Convert an image URL to base64 (needed for @react-pdf/renderer)
+const urlToBase64 = async (url) => {
+  try {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    return await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch { return null; }
+};
 
 const ResumeBuilder = () => {
-  const [formData, setFormData] = useState({
-    personalInfo: {
-      fullName: '',
-      email: '',
-      phone: '',
-      address: '',
-      linkedin: '',
-      summary: ''
-    },
-    education: [
-      { degree: '', institution: '', year: '', gpa: '', achievements: '' }
-    ],
-    experience: [
-      { title: '', company: '', duration: '', description: '' }
-    ],
-    skills: '',
-    projects: [
-      { name: '', description: '', technologies: '', link: '' }
-    ],
-    certifications: [
-      { name: '', issuer: '', year: '' }
-    ]
-  });
-
-  const [currentStep, setCurrentStep] = useState(0);
-  const [showPreview, setShowPreview] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState('classic');
+  const [accentColor, setAccentColor] = useState('#2563eb');
+  const [photo, setPhoto] = useState(null); // base64 string or null
+  const [step, setStep] = useState(0);
+  const [showPDFViewer, setShowPDFViewer] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  const { toPDF, targetRef } = usePDF({
-    filename: `${formData.personalInfo.fullName.replace(/\s+/g, '_') || 'resume'}_elevate.pdf`,
-    method: 'save',
-    page: { margin: 10 },
-    canvas: { mimeType: 'image/jpeg', quality: 0.98, useCORS: true }
+  const supportsPhoto = PHOTO_TEMPLATES.includes(selectedTemplate);
+
+  // Handle photo file upload → convert to base64
+  const handlePhotoUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { toast.error('Please select an image file'); return; }
+    const reader = new FileReader();
+    reader.onloadend = () => setPhoto(reader.result);
+    reader.readAsDataURL(file);
+  };
+
+  const [formData, setFormData] = useState({
+    personalInfo: { fullName:'', jobTitle:'', email:'', phone:'', location:'', linkedin:'', github:'', summary:'' },
+    education:    [{ degree:'', institution:'', startDate:'', endDate:'', gpa:'' }],
+    experience:   [{ jobTitle:'', company:'', startDate:'', endDate:'', description:'' }],
+    skills:       '',
+    languages:    '',
+    projects:     [{ name:'', description:'', technologies:'', link:'' }],
+    certifications:[{ name:'', issuer:'', year:'' }],
   });
 
-  useEffect(() => {
-    loadProfileData();
-  }, []);
+  useEffect(() => { loadProfile(); }, []);
 
-  const loadProfileData = async () => {
+  const loadProfile = async () => {
     try {
       setLoading(true);
-      const response = await studentApi.getProfile();
+      const res = await studentApi.getProfile();
+      if (res.success && res.data) {
+        const p = res.data;
+        const addr = typeof p.address === 'string' ? p.address
+          : [p.address?.city, p.address?.state, p.address?.country].filter(Boolean).join(', ');
 
-      if (response.success && response.data) {
-        const p = response.data;
-        const formatAddress = (addr) => {
-          if (!addr) return '';
-          if (typeof addr === 'string') return addr;
-          if (typeof addr === 'object') {
-            return [addr.city, addr.state, addr.country].filter(Boolean).join(', ') || JSON.stringify(addr);
-          }
-          return String(addr);
-        };
-
-        setFormData({
+        setFormData(prev => ({
+          ...prev,
           personalInfo: {
-            fullName: p.name || '',
-            email: p.email || '',
-            phone: p.phone || '',
-            address: formatAddress(p.address),
-            linkedin: p.linkedin || '',
-            summary: p.summary || ''
+            fullName:  p.name || '',
+            jobTitle:  prev.personalInfo.jobTitle || '',
+            email:     p.email || '',
+            phone:     p.phone || p.phoneNumber || '',
+            location:  addr || '',
+            linkedin:  p.linkedin || p.links?.linkedin || '',
+            github:    p.github || p.links?.github || '',
+            summary:   p.summary || '',
           },
-          education: p.education?.length ? p.education : [{ degree: '', institution: '', year: '', gpa: '', achievements: '' }],
-          experience: p.experience?.length ? p.experience : [{ title: '', company: '', duration: '', description: '' }],
+          education: p.education?.length
+            ? p.education.map(e => ({ degree: e.degree||'', institution: e.institution||'', startDate: e.startDate||'', endDate: e.endDate||e.year||'', gpa: e.gpa||'' }))
+            : prev.education,
+          experience: p.experience?.length
+            ? p.experience.map(e => ({ jobTitle: e.title||e.jobTitle||'', company: e.company||'', startDate: e.startDate||'', endDate: e.endDate||e.duration||'', description: e.description||'' }))
+            : prev.experience,
           skills: (() => {
-            if (!p.skills) return '';
-            if (p.skills.technicalSkills) {
-              return [...(p.skills.technicalSkills || []), ...(p.skills.softSkills || [])].join(', ');
-            }
+            if (!p.skills) return prev.skills;
+            if (p.skills.technicalSkills) return [...(p.skills.technicalSkills||[]),...(p.skills.softSkills||[])].join(', ');
             return Array.isArray(p.skills) ? p.skills.join(', ') : p.skills;
           })(),
-          projects: p.projects?.length ? p.projects : [{ name: '', description: '', technologies: '', link: '' }],
-          certifications: p.certifications?.length ? p.certifications : [{ name: '', issuer: '', year: '' }]
-        });
+          certifications: p.certifications?.length ? p.certifications.map(c => ({ name: c.name||c, issuer: c.issuer||'', year: c.year||'' })) : prev.certifications,
+        }));
+
+        // Auto-load profile picture as base64 (default photo for templates)
+        const picUrl = p.profilePicture || p.picture || p.avatar;
+        if (picUrl && !picUrl.startsWith('data:')) {
+          urlToBase64(picUrl).then(b64 => { if (b64) setPhoto(b64); });
+        } else if (picUrl) {
+          setPhoto(picUrl); // already base64
+        }
       }
-    } catch (error) {
-      console.error(error);
-      toast.error('Failed to load profile intelligence');
-    } finally {
-      setLoading(false);
-    }
+    } catch { toast.error('Could not load profile data'); }
+    finally { setLoading(false); }
   };
 
-  const handleInputChange = useCallback((section, field, value, index = null) => {
-    setFormData(prev => {
-      if (index !== null) {
-        const list = [...(prev[section] || [])];
-        list[index] = { ...list[index], [field]: value };
-        return { ...prev, [section]: list };
-      }
-      if (section === 'skills') return { ...prev, skills: value };
-      return { ...prev, [section]: { ...prev[section], [field]: value } };
-    });
-  }, []);
-
-  const addItem = (section) => {
-    const empty = {
-      education: { degree: '', institution: '', year: '', gpa: '', achievements: '' },
-      experience: { title: '', company: '', duration: '', description: '' },
-      projects: { name: '', description: '', technologies: '', link: '' },
-      certifications: { name: '', issuer: '', year: '' }
-    }[section];
-    setFormData(prev => ({ ...prev, [section]: [...(prev[section] || []), empty] }));
+  // ── Build the `data` prop that templates expect ──────────────────────────
+  const templateData = {
+    name:           formData.personalInfo.fullName,
+    jobTitle:       formData.personalInfo.jobTitle,
+    email:          formData.personalInfo.email,
+    phone:          formData.personalInfo.phone,
+    location:       formData.personalInfo.location,
+    linkedin:       formData.personalInfo.linkedin,
+    github:         formData.personalInfo.github,
+    summary:        formData.personalInfo.summary,
+    photo:          supportsPhoto ? photo : null,
+    accentColor,
+    experience:     formData.experience,
+    education:      formData.education,
+    skills:         formData.skills.split(',').map(s => s.trim()).filter(Boolean),
+    languages:      formData.languages.split(',').map(s => s.trim()).filter(Boolean),
+    certifications: formData.certifications.filter(c => c.name).map(c => c.name + (c.issuer ? ` — ${c.issuer}` : '') + (c.year ? ` (${c.year})` : '')),
   };
 
-  const removeItem = (section, index) => {
-    setFormData(prev => ({
-      ...prev,
-      [section]: prev[section].filter((_, i) => i !== index)
-    }));
-  };
+  const ActiveTemplate = TEMPLATES.find(t => t.id === selectedTemplate)?.component || ClassicTemplate;
 
-  const steps = [
-    { id: 0, title: 'Identity', icon: User, color: 'blue' },
-    { id: 1, title: 'Academia', icon: GraduationCap, color: 'indigo' },
-    { id: 2, title: 'Work', icon: Briefcase, color: 'purple' },
-    { id: 3, title: 'Expertise', icon: Star, color: 'amber' },
-    { id: 4, title: 'Portfolio', icon: Layers, color: 'emerald' },
-    { id: 5, title: 'Awards', icon: Award, color: 'rose' }
-  ];
-
-  const validateStep = (step) => {
-    switch (step) {
-      case 0: // Personal Info
-        if (!formData.personalInfo.fullName?.trim()) { toast.error('Full Name is required'); return false; }
-        if (!formData.personalInfo.email?.trim()) { toast.error('Email is required'); return false; }
-        if (!formData.personalInfo.phone?.trim()) { toast.error('Phone number is required'); return false; }
-        if (!formData.personalInfo.address) { toast.error('Address is required'); return false; }
-        return true;
-      case 1: // Education
-        const validEdu = formData.education.some(edu => edu.degree?.trim() && edu.institution?.trim() && edu.year?.trim());
-        if (!validEdu) { toast.error('Please add at least one education qualification'); return false; }
-        return true;
-      case 2: // Experience
-        // Optional, but if filled, must be complete
-        const filledExp = formData.experience.filter(exp => exp.title || exp.company);
-        const validExp = filledExp.every(exp => exp.title?.trim() && exp.company?.trim());
-        if (!validExp) { toast.error('Please complete the details for all added experience entries'); return false; }
-        return true;
-      case 3: // Skills
-        if (!formData.skills?.trim()) { toast.error('Please add your skills'); return false; }
-        return true;
-      case 4: // Projects
-        const filledProj = formData.projects.filter(p => p.name || p.description);
-        const validProj = filledProj.every(p => p.name?.trim() && p.description?.trim());
-        if (filledProj.length > 0 && !validProj) { toast.error('Please complete the details for all added projects'); return false; }
-        return true;
-      default:
-        return true;
-    }
-  };
-
-  const nextStep = () => {
-    if (validateStep(currentStep)) {
-      setCurrentStep(s => Math.min(s + 1, steps.length - 1));
-    }
-  };
-  const prevStep = () => setCurrentStep(s => Math.max(s - 1, 0));
+  // ── Mutations ─────────────────────────────────────────────────────────────
+  const setPI = (field, val) => setFormData(p => ({ ...p, personalInfo: { ...p.personalInfo, [field]: val } }));
+  const setListItem = (section, idx, field, val) => setFormData(p => {
+    const arr = [...p[section]];
+    arr[idx] = { ...arr[idx], [field]: val };
+    return { ...p, [section]: arr };
+  });
+  const addItem = (section, empty) => setFormData(p => ({ ...p, [section]: [...p[section], empty] }));
+  const removeItem = (section, idx) => setFormData(p => ({ ...p, [section]: p[section].filter((_, i) => i !== idx) }));
 
   const handleSaveToProfile = async () => {
     try {
       setSaving(true);
-      const loadingToast = toast.loading('Synchronizing with database...');
-      const payload = {
-        name: formData.personalInfo.fullName,
-        email: formData.personalInfo.email,
-        phone: formData.personalInfo.phone,
-        phoneNumber: formData.personalInfo.phone,
+      const loadingToast = toast.loading('Saving to profile...');
+      await studentApi.updateProfile({
+        name: formData.personalInfo.fullName, email: formData.personalInfo.email,
+        phone: formData.personalInfo.phone, phoneNumber: formData.personalInfo.phone,
         summary: formData.personalInfo.summary,
-        personalInfo: {
-          phone: formData.personalInfo.phone,
-          address: { city: formData.personalInfo.address }
-        },
-        links: {
-          linkedin: formData.personalInfo.linkedin
-        },
-        education: formData.education,
-        experience: formData.experience,
-        skills: {
-          technicalSkills: formData.skills.split(',').map(s => s.trim()).filter(Boolean)
-        },
-        projects: formData.projects,
-        certifications: formData.certifications
-      };
-
-      await studentApi.updateProfile(payload);
-      toast.success("Resume data synchronized with profile!", { id: loadingToast });
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to save profile data.");
-    } finally {
-      setSaving(false);
-    }
+        links: { linkedin: formData.personalInfo.linkedin, github: formData.personalInfo.github },
+        education: formData.education, experience: formData.experience,
+        skills: { technicalSkills: formData.skills.split(',').map(s => s.trim()).filter(Boolean) },
+        certifications: formData.certifications,
+      });
+      toast.success('Profile synced!', { id: loadingToast });
+    } catch { toast.error('Save failed'); }
+    finally { setSaving(false); }
   };
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] animate-fade-in">
-        <div className="w-12 h-12 border-t-4 border-blue-600 rounded-full animate-spin"></div>
-        <p className="mt-4 text-gray-500 font-bold uppercase tracking-widest text-[10px]">Synchronizing Resume Engine...</p>
-      </div>
-    );
-  }
+  if (loading) return (
+    <div className="flex flex-col items-center justify-center min-h-[400px]">
+      <div className="w-10 h-10 border-t-4 border-blue-600 rounded-full animate-spin" />
+      <p className="mt-4 text-slate-400 font-bold uppercase tracking-widest text-[10px]">Loading Profile...</p>
+    </div>
+  );
 
-  return (
-    <div className="max-w-6xl mx-auto space-y-8 pb-20">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-        <div className="space-y-1">
-          <h2 className="text-3xl font-black text-gray-900 tracking-tight flex items-center gap-3">
-            <div className="w-2 h-8 bg-blue-600 rounded-full"></div>
-            Resume Architect
-          </h2>
-          <p className="text-gray-500 font-medium tracking-tight">Constructing your professional narrative for global opportunities.</p>
+  const FORM_STEPS = [
+    { title: 'Choose Template', icon: Palette },
+    { title: 'Personal Info',   icon: User },
+    { title: 'Education',       icon: GraduationCap },
+    { title: 'Experience',      icon: Briefcase },
+    { title: 'Skills & Languages', icon: Star },
+    { title: 'Certifications',  icon: Award },
+    { title: 'Preview & Export',icon: Download },
+  ];
+
+  const totalSteps = FORM_STEPS.length;
+
+  const renderStep = () => {
+    // ── Step 0: Template Selection ──────────────────────────────────────────
+    if (step === 0) return (
+      <div className="space-y-8">
+        {/* Hero header */}
+        <div className="text-center py-4">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-2">Step 1 of 7</p>
+          <h3 className="text-2xl font-black text-slate-900 tracking-tight">Pick Your Design</h3>
+          <p className="text-slate-400 text-sm mt-1 max-w-sm mx-auto">Your template sets the first impression. Choose one that fits your story.</p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setShowPreview(!showPreview)}
-            className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 rounded shadow-sm text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors"
-          >
-            {showPreview ? <FileText size={18} /> : <Eye size={18} />}
-            {showPreview ? 'Edit Assets' : 'Live Preview'}
-          </button>
-          {showPreview && (
-            <div className="flex gap-2">
-              <button
-                onClick={handleSaveToProfile}
-                disabled={saving}
-                className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 text-slate-700 rounded shadow-sm hover:bg-slate-50 transition-colors font-bold text-sm disabled:opacity-50"
-              >
-                {saving ? <div className="w-4 h-4 border-2 border-slate-700 border-t-transparent rounded-full animate-spin"></div> : <Save size={18} />}
-                {saving ? 'Saving...' : 'Save to Profile'}
-              </button>
-              <button
-                onClick={toPDF}
-                className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded shadow-sm hover:bg-slate-800 transition-colors font-bold text-sm"
-              >
-                <Download size={18} />
-                Export PDF
-              </button>
+        {/* Template grid */}
+        <div className="grid grid-cols-2 gap-5">
+          {TEMPLATES.map(tpl => (
+            <TemplateCard key={tpl.id} tpl={tpl} selected={selectedTemplate === tpl.id}
+              onSelect={setSelectedTemplate} accent={accentColor} />
+          ))}
+        </div>
+
+        {/* Accent Colour panel */}
+        <div className="bg-slate-50 border border-slate-200 rounded-xl p-5">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: accentColor + '20' }}>
+              <Palette size={15} style={{ color: accentColor }} />
             </div>
-          )}
-        </div>
-      </div>
-
-      {!showPreview ? (
-        <div className="grid lg:grid-cols-4 gap-8 items-start">
-          {/* Stepper Side Rail */}
-          <div className="lg:col-span-1 space-y-2 sticky top-24">
-            {steps.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => setCurrentStep(s.id)}
-                className={`w-full flex items-center gap-4 p-4 rounded transition-colors group relative overflow-hidden ${currentStep === s.id
-                    ? 'bg-slate-900 text-white shadow-sm'
-                    : 'bg-white hover:bg-slate-50 text-slate-500 border border-slate-200 shadow-sm'
-                  }`}
+            <div>
+              <p className="text-xs font-black text-slate-900">Accent Colour</p>
+              <p className="text-[10px] text-slate-400">Applied to headings, borders, and highlights across your resume.</p>
+            </div>
+            {/* Live colour preview badge */}
+            <div className="ml-auto flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-black text-white shadow-sm" style={{ backgroundColor: accentColor }}>
+              <span>{accentColor.toUpperCase()}</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            {ACCENT_PRESETS.map(c => (
+              <button key={c} onClick={() => setAccentColor(c)}
+                title={c}
+                className={`w-8 h-8 rounded-full transition-all hover:scale-110 relative ${
+                  accentColor === c ? 'scale-110 ring-2 ring-offset-2 ring-slate-900' : ''
+                }`}
+                style={{ backgroundColor: c }}
               >
-                <div className={`w-10 h-10 rounded flex items-center justify-center flex-shrink-0 transition-colors ${currentStep === s.id ? 'bg-white/20' : 'bg-slate-100 group-hover:bg-slate-200 text-slate-600'
-                  }`}>
-                  <s.icon size={18} />
-                </div>
-                <div className="text-left min-w-0">
-                  <p className={`text-[10px] font-bold uppercase tracking-widest leading-none ${currentStep === s.id ? 'text-slate-300' : 'text-slate-400'}`}>Step 0{s.id + 1}</p>
-                  <p className="font-bold text-sm truncate">{s.title}</p>
-                </div>
-                {currentStep > s.id && (
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                    <Check size={14} className="text-emerald-500" />
-                  </div>
+                {accentColor === c && (
+                  <span className="absolute inset-0 flex items-center justify-center">
+                    <Check size={12} className="text-white" strokeWidth={3} />
+                  </span>
                 )}
               </button>
             ))}
+            <label className="flex items-center gap-2 px-3 py-2 bg-white border-2 border-dashed border-slate-300 rounded-full cursor-pointer hover:border-slate-400 transition-colors text-[10px] font-black text-slate-500">
+              <Palette size={12} /> Custom
+              <input type="color" value={accentColor} onChange={e => setAccentColor(e.target.value)} className="w-0 h-0 opacity-0 absolute" />
+            </label>
           </div>
+        </div>
 
-          {/* Form Area */}
-          <div className="lg:col-span-3 space-y-6" key={currentStep}>
-            {/* Dynamic Step Content */}
-            <div className="bg-white border border-slate-200 shadow-sm rounded p-8 md:p-10 relative overflow-hidden min-h-[500px]">
-              <div className="absolute top-0 right-0 p-10 opacity-[0.03] scale-150 rotate-12 pointer-events-none">
-                <Rocket size={200} />
+        {/* Selected template summary */}
+        {(() => {
+          const t = TEMPLATES.find(t => t.id === selectedTemplate);
+          return t ? (
+            <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-slate-200 bg-white">
+              <div className="w-2 h-8 rounded-full flex-shrink-0" style={{ backgroundColor: accentColor }} />
+              <div>
+                <p className="text-xs font-black text-slate-900">{t.name} selected</p>
+                <p className="text-[10px] text-slate-400">{t.desc}</p>
               </div>
-
-              {/* Step 0: Personal Info */}
-              {currentStep === 0 && (
-                <div className="space-y-8 relative z-10">
-                  <div className="space-y-2">
-                    <h3 className="text-2xl font-black text-gray-900 tracking-tight">Identity & Contact</h3>
-                    <p className="text-gray-500 text-sm">Vital stats for recruiter communication lines.</p>
-                  </div>
-
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <MemoizedInput label="Full Name" icon={User} value={formData.personalInfo.fullName} onChange={e => handleInputChange('personalInfo', 'fullName', e.target.value)} placeholder="John Doe" />
-                    <MemoizedInput label="Email Architecture" icon={Mail} value={formData.personalInfo.email} onChange={e => handleInputChange('personalInfo', 'email', e.target.value)} placeholder="john@example.com" />
-                    <MemoizedInput label="Mobile Line" icon={Phone} value={formData.personalInfo.phone} onChange={e => handleInputChange('personalInfo', 'phone', e.target.value)} placeholder="+91 98765 43210" />
-                    <MemoizedInput label="Professional HQ" icon={MapPin} value={formData.personalInfo.address} onChange={e => handleInputChange('personalInfo', 'address', e.target.value)} placeholder="City, State, Country" />
-                  </div>
-
-                  <MemoizedInput label="LinkedIn Protocol" icon={Linkedin} value={formData.personalInfo.linkedin} onChange={e => handleInputChange('personalInfo', 'linkedin', e.target.value)} placeholder="https://linkedin.com/in/profile" />
-
-                  <div className="space-y-3">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-4">Career Signature (Summary)</label>
-                    <MemoizedInput type="textarea" rows={5} value={formData.personalInfo.summary} onChange={e => handleInputChange('personalInfo', 'summary', e.target.value)} placeholder="Synthesize your core value proposition in 3-4 sentences..." />
-                  </div>
-                </div>
-              )}
-
-              {/* Step 1: Education */}
-              {currentStep === 1 && (
-                <div className="space-y-8 relative z-10">
-                  <div className="flex justify-between items-end mb-6">
-                    <div className="space-y-2">
-                       <h3 className="text-2xl font-black text-slate-900 tracking-tight">Academic History</h3>
-                       <p className="text-slate-500 text-sm">Institutional milestones and scholarly achievements.</p>
-                    </div>
-                    <button onClick={() => addItem('education')} className="p-3 bg-slate-50 text-slate-600 rounded border border-slate-200 hover:bg-slate-900 hover:text-white transition-colors shadow-sm">
-                      <Plus size={18} />
-                    </button>
-                  </div>
-
-                  <div className="space-y-6">
-                    {formData.education.map((edu, i) => (
-                      <div key={i} className="p-6 bg-slate-50 border border-slate-200 rounded space-y-4 hover:border-slate-300 transition-colors relative group">
-                        <button onClick={() => removeItem('education', i)} className="absolute top-4 right-4 text-slate-400 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity p-2 bg-white rounded border border-slate-200 shadow-sm">
-                          <Trash2 size={14} />
-                        </button>
-                        <div className="grid md:grid-cols-2 gap-4">
-                          <MemoizedInput value={edu.degree} onChange={e => handleInputChange('education', 'degree', e.target.value, i)} placeholder="Degree / Certificate" />
-                          <MemoizedInput value={edu.institution} onChange={e => handleInputChange('education', 'institution', e.target.value, i)} placeholder="University / Institute" />
-                          <MemoizedInput value={edu.year} onChange={e => handleInputChange('education', 'year', e.target.value, i)} placeholder="Graduation Year (e.g. 2024)" />
-                          <MemoizedInput value={edu.gpa} onChange={e => handleInputChange('education', 'gpa', e.target.value, i)} placeholder="GPA / Percentage" />
-                        </div>
-                        <MemoizedInput type="textarea" rows={2} value={edu.achievements} onChange={e => handleInputChange('education', 'achievements', e.target.value, i)} placeholder="Key academic highlights..." />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Step 2: Experience */}
-              {currentStep === 2 && (
-                <div className="space-y-8 relative z-10">
-                  <div className="flex justify-between items-end mb-6">
-                    <div className="space-y-2">
-                      <h3 className="text-2xl font-black text-slate-900 tracking-tight">Work Experience</h3>
-                      <p className="text-slate-500 text-sm">Professional impact and industry exposure.</p>
-                    </div>
-                    <button onClick={() => addItem('experience')} className="p-3 bg-slate-50 text-slate-600 rounded border border-slate-200 hover:bg-slate-900 hover:text-white transition-colors shadow-sm">
-                      <Plus size={18} />
-                    </button>
-                  </div>
-
-                  <div className="space-y-6">
-                    {formData.experience.map((exp, i) => (
-                      <div key={i} className="p-6 bg-slate-50 border border-slate-200 rounded space-y-4 hover:border-slate-300 transition-colors relative group">
-                        <button onClick={() => removeItem('experience', i)} className="absolute top-4 right-4 text-slate-400 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity p-2 bg-white rounded border border-slate-200 shadow-sm">
-                          <Trash2 size={14} />
-                        </button>
-                        <div className="grid md:grid-cols-2 gap-4">
-                          <MemoizedInput value={exp.title} onChange={e => handleInputChange('experience', 'title', e.target.value, i)} placeholder="Job Title / Role" />
-                          <MemoizedInput value={exp.company} onChange={e => handleInputChange('experience', 'company', e.target.value, i)} placeholder="Organization Name" />
-                          <MemoizedInput value={exp.duration} onChange={e => handleInputChange('experience', 'duration', e.target.value, i)} placeholder="Timeline (e.g. June 2023 - Present)" />
-                        </div>
-                        <MemoizedInput type="textarea" rows={4} value={exp.description} onChange={e => handleInputChange('experience', 'description', e.target.value, i)} placeholder="Describe your responsibilities and quantified achievements..." />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Step 3: Skills */}
-              {currentStep === 3 && (
-                <div className="space-y-8 relative z-10">
-                  <div className="space-y-2 mb-6">
-                    <h3 className="text-2xl font-black text-slate-900 tracking-tight">Expertise Engine</h3>
-                    <p className="text-slate-500 text-sm">Comma-separated skills matrix. Think technical & behavioral.</p>
-                  </div>
-
-                  <div className="p-6 bg-slate-50 border border-slate-200 rounded space-y-6">
-                    <MemoizedInput
-                      type="textarea"
-                      rows={8}
-                      value={formData.skills}
-                      onChange={e => handleInputChange('skills', '', e.target.value)}
-                      placeholder="React, Node.js, Python, AWS, System Design, Strategic Communication, Agile..."
-                    />
-                    <div className="flex flex-wrap gap-2 pt-2">
-                      {(formData.skills.split(',')).filter(s => s.trim()).map((s, i) => (
-                        <span key={i} className="px-3 py-1.5 bg-white border border-slate-300 text-slate-700 font-bold text-[10px] uppercase tracking-widest rounded shadow-sm">
-                          {s.trim()}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Step 4: Projects */}
-              {currentStep === 4 && (
-                <div className="space-y-8 relative z-10">
-                  <div className="flex justify-between items-end mb-6">
-                    <div className="space-y-2">
-                      <h3 className="text-2xl font-black text-slate-900 tracking-tight">Project Portfolio</h3>
-                      <p className="text-slate-500 text-sm">Demonstrating technical prowess through practical execution.</p>
-                    </div>
-                    <button onClick={() => addItem('projects')} className="p-3 bg-slate-50 text-slate-600 rounded border border-slate-200 hover:bg-slate-900 hover:text-white transition-colors shadow-sm">
-                      <Plus size={18} />
-                    </button>
-                  </div>
-
-                  <div className="space-y-6">
-                    {formData.projects.map((proj, i) => (
-                      <div key={i} className="p-6 bg-slate-50 border border-slate-200 rounded space-y-4 hover:border-slate-300 transition-colors relative group">
-                        <button onClick={() => removeItem('projects', i)} className="absolute top-4 right-4 text-slate-400 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity p-2 bg-white rounded border border-slate-200 shadow-sm">
-                          <Trash2 size={14} />
-                        </button>
-                        <div className="grid md:grid-cols-2 gap-4">
-                          <MemoizedInput value={proj.name} onChange={e => handleInputChange('projects', 'name', e.target.value, i)} placeholder="Project Designation" />
-                          <MemoizedInput value={proj.technologies} onChange={e => handleInputChange('projects', 'technologies', e.target.value, i)} placeholder="Tech Stack (e.g. Next.js, Prisma)" />
-                        </div>
-                        <MemoizedInput value={proj.link} onChange={e => handleInputChange('projects', 'link', e.target.value, i)} placeholder="Live URL or Repository Link" />
-                        <MemoizedInput type="textarea" rows={3} value={proj.description} onChange={e => handleInputChange('projects', 'description', e.target.value, i)} placeholder="Problem statement and your engineering solution..." />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Step 5: Certifications */}
-              {currentStep === 5 && (
-                <div className="space-y-8 relative z-10">
-                  <div className="flex justify-between items-end mb-6">
-                    <div className="space-y-2">
-                      <h3 className="text-2xl font-black text-slate-900 tracking-tight">Awards & Badges</h3>
-                      <p className="text-slate-500 text-sm">External validation of your expertise.</p>
-                    </div>
-                    <button onClick={() => addItem('certifications')} className="p-3 bg-slate-50 text-slate-600 rounded border border-slate-200 hover:bg-slate-900 hover:text-white transition-colors shadow-sm">
-                      <Plus size={18} />
-                    </button>
-                  </div>
-
-                  <div className="space-y-6">
-                    {formData.certifications.map((cert, i) => (
-                      <div key={i} className="p-6 bg-slate-50 border border-slate-200 rounded space-y-4 hover:border-slate-300 transition-colors relative group">
-                        <button onClick={() => removeItem('certifications', i)} className="absolute top-4 right-4 text-slate-400 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity p-2 bg-white rounded border border-slate-200 shadow-sm">
-                          <Trash2 size={14} />
-                        </button>
-                        <div className="grid md:grid-cols-3 gap-4">
-                          <div className="md:col-span-2">
-                            <MemoizedInput value={cert.name} onChange={e => handleInputChange('certifications', 'name', e.target.value, i)} placeholder="Certification Title" />
-                          </div>
-                          <MemoizedInput value={cert.year} onChange={e => handleInputChange('certifications', 'year', e.target.value, i)} placeholder="Year" />
-                        </div>
-                        <MemoizedInput value={cert.issuer} onChange={e => handleInputChange('certifications', 'issuer', e.target.value, i)} placeholder="Issuing Body (e.g. Microsoft, Coursera)" />
-                      </div>
-                    ))}
-                  </div>
-                </div>
+              {(t.sidebar || t.bold) && (
+                <span className="ml-auto text-[9px] font-black px-2 py-1 rounded-full uppercase tracking-wider bg-violet-50 text-violet-600 border border-violet-200">
+                  Supports Photo
+                </span>
               )}
             </div>
+          ) : null;
+        })()}
+      </div>
+    );
 
-            {/* Form Navigation Buttons */}
-            <div className="flex justify-between items-center bg-white border border-slate-200 p-6 rounded shadow-sm mt-6">
-              <button
-                onClick={prevStep}
-                disabled={currentStep === 0}
-                className="flex items-center gap-2 px-6 py-3 rounded border border-slate-200 font-bold text-sm text-slate-600 hover:bg-slate-50 disabled:opacity-50 transition-colors"
-              >
-                <ChevronLeft size={16} />
-                Back
-              </button>
+    // ── Step 1: Personal Info ────────────────────────────────────────────────
+    if (step === 1) return (
+      <div className="space-y-6">
+        <div><h3 className="text-xl font-black text-slate-900">Personal Info</h3><p className="text-slate-400 text-sm">Your identity and contact details.</p></div>
 
-              {currentStep === steps.length - 1 ? (
-                <button
-                  onClick={() => setShowPreview(true)}
-                  className="flex items-center gap-3 px-8 py-3 bg-amber-500 border border-amber-600 text-white rounded font-bold uppercase text-xs tracking-widest hover:bg-amber-600 transition-colors shadow-sm"
-                >
-                  Verify Architecture
-                  <ArrowRight size={14} />
-                </button>
-              ) : (
-                <button
-                  onClick={nextStep}
-                  className="flex items-center gap-3 px-8 py-3 bg-slate-900 border border-slate-900 text-white rounded font-bold uppercase text-xs tracking-widest hover:bg-slate-800 transition-colors shadow-sm"
-                >
-                  Deploy Next Step
-                  <ArrowRight size={14} />
+        {/* Photo upload — only for templates that support it */}
+        {supportsPhoto && (
+          <div className="flex items-center gap-5 p-4 bg-slate-50 border border-slate-200 rounded-lg">
+            {/* Preview */}
+            <div className="w-20 h-20 rounded-full flex-shrink-0 overflow-hidden border-2 border-slate-300 bg-slate-100 flex items-center justify-center">
+              {photo
+                ? <img src={photo} alt="Profile" className="w-full h-full object-cover" />
+                : <User size={28} className="text-slate-400" />
+              }
+            </div>
+            <div className="flex-1">
+              <p className="text-xs font-black text-slate-700 mb-1">Profile Photo</p>
+              <p className="text-[10px] text-slate-400 mb-3">Shown in the <span className="font-bold capitalize">{selectedTemplate}</span> template. Auto-loaded from your profile.</p>
+              <label className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded text-xs font-bold text-slate-700 cursor-pointer hover:bg-slate-50 transition-colors shadow-sm">
+                <User size={12} /> {photo ? 'Change Photo' : 'Upload Photo'}
+                <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
+              </label>
+              {photo && (
+                <button onClick={() => setPhoto(null)} className="ml-2 px-3 py-2 text-xs font-bold text-rose-500 hover:text-rose-700 border border-rose-200 rounded hover:bg-rose-50 transition-colors">
+                  Remove
                 </button>
               )}
             </div>
           </div>
+        )}
+
+        <div className="grid md:grid-cols-2 gap-5">
+          <Field label="Full Name"      icon={User}     value={formData.personalInfo.fullName}  onChange={e=>setPI('fullName',e.target.value)}  placeholder="John Doe" />
+          <Field label="Job Title"      icon={Briefcase}value={formData.personalInfo.jobTitle}  onChange={e=>setPI('jobTitle',e.target.value)}  placeholder="Software Engineer" />
+          <Field label="Email"          icon={Mail}     value={formData.personalInfo.email}     onChange={e=>setPI('email',e.target.value)}     placeholder="john@example.com" />
+          <Field label="Phone"          icon={Phone}    value={formData.personalInfo.phone}     onChange={e=>setPI('phone',e.target.value)}     placeholder="+91 98765 43210" />
+          <Field label="Location"       icon={MapPin}   value={formData.personalInfo.location}  onChange={e=>setPI('location',e.target.value)}  placeholder="City, State, Country" />
+          <Field label="LinkedIn"       icon={Linkedin} value={formData.personalInfo.linkedin}  onChange={e=>setPI('linkedin',e.target.value)}  placeholder="linkedin.com/in/..." />
+          <Field label="GitHub"         icon={Github}   value={formData.personalInfo.github}    onChange={e=>setPI('github',e.target.value)}    placeholder="github.com/..." />
         </div>
-      ) : (
-        <div className="animate-fade-in space-y-8">
+        <Field label="Professional Summary" type="textarea" rows={4} value={formData.personalInfo.summary} onChange={e=>setPI('summary',e.target.value)} placeholder="A passionate engineer who..." />
+      </div>
+    );
 
+    // ── Step 2: Education ────────────────────────────────────────────────────
+    if (step === 2) return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-end">
+          <div><h3 className="text-xl font-black text-slate-900">Education</h3><p className="text-slate-400 text-sm">Degrees & qualifications.</p></div>
+          <button onClick={()=>addItem('education',{degree:'',institution:'',startDate:'',endDate:'',gpa:''})} className="flex items-center gap-1.5 px-3 py-2 bg-slate-900 text-white text-xs font-bold rounded hover:bg-slate-800 transition-colors"><Plus size={13}/>Add</button>
+        </div>
+        {formData.education.map((edu, i) => (
+          <div key={i} className="p-5 bg-slate-50 border border-slate-200 rounded space-y-4 relative group">
+            {formData.education.length > 1 && <button onClick={()=>removeItem('education',i)} className="absolute top-3 right-3 p-1.5 bg-white border border-slate-200 rounded text-slate-400 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition"><Trash2 size={13}/></button>}
+            <div className="grid md:grid-cols-2 gap-4">
+              <Field label="Degree / Certificate" value={edu.degree} onChange={e=>setListItem('education',i,'degree',e.target.value)} placeholder="B.Sc Computer Science" />
+              <Field label="Institution" value={edu.institution} onChange={e=>setListItem('education',i,'institution',e.target.value)} placeholder="MIT" />
+              <Field label="Start Year" value={edu.startDate} onChange={e=>setListItem('education',i,'startDate',e.target.value)} placeholder="2018" />
+              <Field label="End Year / Expected" value={edu.endDate} onChange={e=>setListItem('education',i,'endDate',e.target.value)} placeholder="2022" />
+              <Field label="GPA / Percentage" value={edu.gpa} onChange={e=>setListItem('education',i,'gpa',e.target.value)} placeholder="8.5 / 10" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
 
-          {/* High Fidelity Resume Preview Canvas */}
-          <div className="flex justify-center">
-            <div
-              ref={targetRef}
-              className="w-[210mm] min-h-[297mm] bg-white shadow-[0_40px_100px_rgba(0,0,0,0.1)] p-[2.5cm] text-gray-800 font-serif leading-relaxed"
-              style={{ fontFamily: "'Inter', 'Georgia', serif" }}
+    // ── Step 3: Experience ───────────────────────────────────────────────────
+    if (step === 3) return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-end">
+          <div><h3 className="text-xl font-black text-slate-900">Work Experience</h3><p className="text-slate-400 text-sm">Roles, responsibilities and impact.</p></div>
+          <button onClick={()=>addItem('experience',{jobTitle:'',company:'',startDate:'',endDate:'',description:''})} className="flex items-center gap-1.5 px-3 py-2 bg-slate-900 text-white text-xs font-bold rounded hover:bg-slate-800 transition-colors"><Plus size={13}/>Add</button>
+        </div>
+        {formData.experience.map((exp, i) => (
+          <div key={i} className="p-5 bg-slate-50 border border-slate-200 rounded space-y-4 relative group">
+            {formData.experience.length > 1 && <button onClick={()=>removeItem('experience',i)} className="absolute top-3 right-3 p-1.5 bg-white border border-slate-200 rounded text-slate-400 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition"><Trash2 size={13}/></button>}
+            <div className="grid md:grid-cols-2 gap-4">
+              <Field label="Job Title" value={exp.jobTitle} onChange={e=>setListItem('experience',i,'jobTitle',e.target.value)} placeholder="Senior Developer" />
+              <Field label="Company" value={exp.company} onChange={e=>setListItem('experience',i,'company',e.target.value)} placeholder="Google" />
+              <Field label="Start Date" value={exp.startDate} onChange={e=>setListItem('experience',i,'startDate',e.target.value)} placeholder="Jan 2021" />
+              <Field label="End Date" value={exp.endDate} onChange={e=>setListItem('experience',i,'endDate',e.target.value)} placeholder="Present" />
+            </div>
+            <Field label="Description" type="textarea" rows={3} value={exp.description} onChange={e=>setListItem('experience',i,'description',e.target.value)} placeholder="Led a team of 5 engineers to deliver..." />
+          </div>
+        ))}
+      </div>
+    );
+
+    // ── Step 4: Skills & Languages ───────────────────────────────────────────
+    if (step === 4) return (
+      <div className="space-y-6">
+        <div><h3 className="text-xl font-black text-slate-900">Skills & Languages</h3><p className="text-slate-400 text-sm">Comma-separated lists.</p></div>
+        <Field label="Technical & Soft Skills" type="textarea" rows={4} value={formData.skills} onChange={e=>setFormData(p=>({...p,skills:e.target.value}))} placeholder="React, Node.js, Python, Team Leadership, Agile..." />
+        {formData.skills && (
+          <div className="flex flex-wrap gap-2">
+            {formData.skills.split(',').filter(s=>s.trim()).map((s,i)=>(
+              <span key={i} className="px-3 py-1 bg-slate-100 border border-slate-200 text-slate-700 text-[10px] font-bold rounded-full">{s.trim()}</span>
+            ))}
+          </div>
+        )}
+        <Field label="Languages Spoken" type="textarea" rows={2} value={formData.languages} onChange={e=>setFormData(p=>({...p,languages:e.target.value}))} placeholder="English, Hindi, Spanish..." />
+      </div>
+    );
+
+    // ── Step 5: Certifications ────────────────────────────────────────────────
+    if (step === 5) return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-end">
+          <div><h3 className="text-xl font-black text-slate-900">Certifications</h3><p className="text-slate-400 text-sm">Awards, courses and badges.</p></div>
+          <button onClick={()=>addItem('certifications',{name:'',issuer:'',year:''})} className="flex items-center gap-1.5 px-3 py-2 bg-slate-900 text-white text-xs font-bold rounded hover:bg-slate-800 transition-colors"><Plus size={13}/>Add</button>
+        </div>
+        {formData.certifications.map((cert, i) => (
+          <div key={i} className="p-5 bg-slate-50 border border-slate-200 rounded space-y-3 relative group">
+            {formData.certifications.length > 1 && <button onClick={()=>removeItem('certifications',i)} className="absolute top-3 right-3 p-1.5 bg-white border border-slate-200 rounded text-slate-400 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition"><Trash2 size={13}/></button>}
+            <div className="grid md:grid-cols-3 gap-4">
+              <div className="md:col-span-2"><Field label="Certification Name" value={cert.name} onChange={e=>setListItem('certifications',i,'name',e.target.value)} placeholder="AWS Solutions Architect" /></div>
+              <Field label="Year" value={cert.year} onChange={e=>setListItem('certifications',i,'year',e.target.value)} placeholder="2023" />
+            </div>
+            <Field label="Issuing Body" value={cert.issuer} onChange={e=>setListItem('certifications',i,'issuer',e.target.value)} placeholder="Amazon Web Services" />
+          </div>
+        ))}
+      </div>
+    );
+
+    // ── Step 6: Preview & Export ─────────────────────────────────────────────
+    if (step === 6) return (
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <h3 className="text-xl font-black text-slate-900">Preview & Export</h3>
+            <p className="text-slate-400 text-sm">Review your resume and download as PDF.</p>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={()=>setShowPDFViewer(!showPDFViewer)} className="flex items-center gap-1.5 px-4 py-2 bg-white border border-slate-200 rounded font-bold text-sm text-slate-700 hover:bg-slate-50 transition-colors shadow-sm">
+              {showPDFViewer ? <X size={15}/> : <Eye size={15}/>}
+              {showPDFViewer ? 'Close Preview' : 'Live Preview'}
+            </button>
+            <button onClick={handleSaveToProfile} disabled={saving} className="flex items-center gap-1.5 px-4 py-2 bg-white border border-slate-200 rounded font-bold text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition-colors shadow-sm">
+              {saving ? <div className="w-4 h-4 border-2 border-slate-700 border-t-transparent rounded-full animate-spin"/> : <Save size={15}/>}
+              Save to Profile
+            </button>
+            <PDFDownloadLink
+              document={<ActiveTemplate data={templateData} />}
+              fileName={`${formData.personalInfo.fullName.replace(/\s+/g,'_')||'resume'}_elevate.pdf`}
             >
-              {/* Header */}
-              <header className="text-center mb-10 border-b-4 border-slate-900 pb-8">
-                <h1 className="text-4xl font-black tracking-tight text-slate-900 uppercase mb-4">
-                  {formData.personalInfo.fullName || 'RESUME ARCHITECT'}
-                </h1>
-                <div className="flex flex-wrap justify-center gap-y-2 gap-x-6 text-xs font-bold text-slate-500 uppercase tracking-widest">
-                  {formData.personalInfo.email && <span className="flex items-center gap-1.5"><Mail size={12} /> {formData.personalInfo.email}</span>}
-                  {formData.personalInfo.phone && <span className="flex items-center gap-1.5"><Phone size={12} /> {formData.personalInfo.phone}</span>}
-                  {formData.personalInfo.address && <span className="flex items-center gap-1.5"><MapPin size={12} /> {formData.personalInfo.address}</span>}
-                  {formData.personalInfo.linkedin && <span className="flex items-center gap-1.5 underline">{formData.personalInfo.linkedin.replace(/^https?:\/\//, '')}</span>}
-                </div>
-              </header>
-
-              {/* Summary */}
-              {formData.personalInfo.summary && (
-                <section className="mb-10">
-                  <h2 className="text-sm font-black text-slate-900 uppercase tracking-[0.2em] bg-slate-100 px-4 py-1.5 rounded inline-block mb-4">Perspective</h2>
-                  <p className="text-sm font-medium leading-[1.8] text-slate-700">{formData.personalInfo.summary}</p>
-                </section>
+              {({ loading: pdfLoading }) => (
+                <button disabled={pdfLoading} className="flex items-center gap-1.5 px-5 py-2 bg-slate-900 text-white rounded font-bold text-sm hover:bg-slate-800 disabled:opacity-50 transition-colors shadow-sm">
+                  <Download size={15}/>
+                  {pdfLoading ? 'Preparing...' : 'Download PDF'}
+                </button>
               )}
-
-              {/* Experience */}
-              {formData.experience.some(e => e.title) && (
-                <section className="mb-10">
-                  <h2 className="text-sm font-black text-slate-900 uppercase tracking-[0.2em] bg-slate-100 px-4 py-1.5 rounded inline-block mb-6">Experience</h2>
-                  <div className="space-y-8">
-                    {formData.experience.map((exp, i) => exp.title && (
-                      <div key={i} className="relative pl-6 border-l-2 border-slate-100">
-                        <div className="absolute top-0 left-[-5px] w-2 h-2 bg-slate-900 rounded-full"></div>
-                        <div className="flex justify-between items-start mb-2">
-                          <h3 className="text-base font-black text-slate-900">{exp.title}</h3>
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{exp.duration}</span>
-                        </div>
-                        <p className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-3">{exp.company}</p>
-                        <p className="text-xs font-medium leading-relaxed text-slate-600 whitespace-pre-line">{exp.description}</p>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              )}
-
-              {/* Education */}
-              {formData.education.some(e => e.degree) && (
-                <section className="mb-10">
-                  <h2 className="text-sm font-black text-slate-900 uppercase tracking-[0.2em] bg-slate-100 px-4 py-1.5 rounded inline-block mb-6">Academia</h2>
-                  <div className="space-y-6">
-                    {formData.education.map((edu, i) => edu.degree && (
-                      <div key={i} className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <h3 className="text-sm font-black text-slate-900">{edu.degree}</h3>
-                          <p className="text-xs font-bold text-slate-500 uppercase tracking-tight mt-1">{edu.institution}</p>
-                          {edu.achievements && <p className="text-[11px] text-slate-500 mt-2 italic">{edu.achievements}</p>}
-                        </div>
-                        <div className="text-right ml-10">
-                          <p className="text-[10px] font-black text-slate-900">{edu.year}</p>
-                          {edu.gpa && <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase">GPA: {edu.gpa}</p>}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              )}
-
-              {/* Skills Grid */}
-              {formData.skills && (
-                <section className="mb-10">
-                  <h2 className="text-sm font-black text-slate-900 uppercase tracking-[0.2em] bg-slate-100 px-4 py-1.5 rounded inline-block mb-6">Intelligence Matrix</h2>
-                  <div className="flex flex-wrap gap-2">
-                    {formData.skills.split(',').filter(s => s.trim()).map((s, i) => (
-                      <span key={i} className="px-3 py-1.5 border-2 border-slate-900 text-slate-900 text-[10px] font-black uppercase tracking-widest">
-                        {s.trim()}
-                      </span>
-                    ))}
-                  </div>
-                </section>
-              )}
-
-              {/* Projects */}
-              {formData.projects.some(p => p.name) && (
-                <section className="mb-10">
-                  <h2 className="text-sm font-black text-slate-900 uppercase tracking-[0.2em] bg-slate-100 px-4 py-1.5 rounded inline-block mb-6">Protocol Deployments</h2>
-                  <div className="grid grid-cols-2 gap-x-10 gap-y-8">
-                    {formData.projects.map((p, i) => p.name && (
-                      <div key={i}>
-                        <h3 className="text-sm font-black text-slate-900">{p.name}</h3>
-                        <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mt-1">{p.technologies}</p>
-                        <p className="text-[11px] font-medium text-slate-600 mt-2 line-clamp-3">{p.description}</p>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              )}
-
-              {/* Certifications */}
-              {formData.certifications.some(c => c.name) && (
-                <section>
-                  <h2 className="text-sm font-black text-slate-900 uppercase tracking-[0.2em] bg-slate-100 px-4 py-1.5 rounded inline-block mb-6">Validations</h2>
-                  <div className="grid grid-cols-2 gap-4">
-                    {formData.certifications.map((c, i) => c.name && (
-                      <div key={i} className="flex justify-between items-center bg-slate-50 p-4 rounded-xl">
-                        <div>
-                          <p className="text-[11px] font-black text-slate-900 leading-tight">{c.name}</p>
-                          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter mt-1">{c.issuer}</p>
-                        </div>
-                        <span className="text-[10px] font-black text-slate-900 ml-4">{c.year}</span>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              )}
-
-
-            </div>
+            </PDFDownloadLink>
           </div>
         </div>
-      )}
+
+        {showPDFViewer && (
+          <div className="border border-slate-200 rounded overflow-hidden shadow-lg" style={{ height: '80vh' }}>
+            <PDFViewer width="100%" height="100%" showToolbar={false}>
+              <ActiveTemplate data={templateData} />
+            </PDFViewer>
+          </div>
+        )}
+
+        {!showPDFViewer && (
+          <div className="border-2 border-dashed border-slate-200 rounded-lg py-20 text-center bg-slate-50">
+            <FileText size={40} className="text-slate-300 mx-auto mb-4" />
+            <p className="text-slate-500 font-bold text-sm">Click "Live Preview" to see your resume</p>
+            <p className="text-slate-400 text-xs mt-1">Or download the PDF directly</p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="max-w-5xl mx-auto space-y-6 pb-24">
+      {/* Header */}
+      <div className="flex items-center justify-between pt-4">
+        <div>
+          <h2 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+            <div className="w-2 h-6 rounded-full" style={{ backgroundColor: accentColor }} />
+            Resume Builder
+          </h2>
+          <p className="text-slate-500 text-sm">Build a professional resume in minutes.</p>
+        </div>
+      </div>
+
+      {/* Step indicator */}
+      <div className="flex items-center gap-1 overflow-x-auto pb-1">
+        {FORM_STEPS.map((s, i) => {
+          const Icon = s.icon;
+          return (
+            <React.Fragment key={i}>
+              <button
+                onClick={() => setStep(i)}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${
+                  step === i ? 'bg-slate-900 text-white shadow' : step > i ? 'bg-slate-100 text-slate-600' : 'text-slate-400 hover:text-slate-600'
+                }`}
+              >
+                <Icon size={11} />
+                {s.title}
+                {step > i && <Check size={10} className="text-emerald-500" />}
+              </button>
+              {i < totalSteps - 1 && <div className={`h-px flex-1 min-w-[10px] rounded ${step > i ? 'bg-slate-400' : 'bg-slate-200'}`} />}
+            </React.Fragment>
+          );
+        })}
+      </div>
+
+      {/* Content */}
+      <div className="bg-white border border-slate-200 rounded-lg shadow-sm p-8 min-h-[480px]">
+        {renderStep()}
+      </div>
+
+      {/* Navigation */}
+      <div className="flex items-center justify-between bg-white border border-slate-200 rounded-lg p-4 shadow-sm">
+        <button onClick={() => setStep(s => Math.max(0, s - 1))} disabled={step === 0}
+          className="flex items-center gap-2 px-5 py-2.5 border border-slate-200 rounded font-bold text-sm text-slate-600 hover:bg-slate-50 disabled:opacity-40 transition-colors">
+          <ChevronLeft size={15} /> Back
+        </button>
+        <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">
+          Step {step + 1} of {totalSteps}
+        </span>
+        {step < totalSteps - 1
+          ? <button onClick={() => setStep(s => Math.min(totalSteps - 1, s + 1))}
+              className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white rounded font-bold text-sm hover:bg-slate-800 transition-colors shadow-sm">
+              Next <ChevronRight size={15} />
+            </button>
+          : null
+        }
+      </div>
     </div>
   );
 };
