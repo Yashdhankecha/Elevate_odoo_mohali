@@ -1,404 +1,377 @@
-# 🚀 Elevate - Comprehensive Placement Tracker Platform
+# 🚀 Elevate :  Comprehensive Placement Management Platform
 
 <div align="center">
   <img src="https://img.shields.io/badge/React-18.2.0-blue?style=for-the-badge&logo=react" alt="React" />
+  <img src="https://img.shields.io/badge/Vite-5.0-purple?style=for-the-badge&logo=vite" alt="Vite" />
   <img src="https://img.shields.io/badge/Node.js-18+-green?style=for-the-badge&logo=node.js" alt="Node.js" />
-  <img src="https://img.shields.io/badge/MongoDB-8.0+-orange?style=for-the-badge&logo=mongodb" alt="MongoDB" />
+  <img src="https://img.shields.io/badge/MongoDB-Atlas-orange?style=for-the-badge&logo=mongodb" alt="MongoDB" />
   <img src="https://img.shields.io/badge/Express-4.18+-black?style=for-the-badge&logo=express" alt="Express" />
   <img src="https://img.shields.io/badge/TailwindCSS-3.3+-cyan?style=for-the-badge&logo=tailwind-css" alt="TailwindCSS" />
 </div>
 
-## 📹 Preview Video
-🎥 **[Watch Demo Video]** -  https://drive.google.com/drive/folders/1JtYBU8BUwuodFChIFrsziQ1qcTMgCsY_?usp=sharing
+---
+
+## 📹 Demo
+
+🎥 **[Watch Demo Video](https://drive.google.com/drive/folders/1JtYBU8BUwuodFChIFrsziQ1qcTMgCsY_?usp=sharing)**
 
 ---
 
-## 🎯 Overview
+## 🎯 What is Elevate?
 
-**Elevate** is a comprehensive placement tracking platform that revolutionizes the recruitment process by connecting students, companies, and Training & Placement Officers (TPOs) in a unified ecosystem. Built with modern technologies, it provides real-time tracking, advanced analytics, and seamless communication for all stakeholders.
+**Elevate** is a full-stack placement management platform built for engineering colleges. It digitises and streamlines the entire campus placement lifecycle — from student profile creation and internship applications to on-campus drive scheduling, interview tracking, and real-time analytics.
 
-## ✨ Key Features
+The platform unifies **three distinct portals** under one roof:
 
-### 🔐 **Multi-Role Authentication System**
-- **Role-based Registration**: Dynamic signup forms based on user type
-- **Three User Types**: Student, Company, and TPO with distinct permissions
-- **Email OTP Verification**: Secure account verification process
-- **JWT Authentication**: Token-based secure authentication
-- **Password Management**: Forgot password and reset functionality
+| Portal | Who uses it |
+|--------|-------------|
+| 🎓 Student | Browse jobs/internships, apply, track applications, practise coding |
+| 🏢 Company | Post jobs, review applications, schedule interviews |
+| 🧑‍🏫 TPO | Manage drives, verify students, generate placement reports |
 
-### 👨‍🎓 **Student Portal**
-- **Comprehensive Profile Management**: Academic details, skills, projects, certifications
-- **Placement Tracking**: Real-time application status and interview progress
-- **Resume Builder**: Professional resume creation and management
-- **Skill Assessment**: Track technical and soft skills with proficiency levels
-- **Internship Applications**: Browse and apply for internship opportunities
-- **Dashboard Analytics**: Profile completion, application statistics, placement status
+---
 
-### 🏢 **Company Portal**
-- **Job Management**: Create, edit, and manage job postings
-- **Interview Scheduling**: Schedule and manage candidate interviews
-- **Application Tracking**: Review applications with status updates
-- **Candidate Analytics**: Detailed candidate profiles and performance metrics
-- **Dashboard Insights**: Real-time statistics and performance analytics
-- **Company Profile**: Manage company information and branding
+## 🔥 Problem It Solves
 
-### 👨‍🏫 **TPO (Training & Placement Officer) Portal**
-- **Institute Management**: Comprehensive student and company oversight
-- **Placement Analytics**: Branch-wise statistics and performance tracking
-- **Internship Management**: Create and manage internship opportunities
-- **Student Verification**: Profile approval and verification system
-- **Reporting Tools**: Generate detailed placement reports
-- **Company Relations**: Manage company partnerships and relationships
+Traditional placement processes at colleges suffer from:
 
-### 📊 **Advanced Analytics & Reporting**
-- **Real-time Dashboards**: Live statistics and performance metrics
-- **Branch-wise Analytics**: Detailed analysis by academic branches
-- **Placement Statistics**: Success rates, package analysis, company distribution
-- **Export Functionality**: PDF and Excel report generation
-- **Performance Tracking**: Student and company performance monitoring
+- **Fragmented communication** — emails, spreadsheets, and phone calls between TPOs, students, and companies
+- **No real-time status tracking** — students have no visibility into their application progress
+- **Manual resume shortlisting** — zero tooling for companies to filter candidates efficiently
+- **Zero coding practise integration** — students must use external platforms with no placement context
+- **Lack of analytics** — TPOs cannot generate branch-wise placement reports instantly
+
+**Elevate** replaces all of the above with a unified, role-aware web platform featuring live dashboards, AI-powered chat support, integrated code execution, and automated PDF/Excel reporting.
+
+---
+
+## ✨ Core Features
+
+### 🔐 Authentication & Security
+- Role-based registration for Students, Companies, and TPOs
+- **Email OTP Verification** via Nodemailer (Gmail SMTP)
+- **Google OAuth 2.0** sign-in integration
+- **JWT** authentication with HTTP-only cookies
+- Forgot password / reset password flow
+- TPO institute-scoped access control middleware
+
+### 👨‍🎓 Student Portal
+- Complete academic profile — CGPA, branch, skills, projects, certifications
+- Browse on-campus & off-campus jobs / internships
+- One-click applications with real-time status tracking (Applied → Shortlisted → Interview → Offered/Rejected)
+- **Resume Builder** — export to PDF via `@react-pdf/renderer`
+- **Practice Hub** — solve LeetCode-style problems in-browser with live code execution powered by **Judge0 CE** (via RapidAPI)
+- Application history with stipend and package details
+
+### 🏢 Company Portal
+- Post, edit, and delete job/internship listings
+- Review and shortlist student applications
+- Schedule interviews with per-candidate status management
+- Analytics dashboard — applications received, shortlist ratios, hiring funnel
+
+### 🧑‍🏫 TPO Portal
+- Manage on-campus drive lifecycle (create → eligible students → applications → results)
+- Institute-filtered student list with verification and approval
+- Create and manage internship offers visible to students
+- **AI-powered Career Chatbot** — answers student queries using **Groq (Llama 3)** LLM
+- Branch-wise and year-wise placement analytics with **Recharts** visualisations
+- Export placement reports to **PDF** and **Excel (XLSX)**
+
+### 🤖 AI Career Chatbot
+- Powered by **Groq SDK** (`groq-sdk`) with the `llama3-70b-8192` model
+- Answers career, placement, and resume-related questions with context streamed from the server
+
+### 💻 Coding Practice Hub (Judge0 Integration)
+- Fetches real LeetCode problems via a **server-side LeetCode GraphQL proxy** (CORS bypass)
+- Submits code for execution via **Judge0 CE API** (RapidAPI)
+- Supports multiple languages — Python, JavaScript, C++, Java, and more
+- Automatic test-harness engine parses LeetCode-style function signatures, wraps user code, and validates output against expected results
+
+### 📊 Analytics & Reporting
+- Live dashboards for all three roles
+- Branch-wise and company-wise placement statistics
+- PDF and Excel (XLSX) export from the frontend
+
+---
 
 ## 🛠️ Technology Stack
 
-### **Frontend**
-- **React.js 18.2.0** - Modern UI framework with hooks
-- **TailwindCSS 3.3.6** - Utility-first CSS framework
-- **React Router 6.20.1** - Client-side routing
-- **React Hot Toast 2.4.1** - Notification system
-- **React Icons 4.12.0** - Comprehensive icon library
-- **Recharts 2.7.2** - Data visualization charts
-- **Axios 1.6.2** - HTTP client for API communication
+### Frontend (`client/`)
 
-### **Backend**
-- **Node.js 18+** - JavaScript runtime environment
-- **Express.js 4.18.2** - Web application framework
-- **MongoDB 8.0.3** - NoSQL database with Mongoose ODM
-- **JWT 9.0.2** - JSON Web Token authentication
-- **Bcryptjs 2.4.3** - Password hashing and security
-- **Nodemailer 6.9.7** - Email service integration
-- **Express Validator 7.0.1** - Input validation middleware
+| Library | Version | Purpose |
+|---------|---------|---------|
+| **React** | `^18.2.0` | Core UI framework |
+| **Vite** | `^5.0.0` | Build tool & dev server |
+| **React Router DOM** | `^6.20.1` | Client-side routing |
+| **TailwindCSS** | `^3.3.6` | Utility-first styling |
+| **Axios** | `^1.6.2` | HTTP client |
+| **Recharts** | `^2.7.2` | Data visualisation charts |
+| **React Hot Toast** | `^2.4.1` | Toast notifications |
+| **React Icons** | `^4.12.0` | Icon library |
+| **Lucide React** | `^0.292.0` | Additional icon set |
+| **@react-pdf/renderer** | `^4.3.2` | PDF generation in-browser |
+| **react-to-pdf** | `^3.2.1` | HTML-to-PDF export |
+| **xlsx** | `^0.18.5` | Excel file generation |
+| **react-markdown** | `^10.1.0` | Render markdown (chatbot responses) |
+| **remark-gfm** | `^4.0.1` | GitHub Flavored Markdown |
 
-### **Development Tools**
-- **Nodemon 3.0.2** - Development server with auto-restart
-- **Concurrently 8.2.2** - Run multiple commands simultaneously
-- **PostCSS & Autoprefixer** - CSS processing and optimization
+### Backend (`server/`)
 
-## 🚀 Quick Start
+| Library | Version | Purpose |
+|---------|---------|---------|
+| **Express** | `^4.18.2` | REST API framework |
+| **Mongoose** | `^8.0.3` | MongoDB ODM |
+| **jsonwebtoken** | `^9.0.2` | JWT auth tokens |
+| **bcryptjs** | `^2.4.3` | Password hashing |
+| **Nodemailer** | `^8.0.1` | Email OTP & notifications |
+| **Multer** | `^2.1.1` | File / resume upload handling |
+| **Cloudinary** | `^2.9.0` | Cloud image & file storage |
+| **groq-sdk** | `^0.30.0` | Groq AI (Llama 3) LLM API |
+| **Axios** | `^1.11.0` | Server-side HTTP proxy (LeetCode) |
+| **express-validator** | `^7.0.1` | Input validation middleware |
+| **cors** | `^2.8.5` | Cross-origin resource sharing |
+| **cookie-parser** | `^1.4.6` | HTTP cookie middleware |
+| **dotenv** | `^16.3.1` | Environment variable management |
+| **nodemon** | `^3.0.2` | Dev auto-restart |
 
-### **Prerequisites**
-- Node.js (v18 or higher)
-- MongoDB (v4.4 or higher)
-- npm or yarn package manager
+---
 
-### **Installation**
+## 🌐 Third-Party APIs & External Services
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd Elevate_odoo_mohali
-   ```
+| Service | Used for |
+|---------|----------|
+| **MongoDB Atlas** | Hosted cloud database |
+| **Groq API** (`api.groq.com`) | LLM-powered AI career chatbot (Llama 3 70B) |
+| **Judge0 CE** (via RapidAPI) | Remote code execution for the Practice Hub |
+| **LeetCode GraphQL API** (`leetcode.com/graphql`) | Fetching real coding problems & test cases (proxied server-side) |
+| **Cloudinary** | Resume/document/image cloud storage & CDN |
+| **Gmail SMTP** (via Nodemailer) | OTP emails, password reset, notifications |
+| **Google OAuth 2.0** | Social login for students and TPOs |
 
-2. **Install all dependencies**
-   ```bash
-   npm run install:all
-   ```
-
-3. **Environment Setup**
-   ```bash
-   # Copy environment template
-   cd server
-   cp env.example .env
-   ```
-   
-   Update `.env` file with your configuration:
-   ```env
-   MONGODB_URI=mongodb://localhost:27017/elevate-placement-tracker
-   JWT_SECRET=your-super-secret-jwt-key
-   EMAIL_USER=your-email@gmail.com
-   EMAIL_PASS=your-email-app-password
-   PORT=5000
-   NODE_ENV=development
-   ```
-
-4. **Start the application**
-   ```bash
-   # Development mode (both frontend and backend)
-   npm run dev
-   
-   # Production mode
-   npm start
-   ```
-
-5. **Access the application**
-   - Frontend: http://localhost:3000
-   - Backend API: http://localhost:5000
+---
 
 ## 📁 Project Structure
 
 ```
 Elevate_odoo_mohali/
-├── client/                          # React Frontend
-│   ├── public/                      # Static files
+├── client/                          # React + Vite Frontend
 │   ├── src/
-│   │   ├── components/              # Reusable components
-│   │   │   ├── Navbar.js           # Navigation component
-│   │   │   ├── PrivateRoute.js     # Route protection
-│   │   │   └── RoleBasedRoute.js   # Role-based routing
-│   │   ├── contexts/               # React contexts
-│   │   │   ├── AuthContext.js      # Authentication context
-│   │   │   └── NotificationContext.js # Notifications
-│   │   ├── pages/                  # Page components
-│   │   │   ├── student/           # Student dashboard pages
-│   │   │   ├── company/           # Company dashboard pages
-│   │   │   ├── tpo/               # TPO dashboard pages
-│   │   │   └── superadmin/        # Super admin pages
-│   │   ├── services/              # API services
-│   │   │   ├── studentApi.js      # Student API calls
-│   │   │   ├── companyApi.js      # Company API calls
-│   │   │   ├── tpoApi.js          # TPO API calls
-│   │   │   └── superadminApi.js   # Super admin API calls
-│   │   └── utils/                 # Utility functions
+│   │   ├── components/              # Shared UI components (Navbar, PrivateRoute, etc.)
+│   │   ├── contexts/                # AuthContext, NotificationContext
+│   │   ├── pages/
+│   │   │   ├── student/             # Student dashboard, profile, practice hub
+│   │   │   ├── company/             # Company dashboard & job management
+│   │   │   ├── tpo/                 # TPO dashboard, drives, analytics
+│   │   │   └── superadmin/          # Super-admin panel
+│   │   ├── services/
+│   │   │   ├── judge0Api.jsx        # Judge0 code execution client
+│   │   │   ├── studentApi.js        # Student REST API helpers
+│   │   │   ├── companyApi.js        # Company REST API helpers
+│   │   │   └── tpoApi.js            # TPO REST API helpers
+│   │   └── utils/                   # Utility helpers
+│   ├── package.json
+│   └── vite.config.js
+│
+├── server/                          # Node.js + Express Backend
+│   ├── models/                      # Mongoose schemas (User, JobPosting, Application …)
+│   ├── routes/
+│   │   ├── auth.js                  # Register, login, OTP, OAuth
+│   │   ├── student.js               # Student profile & applications
+│   │   ├── company.js               # Company jobs & interviews
+│   │   ├── tpo.js                   # TPO drives, students, analytics
+│   │   ├── practice.js              # LeetCode GraphQL proxy
+│   │   ├── chat.js                  # Groq AI chatbot endpoint
+│   │   ├── notifications.js         # Notification system
+│   │   ├── user.js                  # Shared user routes (Cloudinary upload)
+│   │   ├── admin.js                 # Admin management
+│   │   └── superadmin.js            # Super-admin routes
+│   ├── middleware/
+│   │   ├── auth.js                  # JWT verification middleware
+│   │   └── tpoInstituteAccess.js    # TPO institute-scoped access control
+│   ├── utils/
+│   │   └── emailService.js          # Nodemailer helper
+│   ├── server.js                    # Entry point
 │   └── package.json
-├── server/                         # Node.js Backend
-│   ├── models/                    # Database models
-│   │   ├── User.js               # User model with role-based data
-│   │   ├── Student.js            # Student-specific model
-│   │   ├── Company.js            # Company model
-│   │   ├── TPO.js                # TPO model
-│   │   ├── JobPosting.js         # Job posting model
-│   │   ├── Application.js        # Application model
-│   │   └── Interview.js          # Interview model
-│   ├── routes/                   # API routes
-│   │   ├── auth.js               # Authentication routes
-│   │   ├── student.js            # Student API routes
-│   │   ├── company.js            # Company API routes
-│   │   ├── tpo.js                # TPO API routes
-│   │   └── superadmin.js         # Super admin routes
-│   ├── middleware/               # Express middleware
-│   │   ├── auth.js               # Authentication middleware
-│   │   └── tpoInstituteAccess.js # TPO access control
-│   ├── utils/                    # Utility functions
-│   │   └── emailService.js       # Email service
-│   └── package.json
-├── seeds/                        # Database seeding scripts
-├── docs/                         # Documentation files
+│
 └── README.md
 ```
 
-## 🔐 API Endpoints
+---
 
-### **Authentication**
-- `POST /api/auth/register` - User registration
-- `POST /api/auth/verify-otp` - OTP verification
-- `POST /api/auth/login` - User login
-- `POST /api/auth/logout` - User logout
-- `POST /api/auth/forgot-password` - Password reset request
-- `POST /api/auth/reset-password` - Password reset
-- `GET /api/auth/me` - Get current user
+## 🚀 Quick Start
 
-### **Student Endpoints**
-- `GET /api/student/profile` - Get student profile
-- `PUT /api/student/profile` - Update student profile
-- `GET /api/student/internship-offers` - Get internship offers
-- `POST /api/student/internship-offers/:id/apply` - Apply for internship
-- `GET /api/student/applications` - Get student applications
+### Prerequisites
+- **Node.js** v18 or higher
+- **npm** v9 or higher
+- A **MongoDB Atlas** cluster (or local MongoDB)
+- RapidAPI key for **Judge0 CE**
+- **Groq** API key
+- **Cloudinary** account
+- **Gmail** app password for email
 
-### **Company Endpoints**
-- `GET /api/company/dashboard/stats` - Get dashboard statistics
-- `GET /api/company/jobs` - Get company jobs
-- `POST /api/company/jobs` - Create new job
-- `PUT /api/company/jobs/:id` - Update job
-- `DELETE /api/company/jobs/:id` - Delete job
-- `GET /api/company/applications` - Get job applications
-- `GET /api/company/interviews` - Get interviews
+### 1 — Clone & Install
 
-### **TPO Endpoints**
-- `GET /api/tpo/dashboard/stats` - Get TPO dashboard stats
-- `GET /api/tpo/students` - Get institute students
-- `GET /api/tpo/internship-offers` - Get internship offers
-- `POST /api/tpo/internship-offers` - Create internship offer
-- `PUT /api/tpo/internship-offers/:id` - Update internship offer
-- `DELETE /api/tpo/internship-offers/:id` - Delete internship offer
+```bash
+git clone <repository-url>
+cd Elevate_odoo_mohali
 
-## 🎯 User Roles & Features
+# Install root + client + server dependencies
+npm run install:all
+```
 
-### **Student Features**
-- **Profile Management**: Complete academic and personal information
-- **Skills Tracking**: Technical and soft skills with proficiency levels
-- **Project Portfolio**: Showcase projects with technologies and links
-- **Internship Applications**: Browse and apply for opportunities
-- **Placement Tracking**: Monitor application and interview status
-- **Resume Builder**: Professional resume creation
-- **Dashboard Analytics**: Profile completion and application statistics
+### 2 — Environment Setup
 
-### **Company Features**
-- **Job Management**: Create, edit, and manage job postings
-- **Candidate Search**: Filter and search student profiles
-- **Interview Scheduling**: Schedule and manage interviews
-- **Application Tracking**: Review and update application statuses
-- **Analytics Dashboard**: Real-time statistics and performance metrics
-- **Company Profile**: Manage company information and branding
+Create `server/.env`:
 
-### **TPO Features**
-- **Institute Management**: Oversee all students and companies
-- **Student Verification**: Approve and verify student profiles
-- **Internship Management**: Create and manage internship opportunities
-- **Placement Analytics**: Comprehensive reporting and statistics
-- **Company Relations**: Manage partnerships and relationships
-- **Reporting Tools**: Generate detailed placement reports
+```env
+PORT=5000
+NODE_ENV=development
+
+# MongoDB
+MONGODB_URI=mongodb+srv://<user>:<password>@cluster.mongodb.net/elevate_odoo_mohali
+
+# Auth
+JWT_SECRET=your-very-secret-key
+
+# Google OAuth
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+
+# Email (Gmail SMTP)
+EMAIL_USER=your-email@gmail.com
+EMAIL_PASS=your-gmail-app-password
+EMAIL_FROM=your-email@gmail.com
+
+# Frontend
+CLIENT_URL=http://localhost:3000
+
+# Groq AI
+GROQ_API_KEY=your-groq-api-key
+
+# Cloudinary
+CLOUDINARY_CLOUD_NAME=your-cloud-name
+CLOUDINARY_API_KEY=your-api-key
+CLOUDINARY_API_SECRET=your-api-secret
+```
+
+Create `client/.env`:
+
+```env
+VITE_JUDGE0_API_KEY=your-rapidapi-key
+VITE_X_RAPID_API_HOST=judge0-ce.p.rapidapi.com
+```
+
+### 3 — Run in Development
+
+```bash
+# Start both frontend and backend concurrently
+npm run dev
+```
+
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:5000
+
+---
+
+## 🔐 API Endpoints (Summary)
+
+### Authentication
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/auth/register` | Register a new user |
+| `POST` | `/api/auth/verify-otp` | Verify email OTP |
+| `POST` | `/api/auth/login` | Login |
+| `POST` | `/api/auth/logout` | Logout |
+| `POST` | `/api/auth/forgot-password` | Initiate password reset |
+| `POST` | `/api/auth/reset-password` | Reset password |
+| `GET`  | `/api/auth/me` | Get current user |
+
+### Student
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET/PUT` | `/api/student/profile` | Get / update profile |
+| `GET` | `/api/student/jobs` | Browse job listings |
+| `POST` | `/api/student/jobs/:id/apply` | Apply for a job |
+| `GET` | `/api/student/applications` | Track own applications |
+| `GET` | `/api/student/internship-offers` | Browse internship offers |
+
+### Company
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET/POST` | `/api/company/jobs` | List / create jobs |
+| `PUT/DELETE` | `/api/company/jobs/:id` | Update / delete a job |
+| `GET` | `/api/company/applications` | View job applications |
+| `GET` | `/api/company/interviews` | Manage interviews |
+
+### TPO
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/tpo/students` | List institute students |
+| `GET/POST/PUT/DELETE` | `/api/tpo/internship-offers` | Manage internship offers |
+| `GET` | `/api/tpo/dashboard/stats` | Analytics data |
+
+### Practice & AI
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/practice/leetcode` | LeetCode GraphQL proxy |
+| `POST` | `/api/chat` | Groq AI career chatbot |
+
+---
 
 ## 🔒 Security Features
 
-- **JWT Authentication**: Secure token-based authentication
-- **Password Hashing**: Bcrypt encryption for all passwords
-- **Email Verification**: OTP-based account verification
-- **Input Validation**: Server-side validation for all inputs
-- **CORS Protection**: Cross-origin resource sharing security
-- **Role-based Access Control**: Granular permissions per user type
-- **Data Sanitization**: Protection against XSS and injection attacks
+- **JWT** tokens stored in HTTP-only cookies
+- **Bcrypt** password hashing (10 rounds)
+- **Email OTP** verification before account activation
+- **Google OAuth 2.0** for social logins
+- **Institute-scoped access control** for TPOs (middleware enforces college-level data isolation)
+- **express-validator** on all mutation endpoints
+- **CORS** restricted to the configured client URL
 
-## 📊 Database Schema
+---
 
-### **User Model**
-```javascript
-{
-  email: String,
-  password: String (hashed),
-  role: String (student/company/tpo/superadmin),
-  isVerified: Boolean,
-  student: Object,    // Student-specific data
-  company: Object,    // Company-specific data
-  tpo: Object,        // TPO-specific data
-  createdAt: Date,
-  updatedAt: Date
-}
-```
+## 📦 Deployment
 
-### **Key Collections**
-- **Users**: All user accounts with role-based data
-- **JobPostings**: Job and internship opportunities
-- **Applications**: Job and internship applications
-- **Interviews**: Interview scheduling and management
-- **Notifications**: System notifications and alerts
-
-## 🚀 Deployment
-
-### **Frontend Deployment (React)**
+### Frontend (Vite)
 ```bash
 cd client
 npm run build
-# Deploy the build folder to your hosting service
+# Serve the `dist/` folder via Nginx / Vercel / Netlify
 ```
 
-### **Backend Deployment (Node.js)**
+### Backend (Node.js)
 ```bash
 cd server
 npm start
-# Deploy to your server or cloud platform
+# Deploy to Render / Railway / EC2 / Azure
 ```
 
-### **Environment Variables for Production**
-```env
-MONGODB_URI=your-production-mongodb-uri
-JWT_SECRET=your-production-jwt-secret
-EMAIL_USER=your-production-email
-EMAIL_PASS=your-production-email-password
-PORT=5000
-NODE_ENV=production
-```
+### Production Environment Variables
+Set all variables from the `.env` templates above on your hosting provider. Ensure `NODE_ENV=production` and `CLIENT_URL` matches your deployed frontend domain.
 
-## 🧪 Testing
-
-### **Run Tests**
-```bash
-# Test API endpoints
-cd server
-npm test
-
-# Test frontend components
-cd client
-npm test
-```
-
-### **Sample Test Data**
-The project includes comprehensive test data:
-- **20 Student Profiles**: Complete with skills, projects, and placement data
-- **5 Company Accounts**: With job postings and interview data
-- **10 TPO Accounts**: With institute management data
-- **50+ Job Postings**: Various positions across different industries
-- **100+ Applications**: Sample applications with different statuses
+---
 
 ## 🤝 Contributing
 
-1. **Fork the repository**
-2. **Create a feature branch** (`git checkout -b feature/amazing-feature`)
-3. **Commit your changes** (`git commit -m 'Add some amazing feature'`)
-4. **Push to the branch** (`git push origin feature/amazing-feature`)
-5. **Open a Pull Request**
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/my-feature`
+3. Commit: `git commit -m 'feat: add my feature'`
+4. Push: `git push origin feature/my-feature`
+5. Open a Pull Request
 
-### **Development Guidelines**
-- Follow the existing code style and conventions
-- Add proper error handling and validation
-- Include comprehensive documentation
-- Write tests for new features
-- Ensure responsive design for all components
+---
 
 ## 📝 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🆘 Support & Troubleshooting
-
-### **Common Issues**
-1. **Database Connection**: Ensure MongoDB is running and accessible
-2. **Email Service**: Verify email credentials in environment variables
-3. **Port Conflicts**: Check if ports 3000 and 5000 are available
-4. **Dependencies**: Run `npm run install:all` to install all dependencies
-
-### **Getting Help**
-- 📧 **Email**: [your-email@domain.com]
-- 💬 **Issues**: Create an issue on GitHub
-- 📖 **Documentation**: Check the docs folder for detailed guides
-
-## 🔮 Future Enhancements
-
-### **Planned Features**
-- [ ] **Real-time Notifications**: WebSocket integration for live updates
-- [ ] **Video Interview Scheduling**: Integrated video conferencing
-- [ ] **AI-powered Matching**: Smart candidate-company matching
-- [ ] **Mobile Application**: Native iOS and Android apps
-- [ ] **Advanced Analytics**: Machine learning insights and predictions
-- [ ] **Document Management**: Resume and certificate upload system
-- [ ] **Email Automation**: Automated email campaigns and notifications
-- [ ] **Third-party Integrations**: LinkedIn, job boards, and HR systems
-
-### **Technical Improvements**
-- [ ] **Performance Optimization**: Caching and database optimization
-- [ ] **Microservices Architecture**: Scalable service-based architecture
-- [ ] **API Documentation**: Swagger/OpenAPI documentation
-- [ ] **Containerization**: Docker and Kubernetes deployment
-- [ ] **CI/CD Pipeline**: Automated testing and deployment
-- [ ] **Monitoring**: Application performance monitoring
-
-## 📈 Project Statistics
-
-- **Total Users**: 20+ student profiles, 5+ company accounts, 10+ TPO accounts
-- **API Endpoints**: 50+ RESTful endpoints
-- **Database Collections**: 8+ MongoDB collections
-- **Frontend Components**: 30+ React components
-- **Code Coverage**: Comprehensive error handling and validation
-- **Performance**: Optimized for production deployment
+MIT License — see the [LICENSE](LICENSE) file for details.
 
 ---
 
 <div align="center">
-  <h3>🚀 Elevate - Empowering Careers, One Placement at a Time!</h3>
-  <p>Built with ❤️ using modern web technologies</p>
-  
-  <a href="YOUR_VIDEO_LINK_HERE" target="_blank">
+  <h3>🚀 Elevate — Empowering Careers, One Placement at a Time</h3>
+  <p>Built with ❤️ by Team Tripod</p>
+
+  <a href="https://drive.google.com/drive/folders/1JtYBU8BUwuodFChIFrsziQ1qcTMgCsY_?usp=sharing" target="_blank">
     <img src="https://img.shields.io/badge/Watch-Demo%20Video-red?style=for-the-badge&logo=youtube" alt="Watch Demo Video" />
-  </a>
-  
-  <a href="https://github.com/yourusername/Elevate_odoo_mohali" target="_blank">
-    <img src="https://img.shields.io/badge/GitHub-Repository-black?style=for-the-badge&logo=github" alt="GitHub Repository" />
   </a>
 </div>
