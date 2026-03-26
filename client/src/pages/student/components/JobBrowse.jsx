@@ -222,9 +222,14 @@ const JobDetailModal = ({ job, onClose, onApply }) => {
   const deadline = fmtDeadline(job.deadline);
   const drive    = DRIVE[job.driveType] || DRIVE.off_campus;
 
+  // True when student has a usable resume
+  const hasResume = !!(user?.resume || resumeFile);
+  const noResumeSelected = !useProfileResume && !resumeFile;
+
   const handleApply = async () => {
-    if (!useProfileResume && !resumeFile && !user?.resume) {
-      toast.error('Please upload a resume or complete your profile resume.');
+    // Hard block — resume is mandatory
+    if (!hasResume || noResumeSelected) {
+      toast.error('A resume is required to apply. Please upload one or save a resume to your profile first.');
       setTab('apply');
       return;
     }
@@ -242,8 +247,7 @@ const JobDetailModal = ({ job, onClose, onApply }) => {
       console.error('Application failed:', error);
       const message = error.response?.data?.message || 'Failed to submit application';
       toast.error(message);
-      
-      // If there are specific eligibility issues, they might be in error.response.data.issues
+
       if (error.response?.data?.issues) {
         setTab('eligibility');
       }
@@ -483,6 +487,17 @@ const JobDetailModal = ({ job, onClose, onApply }) => {
                 </div>
               )}
 
+              {/* ── Resume required warning ── */}
+              {!user?.resume && !resumeFile && (
+                <div className="bg-red-50 border border-red-200 rounded p-4 flex gap-3">
+                  <AlertCircle size={18} className="text-red-500 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-bold text-red-800 text-sm">Resume required</p>
+                    <p className="text-xs text-red-700 mt-0.5">You must attach a resume before submitting. Upload one below or save a resume to your profile.</p>
+                  </div>
+                </div>
+              )}
+
               <Section title="Cover Letter" icon={Send}>
                 <textarea
                   value={coverLetter}
@@ -551,9 +566,9 @@ const JobDetailModal = ({ job, onClose, onApply }) => {
               ) : (
                 <button
                   onClick={handleApply}
-                  disabled={applying}
-                  className="w-full flex items-center justify-center gap-2 bg-slate-900 border border-slate-900 hover:bg-slate-800 disabled:opacity-60 text-white font-bold py-3.5 rounded transition-colors shadow-sm text-sm"
-                >
+                  disabled={applying || (!hasResume || noResumeSelected)}
+                  title={(!hasResume || noResumeSelected) ? 'Upload a resume to enable this button' : ''}
+                  className="w-full flex items-center justify-center gap-2 bg-slate-900 border border-slate-900 hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded transition-colors shadow-sm text-sm">
                   {applying ? <RefreshCw size={15} className="animate-spin" /> : <Send size={15} />}
                   {applying ? 'Submitting...' : 'Submit Application'}
                 </button>

@@ -191,8 +191,17 @@ export const studentApi = {
     return response.data;
   },
 
-  applyForInternship: async (internshipId) => {
-    const response = await api.post(`/student/internship-offers/${internshipId}/apply`);
+  applyForInternship: async (internshipId, applicationData = {}) => {
+    const formData = new FormData();
+    if (applicationData.coverLetter) {
+      formData.append('coverLetter', applicationData.coverLetter);
+    }
+    if (applicationData.resume) {
+      formData.append('resume', applicationData.resume);
+    }
+    const response = await api.post(`/student/internship-offers/${internshipId}/apply`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     return response.data;
   },
 

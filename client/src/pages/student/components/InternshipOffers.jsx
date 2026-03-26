@@ -3,10 +3,12 @@ import {
   Search, Briefcase, MapPin, Clock, Building2, Calendar, 
   ChevronRight, ChevronLeft, Award, TrendingUp, Send, X,
   CheckCircle2, AlertCircle, Globe, Wifi, Monitor, RefreshCw,
-  Rocket, Zap, DollarSign, Timer, BookOpen, Filter, XCircle, Eye
+  Rocket, Zap, DollarSign, Timer, BookOpen, Filter, XCircle, Eye,
+  File, Layers
 } from 'lucide-react';
 import { studentApi } from '../../../services/studentApi';
 import { toast } from 'react-hot-toast';
+import { useAuth } from '../../../contexts/AuthContext';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 const fmtDeadline = (date) => {
@@ -153,6 +155,7 @@ const DetailChip = ({ label, value, color = "blue" }) => (
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 const InternshipOffers = () => {
+  const { user } = useAuth();
   const [internships, setInternships] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -163,11 +166,13 @@ const InternshipOffers = () => {
     duration: 'All',
     ppo: 'All',
     stipend: 'All',
-    duration: 'All'
   });
   const [pagination, setPagination] = useState({ current: 1, total: 1 });
   const [selectedJob, setSelectedJob] = useState(null);
   const [applying, setApplying] = useState(false);
+  const [resumeFile, setResumeFile] = useState(null);
+  const [useProfileResume, setUseProfileResume] = useState(false);
+  const [coverLetter, setCoverLetter] = useState('');
 
   const fetchInternships = useCallback(async (page = 1) => {
     setLoading(true);
@@ -195,20 +200,43 @@ const InternshipOffers = () => {
 
   useEffect(() => { fetchInternships(1); }, [fetchInternships]);
 
+  // Auto-select profile resume if the user already has one saved
+  useEffect(() => {
+    if (user?.resume) setUseProfileResume(true);
+  }, [user]);
+
   const handleApply = async (id) => {
+    // Resume is mandatory
+    const hasProfileResume = !!user?.resume;
+    const usingProfile = useProfileResume && hasProfileResume;
+    if (!usingProfile && !resumeFile) {
+      toast.error('A resume is required to apply. Upload one below or save a resume to your profile first.');
+      return;
+    }
+
     setApplying(true);
     try {
-      const res = await studentApi.applyForInternship(id);
+      const res = await studentApi.applyForInternship(id, {
+        coverLetter,
+        resume: usingProfile ? null : resumeFile,
+      });
       if (res.success) {
         toast.success('Successfully applied!');
         setSelectedJob(prev => ({ ...prev, hasApplied: true }));
         fetchInternships(pagination.current);
       }
     } catch (err) {
-      toast.error(err.message || 'Application failed');
+      toast.error(err?.response?.data?.message || err.message || 'Application failed');
     } finally {
       setApplying(false);
     }
+  };
+
+  const handleModalClose = () => {
+    setSelectedJob(null);
+    setResumeFile(null);
+    setUseProfileResume(!!user?.resume);
+    setCoverLetter('');
   };
 
   return (
@@ -346,12 +374,12 @@ const InternshipOffers = () => {
       {/* Modal */}
       {selectedJob && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setSelectedJob(null)} />
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={handleModalClose} />
           <div className="relative bg-white w-full max-w-3xl max-h-[90vh] rounded-2xl shadow-2xl overflow-hidden border border-slate-200 flex flex-col">
             
             {/* Modal Header */}
             <div className="bg-slate-900 p-8 text-white relative">
-              <button onClick={() => setSelectedJob(null)} className="absolute top-6 right-6 p-2 rounded-full hover:bg-white/10 text-white/60 hover:text-white transition-colors">
+              <button onClick={handleModalClose} className="absolute top-6 right-6 p-2 rounded-full hover:bg-white/10 text-white/60 hover:text-white transition-colors">
                 <X size={20} />
               </button>
               
@@ -413,16 +441,82 @@ const InternshipOffers = () => {
             </div>
 
             {/* Sticky Footer */}
-            <div className="p-6 bg-slate-50 border-t border-slate-100 flex gap-4">
+            <div className="p-6 bg-slate-50 border-t border-slate-100 space-y-4">
+              {/* ── Resume section ── */}
+              {!selectedJob.hasApplied && (
+                <div className="space-y-3">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                    <File size={12} /> Resume <span className="text-red-500">*</span>
+                  </p>
+
+                  {/* No resume warning */}
+                  {!user?.resume && !resumeFile && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex gap-2">
+                      <AlertCircle size={15} className="text-red-500 flex-shrink-0 mt-0.5" />
+                      <p className="text-xs text-red-700 font-medium">No resume found. Upload one below or save a resume to your profile to apply.</p>
+                    </div>
+                  )}
+
+                  {/* Use profile resume toggle */}
+                  {user?.resume && (
+                    <label className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 bg-white cursor-pointer hover:border-slate-400 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={useProfileResume}
+                        onChange={e => {
+                          setUseProfileResume(e.target.checked);
+                          if (e.target.checked) setResumeFile(null);
+                        }}
+                        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <div className="flex-1">
+                        <p className="text-xs font-bold text-slate-900">Use resume from profile</p>
+                        <p className="text-[10px] text-slate-500 truncate max-w-[220px]">{user.resume.split('/').pop()}</p>
+                      </div>
+                      <CheckCircle2 size={14} className="text-emerald-500" />
+                    </label>
+                  )}
+
+                  {/* Upload new resume */}
+                  <div className={`p-3 rounded-lg border-2 border-dashed transition-colors ${
+                    !useProfileResume ? 'border-blue-400 bg-blue-50/30' : 'border-slate-200 bg-slate-50 opacity-60'
+                  }`}>
+                    <input
+                      type="file"
+                      id="intern-resume-upload"
+                      className="hidden"
+                      accept=".pdf,.doc,.docx"
+                      disabled={useProfileResume}
+                      onChange={e => {
+                        const file = e.target.files[0];
+                        if (file) { setResumeFile(file); setUseProfileResume(false); }
+                      }}
+                    />
+                    <label
+                      htmlFor="intern-resume-upload"
+                      className={`flex flex-col items-center justify-center gap-1 cursor-pointer ${useProfileResume ? 'cursor-not-allowed' : ''}`}
+                    >
+                      <Layers size={20} className={resumeFile ? 'text-blue-500' : 'text-slate-400'} />
+                      <p className="text-xs font-bold text-slate-700">
+                        {resumeFile ? resumeFile.name : 'Upload New Resume'}
+                      </p>
+                      <p className="text-[9px] text-slate-500 uppercase tracking-widest">PDF, DOC up to 10MB</p>
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {/* Apply / Applied */}
               {selectedJob.hasApplied ? (
                 <div className="w-full flex items-center justify-center gap-2 bg-emerald-50 text-emerald-600 font-black py-4 rounded-xl text-xs uppercase tracking-[0.2em] border border-emerald-100">
                   <CheckCircle2 size={16} /> Application Submitted
                 </div>
               ) : (
-                <button 
+                <button
                   onClick={() => handleApply(selectedJob._id)}
-                  disabled={applying}
-                  className="w-full bg-slate-900 hover:bg-slate-800 text-white font-black py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-3 text-xs uppercase tracking-[0.2em] disabled:opacity-50"
+                  disabled={applying || (!user?.resume && !resumeFile) || (!useProfileResume && !resumeFile)}
+                  title={(!user?.resume && !resumeFile) ? 'Upload a resume to enable this button' : ''}
+                  className="w-full bg-slate-900 hover:bg-slate-800 text-white font-black py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-3 text-xs uppercase tracking-[0.2em] disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {applying ? <RefreshCw size={16} className="animate-spin" /> : <Rocket size={16} />}
                   {applying ? 'Processing...' : 'Apply for Internship'}

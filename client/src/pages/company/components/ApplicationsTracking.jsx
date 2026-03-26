@@ -24,112 +24,231 @@ import {
 import { getAllApplications, updateApplicationStatus } from '../../../services/companyApi';
 import toast from 'react-hot-toast';
 
-const ApplicantModal = ({ application, onClose }) => {
+const ApplicantModal = ({ application, onClose, onStatusUpdate }) => {
   if (!application) return null;
   const student = application.student || {};
   const job = application.jobPosting || {};
+  const [updating, setUpdating] = useState(null);
+  const [pdfError, setPdfError] = useState(false);
+
+  // Prefer resume submitted with the application, fall back to profile resume
+  const resumeUrl = application.resumeUrl || student.resume || null;
+
+  const handleAction = async (newStatus) => {
+    setUpdating(newStatus);
+    try {
+      await updateApplicationStatus(application._id, newStatus);
+      toast.success(`Applicant ${newStatus}`);
+      onStatusUpdate(application._id, newStatus);
+      onClose();
+    } catch {
+      toast.error('Failed to update status');
+    } finally {
+      setUpdating(null);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="bg-white rounded-[2.5rem] w-full max-w-3xl relative z-10 shadow-2xl p-8 max-h-[90vh] overflow-y-auto custom-scrollbar animate-slide-up">
-        <button onClick={onClose} className="absolute top-6 right-6 w-10 h-10 bg-slate-50 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-xl flex items-center justify-center transition-all">
-          <X size={20} />
-        </button>
+      <div className="bg-white rounded-[2rem] w-full max-w-4xl relative z-10 shadow-2xl max-h-[92vh] overflow-y-auto custom-scrollbar animate-slide-up flex flex-col">
 
-        <div className="flex items-center gap-5 mb-8">
-          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-3xl font-black shadow-lg shadow-blue-200">
-            {student.name ? student.name.substring(0, 2).toUpperCase() : 'ST'}
-          </div>
-          <div>
-            <h2 className="text-2xl font-black text-slate-900">{student.name || 'Unknown Student'}</h2>
-            <p className="text-sm font-bold text-blue-600 uppercase tracking-widest mt-1">
-              Applied for: <span className="text-slate-900">{job.title || 'Unknown Role'}</span>
-            </p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <div className="space-y-4 bg-slate-50 p-6 rounded-3xl border border-slate-100">
-            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><UserCheck size={14} /> Contact Details</h3>
-            <div className="space-y-3">
-              <div className="flex items-center gap-3 text-sm font-medium text-slate-700">
-                <Mail size={16} className="text-slate-400" /> {student.email || 'N/A'}
-              </div>
-              <div className="flex items-center gap-3 text-sm font-medium text-slate-700">
-                <Phone size={16} className="text-slate-400" /> {student.phoneNumber || student.phone || 'N/A'}
-              </div>
-              <div className="flex items-center gap-3 text-sm font-medium text-slate-700">
-                <MapPin size={16} className="text-slate-400" /> {student.location || 'N/A'}
-              </div>
+        {/* Header */}
+        <div className="sticky top-0 bg-white rounded-t-[2rem] px-8 pt-8 pb-5 border-b border-slate-100 z-10">
+          <button onClick={onClose} className="absolute top-6 right-6 w-10 h-10 bg-slate-50 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-xl flex items-center justify-center transition-all">
+            <X size={20} />
+          </button>
+          <div className="flex items-center gap-5">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-2xl font-black shadow-lg shadow-blue-200 flex-shrink-0">
+              {student.name ? student.name.substring(0, 2).toUpperCase() : 'ST'}
             </div>
-          </div>
-
-          <div className="space-y-4 bg-blue-50/50 p-6 rounded-3xl border border-blue-100/50">
-            <h3 className="text-xs font-black text-blue-400 uppercase tracking-widest flex items-center gap-2"><GraduationCap size={14} /> Academic Profile</h3>
-            <div className="grid grid-cols-2 gap-3 mt-2">
-              <div className="bg-white p-3 rounded-xl border border-blue-100">
-                <p className="text-[10px] font-bold text-slate-400 uppercase">Degree</p>
-                <p className="text-sm font-black text-slate-800">{student.degree || 'N/A'}</p>
-              </div>
-              <div className="bg-white p-3 rounded-xl border border-blue-100">
-                <p className="text-[10px] font-bold text-slate-400 uppercase">Branch</p>
-                <p className="text-sm font-black text-slate-800">{student.department || student.branch || 'N/A'}</p>
-              </div>
-              <div className="bg-white p-3 rounded-xl border border-blue-100">
-                <p className="text-[10px] font-bold text-slate-400 uppercase">Passing Year</p>
-                <p className="text-sm font-black text-slate-800">{student.graduationYear || 'N/A'}</p>
-              </div>
-              <div className="bg-white p-3 rounded-xl border border-blue-100">
-                <p className="text-[10px] font-bold text-slate-400 uppercase">CGPA/Percentage</p>
-                <p className="text-sm font-black text-blue-600">{student.cgpa || student.percentage || 'N/A'}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-6">
-          <div className="bg-white border border-slate-100 p-6 rounded-3xl">
-            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-4"><FileText size={14} /> Student Description / Bio</h3>
-            <p className="text-sm text-slate-600 leading-relaxed font-medium">
-              {student.bio || student.about || 'No bio provided.'}
-            </p>
-          </div>
-
-          {application.coverLetter && (
-            <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl text-white shadow-xl shadow-slate-200">
-              <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2 mb-4"><FileText size={14} /> Cover Letter</h3>
-              <p className="text-sm text-slate-300 leading-relaxed">
-                {application.coverLetter}
+            <div className="flex-1 min-w-0">
+              <h2 className="text-xl font-black text-slate-900 leading-tight">{student.name || 'Unknown Student'}</h2>
+              <p className="text-sm font-bold text-blue-600 mt-0.5">
+                Applied for: <span className="text-slate-700">{job.title || 'Unknown Role'}</span>
               </p>
+              <p className="text-xs text-slate-400 font-medium mt-0.5">
+                {application.appliedDate || application.createdAt
+                  ? new Date(application.appliedDate || application.createdAt).toLocaleDateString('en-IN', { dateStyle: 'medium' })
+                  : ''}
+              </p>
+            </div>
+            {/* Current status badge */}
+            <span className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border flex-shrink-0 ${
+              application.status === 'shortlisted' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+              application.status === 'rejected' ? 'bg-rose-50 text-rose-600 border-rose-100' :
+              application.status === 'offered' ? 'bg-purple-50 text-purple-600 border-purple-100' :
+              'bg-amber-50 text-amber-600 border-amber-100'
+            }`}>
+              {(application.status || 'applied').replace('_', ' ')}
+            </span>
+          </div>
+        </div>
+
+        <div className="p-8 space-y-6">
+          {/* 2-column info grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-4 bg-slate-50 p-5 rounded-2xl border border-slate-100">
+              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><UserCheck size={13} /> Contact</h3>
+              <div className="space-y-2.5">
+                <div className="flex items-center gap-3 text-sm font-medium text-slate-700"><Mail size={15} className="text-slate-400" />{student.email || 'N/A'}</div>
+                <div className="flex items-center gap-3 text-sm font-medium text-slate-700"><Phone size={15} className="text-slate-400" />{student.phoneNumber || student.phone || 'N/A'}</div>
+                <div className="flex items-center gap-3 text-sm font-medium text-slate-700"><MapPin size={15} className="text-slate-400" />{student.location || 'N/A'}</div>
+              </div>
+            </div>
+
+            <div className="space-y-4 bg-blue-50/40 p-5 rounded-2xl border border-blue-100/50">
+              <h3 className="text-xs font-black text-blue-400 uppercase tracking-widest flex items-center gap-2"><GraduationCap size={13} /> Academics</h3>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { label: 'Degree', val: student.degree },
+                  { label: 'Branch', val: student.department || student.branch },
+                  { label: 'Passing Year', val: student.graduationYear },
+                  { label: 'CGPA', val: student.cgpa || student.percentage },
+                ].map(({ label, val }) => (
+                  <div key={label} className="bg-white p-2.5 rounded-xl border border-blue-100">
+                    <p className="text-[9px] font-bold text-slate-400 uppercase">{label}</p>
+                    <p className="text-sm font-black text-slate-800">{val || 'N/A'}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Bio */}
+          {(student.bio || student.about) && (
+            <div className="bg-white border border-slate-100 p-5 rounded-2xl">
+              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-3"><FileText size={13} /> Bio</h3>
+              <p className="text-sm text-slate-600 leading-relaxed font-medium">{student.bio || student.about}</p>
             </div>
           )}
 
-          <div className="flex gap-4 pt-4 border-t border-slate-50">
-            {student.resume && (
-              <a href={student.resume} target="_blank" rel="noreferrer" className="px-6 py-3 bg-blue-600 text-white font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 text-center flex-1">
-                View Resume
-              </a>
-            )}
-            {student.portfolioLink && (
-              <a href={student.portfolioLink} target="_blank" rel="noreferrer" className="px-6 py-3 bg-slate-100 text-slate-700 font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-slate-200 transition-all text-center flex-1">
-                View Portfolio
-              </a>
-            )}
-            {student.linkedinProfile && (
-              <a href={student.linkedinProfile} target="_blank" rel="noreferrer" className="px-6 py-3 bg-[#0a66c2] text-white font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-[#004182] transition-all shadow-lg shadow-blue-200/50 text-center flex-1">
-                LinkedIn
-              </a>
-            )}
-            {(!student.resume && !student.portfolioLink && !student.linkedinProfile) && (
-              <div className="text-sm font-bold text-slate-400 w-full text-center p-4 bg-slate-50 rounded-xl">No external links or resume provided.</div>
+          {/* Skills */}
+          {student.skills?.length > 0 && (
+            <div className="bg-white border border-slate-100 p-5 rounded-2xl">
+              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Skills</h3>
+              <div className="flex flex-wrap gap-2">
+                {student.skills.map((s, i) => (
+                  <span key={i} className="text-[10px] font-black px-3 py-1 rounded-lg bg-slate-100 text-slate-700 border border-slate-200 uppercase tracking-widest">
+                    {typeof s === 'string' ? s : s.name || s.skill}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Cover Letter */}
+          {application.coverLetter && (
+            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl text-white">
+              <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2 mb-3"><FileText size={13} /> Cover Letter</h3>
+              <p className="text-sm text-slate-300 leading-relaxed">{application.coverLetter}</p>
+            </div>
+          )}
+
+          {/* ── PDF Resume Viewer ── */}
+          <div className="rounded-2xl border border-slate-200 overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-3.5 bg-slate-50 border-b border-slate-200">
+              <div className="flex items-center gap-2">
+                <FileText size={14} className="text-slate-500" />
+                <span className="text-xs font-black text-slate-600 uppercase tracking-widest">Resume</span>
+              </div>
+              {resumeUrl && !pdfError && (
+                <a
+                  href={resumeUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-[10px] font-black text-blue-600 uppercase tracking-widest hover:underline flex items-center gap-1"
+                >
+                  Open in new tab ↗
+                </a>
+              )}
+            </div>
+
+            {resumeUrl && !pdfError ? (
+              <iframe
+                src={resumeUrl}
+                title="Applicant Resume"
+                className="w-full"
+                style={{ height: '520px', border: 'none' }}
+                onError={() => setPdfError(true)}
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 bg-slate-50 gap-3">
+                <FileText size={32} className="text-slate-300" />
+                <p className="text-sm font-bold text-slate-400">
+                  {resumeUrl ? 'Unable to display resume preview.' : 'No resume submitted with this application.'}
+                </p>
+                {resumeUrl && (
+                  <a href={resumeUrl} target="_blank" rel="noreferrer"
+                    className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-all">
+                    Download Resume
+                  </a>
+                )}
+                {student.portfolioLink && (
+                  <a href={student.portfolioLink} target="_blank" rel="noreferrer"
+                    className="px-4 py-2 bg-slate-100 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-200 transition-all">
+                    View Portfolio
+                  </a>
+                )}
+              </div>
             )}
           </div>
+
+          {/* External links row */}
+          <div className="flex flex-wrap gap-3">
+            {student.linkedinProfile && (
+              <a href={student.linkedinProfile} target="_blank" rel="noreferrer"
+                className="px-5 py-2.5 bg-[#0a66c2] text-white font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-[#004182] transition-all flex items-center gap-2 shadow-md shadow-blue-200/50">
+                LinkedIn ↗
+              </a>
+            )}
+            {student.githubProfile && (
+              <a href={student.githubProfile} target="_blank" rel="noreferrer"
+                className="px-5 py-2.5 bg-slate-900 text-white font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-slate-700 transition-all flex items-center gap-2">
+                GitHub ↗
+              </a>
+            )}
+          </div>
+        </div>
+
+        {/* ── Sticky Action Footer ── */}
+        <div className="sticky bottom-0 bg-white border-t border-slate-100 rounded-b-[2rem] p-6 flex gap-3">
+          <button
+            onClick={() => handleAction('shortlisted')}
+            disabled={!!updating || application.status === 'shortlisted'}
+            className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-sm rounded-xl transition-all shadow-lg shadow-emerald-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {updating === 'shortlisted'
+              ? <Loader2 size={16} className="animate-spin" />
+              : <CheckCircle2 size={16} />}
+            Shortlist
+          </button>
+          <button
+            onClick={() => handleAction('rejected')}
+            disabled={!!updating || application.status === 'rejected'}
+            className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-rose-500 hover:bg-rose-600 text-white font-black text-sm rounded-xl transition-all shadow-lg shadow-rose-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {updating === 'rejected'
+              ? <Loader2 size={16} className="animate-spin" />
+              : <XCircle size={16} />}
+            Reject
+          </button>
+          <button
+            onClick={() => handleAction('interview_scheduled')}
+            disabled={!!updating}
+            className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-black text-sm rounded-xl transition-all shadow-lg shadow-blue-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {updating === 'interview_scheduled'
+              ? <Loader2 size={16} className="animate-spin" />
+              : <Zap size={16} />}
+            Interview
+          </button>
         </div>
       </div>
     </div>
   );
 };
+
 
 const ApplicationsTracking = () => {
   const [filterStatus, setFilterStatus] = useState('all');
@@ -492,6 +611,11 @@ const ApplicationsTracking = () => {
         <ApplicantModal
           application={selectedApplication}
           onClose={() => setSelectedApplication(null)}
+          onStatusUpdate={(appId, newStatus) => {
+            setApplications(prev =>
+              prev.map(app => app._id === appId ? { ...app, status: newStatus } : app)
+            );
+          }}
         />
       )}
     </div>
