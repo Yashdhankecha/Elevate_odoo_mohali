@@ -2,10 +2,14 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
+const http = require('http');
+const { initSocket } = require('./utils/socket');
 require('dotenv').config();
 console.log('🔄 Reloading configuration...');
 
 const app = express();
+const server = http.createServer(app);
+initSocket(server);
 
 // Middleware
 app.use(express.json({ limit: '10mb' }));
@@ -61,6 +65,6 @@ app.use('*', (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`🚀 Elevate Placement Tracker Server running on port ${PORT}`);
 });

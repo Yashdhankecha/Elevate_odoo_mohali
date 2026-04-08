@@ -8,6 +8,7 @@ const JobPosting = require('../models/JobPosting');
 const PracticeSession = require('../models/PracticeSession');
 const SkillProgress = require('../models/SkillProgress');
 const Notification = require('../models/Notification');
+const cloudinary = require('cloudinary').v2;
 
 const router = express.Router();
 
@@ -545,68 +546,68 @@ router.post('/jobs/:jobId/apply', authenticateToken, ensureStudent, async (req, 
     let resumeUrl = null;
     const resumeFile = req.files ? req.files.find(f => f.fieldname === 'resume') : null;
 
-    if (resumeFile) {
-      // Upload new resume to Cloudinary
-      try {
-        const uploadResult = await new Promise((resolve, reject) => {
-          const uploadStream = cloudinary.uploader.upload_stream(
-            {
-              folder: 'student_resumes',
-              public_id: `resume_${studentId}_${Date.now()}`,
-              resource_type: 'auto'
-            },
-            (error, result) => {
-              if (error) reject(error);
-              else resolve(result);
-            }
-          );
-          uploadStream.end(resumeFile.buffer);
-        });
-        resumeUrl = uploadResult.secure_url;
-      } catch (uploadError) {
-        console.error('Resume upload error:', uploadError);
-        return res.status(500).json({ success: false, message: 'Error uploading resume' });
-      }
-    } else {
-      // Fallback to profile resume if none uploaded now
-      // We need to fetch the student profile if it wasn't fetched during eligibility check
-      let student = null;
-      if (job.driveType === 'on_campus') {
-        // Already fetched above
+      if (resumeFile) {
+        // Upload new resume to Cloudinary
+        try {
+          const uploadResult = await new Promise((resolve, reject) => {
+            const uploadStream = cloudinary.uploader.upload_stream(
+              {
+                folder: 'student_resumes',
+                public_id: `resume_${studentId}_${Date.now()}`,
+                resource_type: 'raw' // Changed from 'auto' to 'raw' to avoid parsing errors for PDFs/Docs
+              },
+              (error, result) => {
+                if (error) reject(error);
+                else resolve(result);
+              }
+            );
+            uploadStream.end(resumeFile.buffer);
+          });
+          resumeUrl = uploadResult.secure_url;
+        } catch (uploadError) {
+          console.error('Resume upload error:', uploadError);
+          return res.status(500).json({ success: false, message: uploadError.message || 'Error uploading resume' });
+        }
       } else {
-        student = await Student.findById(studentId).select('resume');
+        // Fallback to profile resume if none uploaded now
+        // We need to fetch the student profile if it wasn't fetched during eligibility check
+        let student = null;
+        if (job.driveType === 'on_campus') {
+          // Already fetched above
+        } else {
+          student = await Student.findById(studentId).select('resume');
+        }
+        
+        // If we already have student from eligibility check, use it
+        const studentDoc = student || (await Student.findById(studentId).select('resume'));
+        resumeUrl = studentDoc?.resume || '';
       }
-      
-      // If we already have student from eligibility check, use it
-      const studentDoc = student || (await Student.findById(studentId).select('resume'));
-      resumeUrl = studentDoc?.resume || '';
+  
+      const application = new JobApplication({
+        student: studentId,
+        jobPosting: jobId,
+        company: job.company,
+        coverLetter,
+        resume: resumeUrl,
+        employmentType: job.employmentType || job.type || 'full-time',
+        status: 'applied',
+        appliedDate: new Date()
+      });
+  
+      await application.save();
+      await JobPosting.findByIdAndUpdate(jobId, { $inc: { applicationCount: 1 } });
+  
+      res.json({
+        success: true,
+        message: 'Application submitted successfully',
+        data: { applicationId: application._id, status: 'applied' }
+      });
+  
+    } catch (error) {
+      console.error('Job application error:', error);
+      res.status(500).json({ success: false, message: error.message || 'Server error on application' });
     }
-
-    const application = new JobApplication({
-      student: studentId,
-      jobPosting: jobId,
-      company: job.company,
-      coverLetter,
-      resume: resumeUrl,
-      employmentType: job.employmentType || job.type || 'full-time',
-      status: 'applied',
-      appliedDate: new Date()
-    });
-
-    await application.save();
-    await JobPosting.findByIdAndUpdate(jobId, { $inc: { applicationCount: 1 } });
-
-    res.json({
-      success: true,
-      message: 'Application submitted successfully',
-      data: { applicationId: application._id, status: 'applied' }
-    });
-
-  } catch (error) {
-    console.error('Job application error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
-  }
-});
+  });
 
 // @route   GET /api/student/applications
 // @desc    Get student's job applications

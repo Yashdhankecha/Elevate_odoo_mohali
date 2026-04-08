@@ -98,13 +98,36 @@ export const NotificationProvider = ({ children }) => {
 
   // Fetch notifications on mount and when user changes
   useEffect(() => {
-    if (isAuthenticated) {
+    let socket;
+    
+    if (isAuthenticated && user) {
       fetchNotifications();
       
-      // Set up polling for new notifications (every 30 seconds)
-      const interval = setInterval(fetchNotifications, 30000);
+      // Initialize Socket.io connection dynamically
+      import('socket.io-client').then(({ io }) => {
+        const socketUrl = import.meta.env.VITE_API_URL 
+          ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, '') 
+          : 'http://localhost:5000';
+          
+        socket = io(socketUrl, {
+          withCredentials: true
+        });
+        
+        socket.on('connect', () => {
+          const userId = user._id || user.id;
+          if (userId) {
+            socket.emit('authenticate', userId);
+          }
+        });
+        
+        socket.on('new_notification', (notification) => {
+          addNotification(notification);
+        });
+      });
       
-      return () => clearInterval(interval);
+      return () => {
+        if (socket) socket.disconnect();
+      };
     } else {
       clearNotifications();
     }

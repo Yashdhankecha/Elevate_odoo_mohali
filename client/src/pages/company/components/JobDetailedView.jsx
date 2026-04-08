@@ -107,6 +107,37 @@ const AdvanceRoundModal = ({ isOpen, onClose, selectedCount, onConfirm, selectio
   );
 };
 
+const ResumePreviewModal = ({ url, onClose }) => {
+  if (!url) return null;
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl h-[90vh] flex flex-col overflow-hidden animate-slide-up">
+        <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+          <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+            <FileText size={18} className="text-blue-500" />
+            Resume Preview
+          </h2>
+          <div className="flex items-center gap-3">
+            <a href={url} target="_blank" rel="noopener noreferrer" className="text-xs font-bold bg-blue-100 text-blue-700 px-3 py-1.5 rounded hover:bg-blue-200 transition-colors flex items-center gap-1">
+              <ExternalLink size={14} /> Open in New Tab
+            </a>
+            <button onClick={onClose} className="text-2xl leading-none text-slate-400 hover:text-slate-800 transition-colors focus:outline-none">
+              &times;
+            </button>
+          </div>
+        </div>
+        <div className="flex-1 overflow-auto bg-slate-100 p-2" style={{ WebkitOverflowScrolling: 'touch' }}>
+          <iframe 
+            src={`https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`} 
+            className="w-full min-h-[85vh] md:min-h-[1000px] border-0 bg-white shadow-sm rounded rounded-b-xl"
+            title="Resume Preview"
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const JobDetailedView = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -120,6 +151,7 @@ const JobDetailedView = () => {
 
   const [selectedApplicants, setSelectedApplicants] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [previewResumeUrl, setPreviewResumeUrl] = useState(null);
 
   useEffect(() => { fetchData(); }, [id]);
 
@@ -421,9 +453,9 @@ const JobDetailedView = () => {
                             <Calendar size={12} /> {new Date(app.appliedDate).toLocaleDateString()}
                           </span>
                           {resumeUrl ? (
-                            <a href={resumeUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] font-bold text-blue-600 hover:underline flex items-center gap-1">
-                              <Download size={10} /> View Resume
-                            </a>
+                            <button onClick={() => setPreviewResumeUrl(resumeUrl)} className="text-[10px] font-bold text-blue-600 hover:underline flex items-center gap-1">
+                              <FileText size={10} /> View Resume
+                            </button>
                           ) : (
                             <span className="text-[10px] font-semibold text-slate-400 flex items-center gap-1">
                               <FileText size={10} /> No Resume
@@ -483,6 +515,7 @@ const JobDetailedView = () => {
         onConfirm={handleAdvanceConfirm}
         selectionRounds={job?.selectionRounds}
       />
+      <ResumePreviewModal url={previewResumeUrl} onClose={() => setPreviewResumeUrl(null)} />
     </div>
   );
 };

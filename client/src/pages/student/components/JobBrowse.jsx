@@ -47,9 +47,13 @@ const Avatar = ({ name, logo, size = 'md' }) => {
   const sz = size === 'lg' ? 'w-16 h-16 rounded text-xl' : 'w-11 h-11 rounded text-sm';
   
   if (logo && !error) {
+    const cleanLogo = typeof logo === 'string' && logo.startsWith('data:') 
+      ? logo.replace(/\s+/g, '') 
+      : logo;
+
     return (
       <img 
-        src={logo} 
+        src={cleanLogo} 
         alt={name || 'Company'} 
         className={`${sz} object-contain bg-white flex-shrink-0 shadow-sm border border-slate-100 p-1`} 
         onError={() => setError(true)}
@@ -474,104 +478,111 @@ const JobDetailModal = ({ job, onClose, onApply }) => {
           {/* === APPLY === */}
           {tab === 'apply' && (
             <>
-              {/* Eligibility warning if not eligible */}
-              {job.eligibility && !job.eligibility.eligible && (
-                <div className="bg-orange-50 border border-orange-200 rounded p-4 flex gap-3">
-                  <AlertCircle size={18} className="text-orange-500 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-bold text-orange-800 text-sm">You may not meet all criteria</p>
-                    <ul className="text-xs text-orange-700 mt-1 space-y-0.5 list-disc list-inside">
-                      {job.eligibility.issues.map((iss, i) => <li key={i}>{iss}</li>)}
-                    </ul>
-                  </div>
-                </div>
-              )}
-
-              {/* ── Resume required warning ── */}
-              {!user?.resume && !resumeFile && (
-                <div className="bg-red-50 border border-red-200 rounded p-4 flex gap-3">
-                  <AlertCircle size={18} className="text-red-500 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-bold text-red-800 text-sm">Resume required</p>
-                    <p className="text-xs text-red-700 mt-0.5">You must attach a resume before submitting. Upload one below or save a resume to your profile.</p>
-                  </div>
-                </div>
-              )}
-
-              <Section title="Cover Letter" icon={Send}>
-                <textarea
-                  value={coverLetter}
-                  onChange={e => setCoverLetter(e.target.value)}
-                  placeholder="Tell the company why you're a great fit for this role..."
-                  rows={4}
-                  className="w-full text-sm border border-slate-200 rounded p-3 focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 resize-none placeholder-slate-400"
-                />
-                <p className="text-[10px] text-slate-500 mt-1 font-bold">{coverLetter.length}/500 characters</p>
-              </Section>
-
-              <Section title="Resume" icon={File}>
-                <div className="space-y-3">
-                  {user?.resume && (
-                    <label className="flex items-center gap-3 p-3 rounded border border-slate-200 bg-slate-50 cursor-pointer hover:bg-white transition-colors">
-                      <input
-                        type="checkbox"
-                        checked={useProfileResume}
-                        onChange={e => {
-                          setUseProfileResume(e.target.checked);
-                          if (e.target.checked) setResumeFile(null);
-                        }}
-                        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <div className="flex-1">
-                        <p className="text-xs font-bold text-slate-900">Use resume from profile</p>
-                        <p className="text-[10px] text-slate-500 truncate max-w-[200px]">{user.resume.split('/').pop()}</p>
-                      </div>
-                      <CheckCircle2 size={14} className="text-emerald-500" />
-                    </label>
-                  )}
-
-                  <div className={`p-3 rounded border-2 border-dashed transition-colors ${!useProfileResume ? 'border-blue-400 bg-blue-50/30' : 'border-slate-200 bg-slate-50 opacity-60'}`}>
-                    <input
-                      type="file"
-                      id="resume-upload"
-                      className="hidden"
-                      accept=".pdf,.doc,.docx"
-                      disabled={useProfileResume}
-                      onChange={e => {
-                        const file = e.target.files[0];
-                        if (file) {
-                          setResumeFile(file);
-                          setUseProfileResume(false);
-                        }
-                      }}
-                    />
-                    <label
-                      htmlFor="resume-upload"
-                      className={`flex flex-col items-center justify-center gap-1 cursor-pointer ${useProfileResume ? 'cursor-not-allowed' : ''}`}
-                    >
-                      <Layers size={20} className={resumeFile ? 'text-blue-500' : 'text-slate-400'} />
-                      <p className="text-xs font-bold text-slate-700">
-                        {resumeFile ? resumeFile.name : 'Upload New Resume'}
-                      </p>
-                      <p className="text-[9px] text-slate-500 uppercase tracking-widest">PDF, DOC up to 10MB</p>
-                    </label>
-                  </div>
-                </div>
-              </Section>
-
-              {applied ? (
-                <div className="flex items-center justify-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold py-4 rounded text-sm">
-                  <CheckCircle2 size={16} /> Application submitted successfully!
+              {(applied || job.hasApplied) ? (
+                <div className="flex flex-col items-center justify-center p-8 text-center bg-emerald-50 border border-emerald-200 rounded mt-4">
+                  <CheckCircle2 size={40} className="text-emerald-500 mb-3" />
+                  <h3 className="text-lg font-bold text-emerald-800">Application Status</h3>
+                  <p className="text-sm text-emerald-700 mt-1">
+                    {job.hasApplied ? 'You have already submitted an application for this role. Check the Track Mission page for updates!' : 'Your application was successfully transmitted!'}
+                  </p>
                 </div>
               ) : (
-                <button
-                  onClick={handleApply}
-                  disabled={applying || (!hasResume || noResumeSelected)}
-                  title={(!hasResume || noResumeSelected) ? 'Upload a resume to enable this button' : ''}
-                  className="w-full flex items-center justify-center gap-2 bg-slate-900 border border-slate-900 hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded transition-colors shadow-sm text-sm">
-                  {applying ? <RefreshCw size={15} className="animate-spin" /> : <Send size={15} />}
-                  {applying ? 'Submitting...' : 'Submit Application'}
-                </button>
+                <>
+                  {/* Eligibility warning if not eligible */}
+                  {job.eligibility && !job.eligibility.eligible && (
+                    <div className="bg-orange-50 border border-orange-200 rounded p-4 flex gap-3">
+                      <AlertCircle size={18} className="text-orange-500 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-bold text-orange-800 text-sm">You may not meet all criteria</p>
+                        <ul className="text-xs text-orange-700 mt-1 space-y-0.5 list-disc list-inside">
+                          {job.eligibility.issues.map((iss, i) => <li key={i}>{iss}</li>)}
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ── Resume required warning ── */}
+                  {!user?.resume && !resumeFile && (
+                    <div className="bg-red-50 border border-red-200 rounded p-4 flex gap-3">
+                      <AlertCircle size={18} className="text-red-500 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-bold text-red-800 text-sm">Resume required</p>
+                        <p className="text-xs text-red-700 mt-0.5">You must attach a resume before submitting. Upload one below or save a resume to your profile.</p>
+                      </div>
+                    </div>
+                  )}
+
+                  <Section title="Cover Letter" icon={Send}>
+                    <textarea
+                      value={coverLetter}
+                      onChange={e => setCoverLetter(e.target.value)}
+                      placeholder="Tell the company why you're a great fit for this role..."
+                      rows={4}
+                      className="w-full text-sm border border-slate-200 rounded p-3 focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 resize-none placeholder-slate-400"
+                    />
+                    <p className="text-[10px] text-slate-500 mt-1 font-bold">{coverLetter.length}/500 characters</p>
+                  </Section>
+
+                  <Section title="Resume" icon={File}>
+                    <div className="space-y-3">
+                      {user?.resume && (
+                        <label className="flex items-center gap-3 p-3 rounded border border-slate-200 bg-slate-50 cursor-pointer hover:bg-white transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={useProfileResume}
+                            onChange={e => {
+                              setUseProfileResume(e.target.checked);
+                              if (e.target.checked) setResumeFile(null);
+                            }}
+                            className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                          />
+                          <div className="flex-1">
+                            <p className="text-xs font-bold text-slate-900">Use resume from profile</p>
+                            <p className="text-[10px] text-slate-500 truncate max-w-[200px]">{user.resume.split('/').pop()}</p>
+                          </div>
+                          <CheckCircle2 size={14} className="text-emerald-500" />
+                        </label>
+                      )}
+
+                      <div className={`p-3 rounded border-2 border-dashed transition-colors ${!useProfileResume ? 'border-blue-400 bg-blue-50/30' : 'border-slate-200 bg-slate-50 opacity-60'}`}>
+                        <input
+                          type="file"
+                          id="resume-upload"
+                          className="hidden"
+                          accept=".pdf,.doc,.docx"
+                          disabled={useProfileResume}
+                          onChange={e => {
+                            const file = e.target.files[0];
+                            if (file) {
+                              setResumeFile(file);
+                              setUseProfileResume(false);
+                            }
+                          }}
+                        />
+                        <label
+                          htmlFor="resume-upload"
+                          className={`flex flex-col items-center justify-center gap-1 cursor-pointer ${useProfileResume ? 'cursor-not-allowed' : ''}`}
+                        >
+                          <Layers size={20} className={resumeFile ? 'text-blue-500' : 'text-slate-400'} />
+                          <p className="text-xs font-bold text-slate-700">
+                            {resumeFile ? resumeFile.name : 'Upload New Resume'}
+                          </p>
+                          <p className="text-[9px] text-slate-500 uppercase tracking-widest">PDF, DOC up to 10MB</p>
+                        </label>
+                      </div>
+                    </div>
+                  </Section>
+
+                  <button
+                    onClick={handleApply}
+                    disabled={applying || (!hasResume || noResumeSelected)}
+                    title={(!hasResume || noResumeSelected) ? 'Upload a resume to enable this button' : ''}
+                    className="w-full flex items-center justify-center gap-2 bg-slate-900 border border-slate-900 hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded transition-colors shadow-sm text-sm"
+                  >
+                    {applying ? <RefreshCw size={15} className="animate-spin" /> : <Send size={15} />}
+                    {applying ? 'Submitting...' : 'Submit Application'}
+                  </button>
+                </>
               )}
             </>
           )}

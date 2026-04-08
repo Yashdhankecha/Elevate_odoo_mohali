@@ -76,6 +76,20 @@ notificationSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 }); // TTL in
 notificationSchema.statics.createNotification = async function(data) {
   const notification = new this(data);
   await notification.save();
+
+  // Populate recipient if necessary, but we only need the ID to emit
+  const recipientId = notification.recipient.toString();
+  
+  try {
+    const { getIo } = require('../utils/socket');
+    const io = getIo();
+    if (io) {
+      io.to(recipientId).emit('new_notification', notification);
+    }
+  } catch (err) {
+    console.error('Socket emission error:', err.message);
+  }
+
   return notification;
 };
 
