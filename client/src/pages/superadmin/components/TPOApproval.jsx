@@ -177,7 +177,7 @@ const TPOApproval = ({ onApprovalProcessed }) => {
                            </div>
                         </div>
 
-                        <div className="mt-10 grid grid-cols-2 gap-5 relative z-10">
+                        <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 gap-5 relative z-10">
                            <div className="p-6 bg-slate-50/70 backdrop-blur-sm rounded-[2rem] border border-slate-100 group-hover:bg-white transition-colors">
                               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-2">
                                  <Building2 size={12} /> College / Institute

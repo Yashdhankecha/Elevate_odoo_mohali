@@ -140,27 +140,7 @@ const ApplicationModal = ({ application, mode, onClose, onUpdate, updating, onMo
                 </div>
               </div>
 
-              {/* Timeline Section */}
-              {application.timeline && (
-                <div className="space-y-8 pt-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded bg-slate-100 text-slate-600 flex items-center justify-center shadow-sm"><FaHistory size={12} /></div>
-                    <h4 className="text-[12px] font-bold text-slate-900 uppercase tracking-[0.1em]">Mission Milestones</h4>
-                  </div>
-                  <div className="pl-11 relative space-y-8 before:content-[''] before:absolute before:left-[15px] before:top-2 before:bottom-2 before:w-px before:bg-slate-200">
-                    {application.timeline.map((event, idx) => (
-                      <div key={idx} className="relative group">
-                        <div className={`absolute -left-[2.1rem] top-1.5 w-4 h-4 rounded-full border-2 border-white ring-4 transition-all duration-500 group-hover:scale-125 ${idx === 0 ? 'bg-blue-600 ring-blue-50' : 'bg-slate-300 ring-slate-50'}`}></div>
-                        <div>
-                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 group-hover:text-blue-500 transition-colors">{event.date}</p>
-                          <p className="text-base font-black text-slate-800 tracking-tight mb-1">{event.action}</p>
-                          <p className="text-sm text-slate-500 font-medium leading-relaxed">{event.description}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+
             </div>
           ) : (
             <form onSubmit={(e) => { e.preventDefault(); onUpdate(formData); }} className="space-y-12 animate-in fade-in duration-500">

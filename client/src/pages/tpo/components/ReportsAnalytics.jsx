@@ -246,7 +246,7 @@ const ReportsAnalytics = () => {
                </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                {analyticsData.companyStats.slice(0, 4).map((c, i) => (
                   <div key={i} className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 hover:border-blue-200 transition-all group">
                      <div className="flex items-center gap-3 mb-4">

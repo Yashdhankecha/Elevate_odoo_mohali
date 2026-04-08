@@ -390,7 +390,7 @@ const ResumeBuilder = () => {
         </div>
 
         {/* Template grid */}
-        <div className="grid grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {TEMPLATES.map(tpl => (
             <TemplateCard key={tpl.id} tpl={tpl} selected={selectedTemplate === tpl.id}
               onSelect={setSelectedTemplate} accent={accentColor} />

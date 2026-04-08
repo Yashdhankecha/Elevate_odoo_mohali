@@ -235,55 +235,16 @@ const ApplicationTracking = () => {
               </div>
               <h3 className={`text-sm font-black uppercase tracking-[0.2em] mb-4 ${statusInfo.color}`}>Current Lifecycle</h3>
               <div className="space-y-4 relative z-10">
-                 <h4 className="text-2xl font-black text-slate-900 tracking-tighter leading-tight">{statusInfo.label}</h4>
-                 <p className="text-slate-600 text-sm font-medium leading-relaxed">{statusInfo.description}</p>
+                 <h4 className="text-2xl font-black text-slate-900 tracking-tighter leading-tight">
+                    {application.timeline?.length > 0 ? application.timeline[application.timeline.length - 1].action : statusInfo.label}
+                 </h4>
+                 <p className="text-slate-600 text-sm font-medium leading-relaxed">
+                    {application.timeline?.length > 0 ? application.timeline[application.timeline.length - 1].description : statusInfo.description}
+                 </p>
               </div>
            </div>
 
-           {/* Live Timeline */}
-           <div className="bg-white rounded border border-slate-200 shadow-sm overflow-hidden">
-              <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-                 <h3 className="font-black text-slate-900 uppercase tracking-widest text-xs flex items-center gap-2">
-                    <History size={14} className="text-blue-600" />
-                    Mission Timeline
-                 </h3>
-                 <span className="flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-600 rounded text-[9px] font-black uppercase tracking-widest">
-                    <div className="w-1.5 h-1.5 bg-blue-600 rounded-full animate-pulse" /> Live updates
-                 </span>
-              </div>
-              <div className="p-8 relative">
-                 <div className="absolute left-10 top-12 bottom-12 w-px bg-slate-200"></div>
-                 <div className="space-y-10">
-                    {/* Basic sequence if no timeline exists */}
-                    {(application.timeline?.length > 0 ? application.timeline : [{
-                        action: 'Application Transmitted',
-                        description: 'Your application has been logged in the system.',
-                        date: application.appliedDate
-                    }]).map((event, idx) => (
-                       <div key={idx} className="relative flex gap-6 group">
-                          <div className={`relative z-10 w-4 h-4 mt-1 rounded-full border-4 border-white shadow-sm transition-all duration-500 group-hover:scale-125 ${idx === 0 ? 'bg-blue-600 ring-4 ring-blue-50' : 'bg-slate-300'}`}></div>
-                          <div className="flex-1">
-                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{event.date}</p>
-                             <h4 className="text-sm font-black text-slate-900 mb-1 group-hover:text-blue-600 transition-colors">{event.action}</h4>
-                             <p className="text-xs text-slate-500 leading-relaxed font-medium">{event.description}</p>
-                          </div>
-                       </div>
-                    ))}
-                 </div>
-              </div>
-           </div>
 
-           {/* Resources Card */}
-           <div className="bg-slate-900 rounded p-8 text-white border border-slate-800 shadow-lg relative overflow-hidden">
-               <div className="absolute bottom-0 right-0 p-4 opacity-10">
-                  <LifeBuoy size={80} />
-               </div>
-               <h4 className="text-[11px] font-black text-white/40 uppercase tracking-widest mb-6">Support Nexus</h4>
-               <p className="text-sm font-bold text-white/70 leading-relaxed mb-6">Need clarification on this application process?</p>
-               <button className="w-full py-3 bg-white/10 hover:bg-white/20 border border-white/10 rounded font-black uppercase tracking-widest text-[10px] transition-all flex items-center justify-center gap-2">
-                  Contact Career Coach <ChevronRight size={14} />
-               </button>
-           </div>
         </div>
 
       </div>

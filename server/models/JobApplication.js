@@ -43,7 +43,8 @@ const jobApplicationSchema = new mongoose.Schema({
     action: String,
     date: Date,
     description: String
-  }]
+  }],
+  currentRoundName: String
 }, {
   timestamps: true
 });

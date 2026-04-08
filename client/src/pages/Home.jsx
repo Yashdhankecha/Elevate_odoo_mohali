@@ -99,7 +99,7 @@ const Home = () => {
                                                 <div className="h-8 w-8 bg-slate-900 rounded"></div>
                                             </div>
                                         </div>
-                                        <div className="grid grid-cols-3 gap-6 mb-6">
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 mb-6">
                                             {[1, 2, 3].map(i => (
                                                 <div key={i} className="h-32 bg-white rounded-xl border border-slate-200 p-4">
                                                     <div className="h-10 w-10 bg-slate-50 rounded mb-2"></div>

@@ -252,3 +252,16 @@ export const getTPOList = async () => {
   }
 };
 
+export const advanceApplicantsToRound = async (jobId, applicantIds, newStatus, roundName) => {
+  try {
+    const response = await apiCall('POST', `/company/jobs/${jobId}/advance-round`, {
+      applicantIds,
+      newStatus,
+      roundName
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating applicants status:', error);
+    throw error;
+  }
+};

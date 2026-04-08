@@ -338,7 +338,7 @@ const InterviewForm = ({ interview, onSubmit, submitting }) => {
         </div>
       </div>
       
-      <div className="grid grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
         <div className="space-y-2">
           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Sync Date</label>
           <input
@@ -361,7 +361,7 @@ const InterviewForm = ({ interview, onSubmit, submitting }) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
         <div className="space-y-2">
           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Evaluation Protocol</label>
           <select

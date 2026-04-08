@@ -6,6 +6,7 @@ import TPOApproval from './components/TPOApproval';
 import CompanyApproval from './components/CompanyApproval';
 import SecurityMonitoring from './components/SecurityMonitoring';
 import SystemSettings from './components/SystemSettings';
+import TopNavbar from './components/TopNavbar';
 import axios from 'axios';
 
 const SuperadminDashboard = () => {
@@ -95,6 +96,11 @@ const SuperadminDashboard = () => {
       />
 
       <div className={`flex-1 transition-all duration-500 ease-in-out min-h-screen relative z-10 ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-72'}`}>
+        <TopNavbar 
+          toggleSidebar={toggleSidebar} 
+          sidebarCollapsed={sidebarCollapsed} 
+          isMobileSidebarOpen={isMobileSidebarOpen} 
+        />
         <main className="p-6 lg:p-10 pt-8">
           <div className="max-w-[1600px] mx-auto">
             {renderContent()}

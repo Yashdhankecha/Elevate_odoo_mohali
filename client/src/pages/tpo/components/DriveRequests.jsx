@@ -387,11 +387,11 @@ const Drawer = ({ id, onClose, onStatusChange }) => {
                             </Card>
 
                             {/* ── Two-column grid: Job Info + Compensation ── */}
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {/* Job Info */}
                                 <Card>
                                     <SectionTitle icon={Briefcase} text="Job Information" />
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 16px' }}>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
                                         <KV label="Job Role" value={drive.jobTitle} />
                                         <KV label="Employment Type" value={drive.employmentType} />
                                         <KV label="Department" value={drive.department} />
@@ -409,7 +409,7 @@ const Drawer = ({ id, onClose, onStatusChange }) => {
                                 {/* Compensation */}
                                 <Card>
                                     <SectionTitle icon={Banknote} text="Compensation" />
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 16px' }}>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
                                         {drive.ctc && <KV label="CTC / Year" value={`₹${Number(drive.ctc).toLocaleString()}`} />}
                                         {drive.stipend && <KV label="Stipend / Month" value={`₹${Number(drive.stipend).toLocaleString()}`} />}
                                         {drive.baseSalary && <KV label="Base Salary" value={`₹${Number(drive.baseSalary).toLocaleString()}`} />}
@@ -428,12 +428,12 @@ const Drawer = ({ id, onClose, onStatusChange }) => {
                             <Card>
                                 <SectionTitle icon={GraduationCap} text="Eligibility Criteria" />
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                                         <Chips label="Target Batches" items={drive.targetBatches} />
                                         <Chips label="Eligible Degrees" items={drive.eligibleDegrees} />
                                         <Chips label="Eligible Branches" items={drive.eligibleBranches} />
                                     </div>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px 16px', paddingTop: 8, borderTop: '1px solid #F1F5F9' }}>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 pt-2 border-t border-slate-100">
                                         {drive.eligibilityCriteria?.minCgpaPercentage?.value > 0 && (
                                             <KV label={`Min ${drive.eligibilityCriteria.minCgpaPercentage.type?.toUpperCase()}`} value={drive.eligibilityCriteria.minCgpaPercentage.value} />
                                         )}
@@ -450,7 +450,7 @@ const Drawer = ({ id, onClose, onStatusChange }) => {
                             {/* ── Dates ── */}
                             <Card>
                                 <SectionTitle icon={Calendar} text="Important Dates" />
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px 24px' }}>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-6">
                                     <KV label="Application Deadline" value={fmtTs(drive.applicationDeadline)} />
                                     <KV label="Tentative Drive Date" value={fmt(drive.tentativeDriveDate)} />
                                     {drive.preferredDriveDateRange?.start && (
@@ -515,7 +515,7 @@ const Drawer = ({ id, onClose, onStatusChange }) => {
 
                             {/* ── Skills ── */}
                             {(drive.requiredSkills?.length > 0 || drive.preferredSkills?.length > 0) && (
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     {drive.requiredSkills?.length > 0 && (
                                         <Card>
                                             <SectionTitle icon={Target} text="Required Skills" />
@@ -535,7 +535,7 @@ const Drawer = ({ id, onClose, onStatusChange }) => {
                             {drive.driveType === 'on_campus' && (
                                 <Card>
                                     <SectionTitle icon={Building2} text="On-Campus Details" />
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px 16px' }}>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
                                         <KV label="Expected Students" value={drive.expectedStudents} />
                                         <KV label="PPT Required" value={drive.pptRequired ? 'Yes' : 'No'} />
                                         {drive.venueRequirements && <KV label="Venue Requirements" value={drive.venueRequirements} wide />}
@@ -543,7 +543,7 @@ const Drawer = ({ id, onClose, onStatusChange }) => {
                                     {drive.pptRequired && drive.pptDetails?.dateTime && (
                                         <div style={{ marginTop: 14, padding: '12px 14px', background: '#EFF6FF', borderRadius: 12, border: '1px solid #BFDBFE' }}>
                                             <p style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#3B82F6', marginBottom: 6 }}>Pre-Placement Talk</p>
-                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px 16px' }}>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 md:gap-4">
                                                 <KV label="Date & Time" value={fmtTs(drive.pptDetails.dateTime)} />
                                                 {drive.pptDetails.duration && <KV label="Duration" value={drive.pptDetails.duration} />}
                                                 {drive.pptDetails.venue && <KV label="Venue" value={drive.pptDetails.venue} />}
@@ -556,7 +556,7 @@ const Drawer = ({ id, onClose, onStatusChange }) => {
                             {/* ── Contact ── */}
                             <Card>
                                 <SectionTitle icon={Mail} text="Contact Information" />
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                                     {(drive.hrName || co.receptionistName) && (
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: '#F8FAFC', borderRadius: 12, border: '1px solid #E2E8F0' }}>
                                             <div style={{ width: 32, height: 32, borderRadius: 9, background: '#EEF2FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>

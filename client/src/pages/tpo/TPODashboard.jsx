@@ -7,6 +7,7 @@ import DriveRequests from './components/DriveRequests';
 import ReportsAnalytics from './components/ReportsAnalytics';
 import ApprovalPending from './components/ApprovalPending';
 import CompanyManagement from './components/CompanyManagement';
+import TopNavbar from './components/TopNavbar';
 import { useAuth } from '../../contexts/AuthContext';
 
 const TPODashboard = () => {
@@ -78,6 +79,11 @@ const TPODashboard = () => {
 
       {/* Main Content Area */}
       <div className={`transition-all duration-500 ease-in-out min-h-screen ${sidebarCollapsed ? 'lg:pl-20' : 'lg:pl-72'}`}>
+        <TopNavbar 
+          toggleSidebar={toggleSidebar} 
+          sidebarCollapsed={sidebarCollapsed} 
+          isMobileSidebarOpen={isMobileSidebarOpen} 
+        />
         {/* Main Content */}
         <main className="p-4 sm:p-6 lg:p-8 pt-6">
           <div className="max-w-[1600px] mx-auto animate-fade-in">

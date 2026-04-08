@@ -386,7 +386,7 @@ const JobDetailModal = ({ job, onClose, onApply }) => {
 
               {job.eligibilityCriteria && (
                 <Section title="Academic Criteria" icon={GraduationCap}>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     {job.eligibilityCriteria.minCgpaPercentage?.value != null && (
                       <Chip label="Minimum CGPA" value={`≥ ${job.eligibilityCriteria.minCgpaPercentage.value}`} />
                     )}

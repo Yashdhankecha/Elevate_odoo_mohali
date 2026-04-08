@@ -70,8 +70,8 @@ router.get('/dashboard', authenticateToken, ensureStudent, async (req, res) => {
 
     // Get recent activities
     const recentApplications = await JobApplication.find({ student: studentId })
-      .populate('jobPosting', 'title')
-      .populate('jobPosting', 'title')
+      .populate('jobPosting', 'title jobTitle companyName')
+      .populate('jobPosting', 'title jobTitle companyName')
       .populate('company', 'companyName company') // Request both flat and nested fields for compatibility
       .sort({ appliedDate: -1 })
       .limit(5);
@@ -86,8 +86,8 @@ router.get('/dashboard', authenticateToken, ensureStudent, async (req, res) => {
       status: 'interview_scheduled',
       interviewDate: { $gte: new Date() }
     })
-      .populate('jobPosting', 'title')
-      .populate('jobPosting', 'title')
+      .populate('jobPosting', 'title jobTitle companyName')
+      .populate('jobPosting', 'title jobTitle companyName')
       .populate('company', 'companyName company')
       .sort({ interviewDate: 1 })
       .limit(3);
@@ -107,7 +107,7 @@ router.get('/dashboard', authenticateToken, ensureStudent, async (req, res) => {
         recentActivities: [
           ...recentApplications.map(app => ({
             id: app._id,
-            message: `Applied for ${app.jobPosting?.title || 'position'} at ${app.company?.companyName || app.company?.company?.companyName || 'Company'}`,
+            message: `Applied for ${app.jobPosting?.title || app.jobPosting?.jobTitle || 'position'} at ${app.jobPosting?.companyName || app.company?.companyName || app.company?.company?.companyName || 'Company'}`,
             time: app.appliedDate,
             type: 'application'
           })),
@@ -120,7 +120,7 @@ router.get('/dashboard', authenticateToken, ensureStudent, async (req, res) => {
         ].sort((a, b) => new Date(b.time) - new Date(a.time)).slice(0, 5),
         upcomingTasks: upcomingInterviews.map(interview => ({
           id: interview._id,
-          task: `Interview for ${interview.jobPosting?.title || 'position'} at ${interview.company?.companyName || interview.company?.company?.companyName || 'Company'}`,
+          task: `Interview for ${interview.jobPosting?.title || interview.jobPosting?.jobTitle || 'position'} at ${interview.jobPosting?.companyName || interview.company?.companyName || interview.company?.company?.companyName || 'Company'}`,
           time: interview.interviewDate,
           priority: 'high'
         }))
@@ -630,7 +630,7 @@ router.get('/applications', authenticateToken, ensureStudent, async (req, res) =
     }
 
     const applications = await JobApplication.find(query)
-      .populate('jobPosting', 'title category jobCategory package location type description employmentType stipend ctc jobDescription requiredSkills internshipDuration applicationDeadline workLocations requirements responsibilities skills duration deadline')
+      .populate('jobPosting', 'selectionRounds totalRounds jobTitle companyName title category jobCategory package location type description employmentType stipend ctc jobDescription requiredSkills internshipDuration applicationDeadline workLocations requirements responsibilities skills duration deadline')
       .populate('company', 'companyName email profilePicture company')
       .sort({ appliedDate: -1 })
       .limit(limit * 1)
@@ -739,7 +739,7 @@ router.get('/applications/:applicationId', authenticateToken, ensureStudent, asy
       _id: applicationId,
       student: studentId
     })
-      .populate('jobPosting', 'title category jobCategory package ctc stipend location type description requirements responsibilities skills duration deadline employmentType jobDescription requiredSkills internshipDuration applicationDeadline workLocations')
+      .populate('jobPosting', 'selectionRounds totalRounds jobTitle companyName title category jobCategory package ctc stipend location type description requirements responsibilities skills duration deadline employmentType jobDescription requiredSkills internshipDuration applicationDeadline workLocations')
       .populate('company', 'companyName email profilePicture');
 
     if (!application) {
@@ -772,7 +772,8 @@ router.get('/applications/:applicationId', authenticateToken, ensureStudent, asy
         coverLetter: application.coverLetter,
         resume: application.resume,
         notes: application.notes,
-        timeline: application.timeline || []
+        timeline: application.timeline || [],
+        selectionRounds: application.jobPosting?.selectionRounds || []
       }
     });
   } catch (error) {

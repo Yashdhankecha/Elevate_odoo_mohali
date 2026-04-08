@@ -228,7 +228,139 @@ const sendPasswordResetEmail = async (email, username, resetToken) => {
   }
 };
 
+// Send application status update email
+const sendStatusUpdateEmail = async (email, studentName, companyName, jobTitle, newStatus) => {
+  try {
+    console.log('📧 Attempting to send status update email to:', email);
+    
+    if (!isEmailConfigured()) {
+      console.log('⚠️  Email not configured. Status update logged to console instead.');
+      return true; 
+    }
+    
+    const transporter = createTransporter();
+    
+    const isVerified = await verifyTransporter(transporter);
+    if (!isVerified) return false;
+    
+    const formattedStatus = newStatus.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+    
+    const mailOptions = {
+      from: process.env.EMAIL_FROM,
+      to: email,
+      subject: `Application Update - ${companyName}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa; border-radius: 10px;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #007bff; margin: 0;">🚀 Elevate Placement Tracker</h1>
+            <p style="color: #6c757d; margin: 10px 0;">Application Status Update</p>
+          </div>
+          
+          <div style="background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+            <h2 style="color: #333; margin-bottom: 20px;">Hello ${studentName}!</h2>
+            
+            <p style="color: #555; line-height: 1.6; margin-bottom: 20px;">
+              Your application status for the <strong>${jobTitle}</strong> position at <strong>${companyName}</strong> has been updated.
+            </p>
+            
+            <div style="background-color: #f8f9fa; border-left: 4px solid #007bff; padding: 15px; margin: 25px 0;">
+              <p style="margin: 0; color: #333; font-size: 16px;">
+                New Status: <strong style="color: #007bff; font-size: 18px;">${formattedStatus}</strong>
+              </p>
+            </div>
+            
+            <p style="color: #555; line-height: 1.6; margin-bottom: 20px;">
+              Please log in to your dashboard to view more details and any upcoming actions required from your end.
+            </p>
+            
+            <div style="text-align: center; margin-top: 30px;">
+              <p style="color: #6c757d; font-size: 14px;">
+                Best regards,<br>
+                Elevate Placement Tracker Team
+              </p>
+            </div>
+          </div>
+        </div>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log('✅ Status update email sent successfully');
+    return true;
+  } catch (error) {
+    console.error('❌ Error sending status update email:', error);
+    if (process.env.NODE_ENV === 'development') return true;
+    return false;
+  }
+};
+
+// Send round cleared email
+const sendRoundClearedEmail = async (email, studentName, companyName, jobTitle, roundName, roundNumber) => {
+  try {
+    console.log('📧 Attempting to send round cleared email to:', email);
+    
+    if (!isEmailConfigured()) {
+      console.log('⚠️  Email not configured. Round cleared email logged to console instead.');
+      return true; 
+    }
+    
+    const transporter = createTransporter();
+    
+    const isVerified = await verifyTransporter(transporter);
+    if (!isVerified) return false;
+    
+    const mailOptions = {
+      from: process.env.EMAIL_FROM,
+      to: email,
+      subject: `Congratulations! Round Cleared - ${companyName}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa; border-radius: 10px;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #28a745; margin: 0;">🎉 Congratulations!</h1>
+            <p style="color: #6c757d; margin: 10px 0;">Selection Round Cleared</p>
+          </div>
+          
+          <div style="background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+            <h2 style="color: #333; margin-bottom: 20px;">Hello ${studentName}!</h2>
+            
+            <p style="color: #555; line-height: 1.6; margin-bottom: 20px;">
+              We are thrilled to inform you that you have successfully cleared a selection round for the <strong>${jobTitle}</strong> position at <strong>${companyName}</strong>.
+            </p>
+            
+            <div style="background-color: #f8f9fa; border-left: 4px solid #28a745; padding: 15px; margin: 25px 0;">
+              <p style="margin: 0; color: #333; font-size: 16px;">
+                Cleared Round: <strong style="color: #28a745; font-size: 18px;">${roundName || `Round ${roundNumber}`}</strong>
+              </p>
+            </div>
+            
+            <p style="color: #555; line-height: 1.6; margin-bottom: 20px;">
+              You have been advanced to the next stage of the selection process. Please keep an eye on your email and the dashboard for details on your next round.
+            </p>
+            
+            <div style="text-align: center; margin-top: 30px;">
+              <p style="color: #6c757d; font-size: 14px;">
+                Best regards,<br>
+                Elevate Placement Tracker Team
+              </p>
+            </div>
+          </div>
+        </div>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log('✅ Round cleared email sent successfully');
+    return true;
+  } catch (error) {
+    console.error('❌ Error sending round cleared email:', error);
+    if (process.env.NODE_ENV === 'development') return true;
+    return false;
+  }
+};
+
 module.exports = {
   sendOTPEmail,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  sendStatusUpdateEmail,
+  sendRoundClearedEmail
 };

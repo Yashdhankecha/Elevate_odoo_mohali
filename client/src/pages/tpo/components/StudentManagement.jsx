@@ -300,7 +300,7 @@ const StudentApprovalSystem = () => {
                        <h4 className="text-[11px] font-bold uppercase text-slate-400 tracking-widest flex items-center gap-2">
                           <GraduationCap size={14} className="text-indigo-600" /> Academic Information
                        </h4>
-                       <div className="grid grid-cols-2 gap-4">
+                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           {[
                             { label: 'Current CGPA', value: selectedStudent.cgpa || '0.0', icon: Target },
                             { label: 'Current Year', value: selectedStudent.year || 'N/A', icon: Calendar },

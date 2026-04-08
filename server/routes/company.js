@@ -9,6 +9,7 @@ const Student = require('../models/Student');
 const Notification = require('../models/Notification');
 const TPOAction = require('../models/TPOAction');
 const TPO = require('../models/TPO');
+const { sendStatusUpdateEmail } = require('../utils/emailService');
 
 // Middleware to ensure user is a company
 const ensureCompany = async (req, res, next) => {
@@ -574,24 +575,121 @@ router.get('/applications/:id', auth, ensureCompany, async (req, res) => {
   }
 });
 
-// Update application status
+const getTimelineEvent = (status) => {
+  const configs = {
+    'applied': { action: 'Application Received', description: 'Your application has been successfully transmitted to the company vault.' },
+    'test_scheduled': { action: 'Assessment Phase', description: 'Technical assessment or aptitude test has been scheduled.' },
+    'test_completed': { action: 'Evaluation in Progress', description: 'Your test results are currently under internal review.' },
+    'interview_scheduled': { action: 'Interview Phase', description: 'Expert interviews have been coordinated with the hiring team.' },
+    'interview_completed': { action: 'Final Deliberation', description: 'Interview rounds completed. Awaiting final decision.' },
+    'offer_received': { action: 'Offer Generated', description: 'Congratulations! An offer has been issued for this position.' },
+    'rejected': { action: 'Process Concluded', description: 'The application process for this position has ended.' },
+    'withdrawn': { action: 'Mission Aborted', description: 'This application was voluntarily withdrawn from the process.' }
+  };
+  return configs[status] || { action: 'Status Updated', description: `Application status changed to ${status}.` };
+};
+
 // Update application status
 router.patch('/applications/:id/status', auth, ensureCompany, async (req, res) => {
   try {
-    const { status } = req.body;
+    const { status, roundName } = req.body;
 
-    const application = await JobApplication.findOne({ _id: req.params.id, company: req.user._id });
+    const application = await JobApplication.findOne({ _id: req.params.id, company: req.user._id })
+      .populate('student', 'name email')
+      .populate('jobPosting', 'title companyName');
 
     if (!application) {
       return res.status(404).json({ message: 'Application not found' });
     }
 
-    application.status = status;
-    await application.save();
+    if (application.status !== status || application.currentRoundName !== roundName) {
+      application.status = status;
+      if (roundName) application.currentRoundName = roundName;
+      
+      const event = getTimelineEvent(status);
+      application.timeline.push({
+        action: roundName || event.action,
+        description: roundName ? `Advanced to ${roundName}.` : event.description,
+        date: new Date()
+      });
+      await application.save();
+    }
+
+    // Send email to student
+    if (application.student && application.student.email) {
+      const companyData = await Company.findById(req.user._id);
+      const companyName = companyData ? companyData.companyName : (application.jobPosting?.companyName || 'Elevate Tracker Company');
+      
+      await sendStatusUpdateEmail(
+        application.student.email,
+        application.student.name,
+        companyName,
+        application.jobPosting?.title || 'Job Role',
+        status
+      );
+    }
 
     res.json(application);
   } catch (error) {
     console.error('Error updating application status:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Advance multiple applications to a new status (round)
+router.post('/jobs/:id/advance-round', auth, ensureCompany, async (req, res) => {
+  try {
+    const { applicantIds, newStatus, roundName } = req.body;
+    
+    if (!applicantIds || !Array.isArray(applicantIds) || applicantIds.length === 0) {
+      return res.status(400).json({ message: 'No applicants selected' });
+    }
+
+    const jobPosting = await JobPosting.findOne({ _id: req.params.id, company: req.user._id });
+    if (!jobPosting) {
+      return res.status(404).json({ message: 'Job not found' });
+    }
+
+    const companyData = await Company.findById(req.user._id);
+    const companyName = companyData ? companyData.companyName : (jobPosting.companyName || 'Elevate Tracker Company');
+
+    let successCount = 0;
+
+    for (const applicantId of applicantIds) {
+      const application = await JobApplication.findOne({ _id: applicantId, jobPosting: jobPosting._id })
+        .populate('student', 'name email');
+      
+      if (application) {
+        if ((newStatus && application.status !== newStatus) || (roundName && application.currentRoundName !== roundName)) {
+          if (newStatus) application.status = newStatus;
+          if (roundName) application.currentRoundName = roundName;
+          
+          const event = getTimelineEvent(newStatus || application.status);
+          application.timeline.push({
+            action: roundName || event.action,
+            description: roundName ? `Advanced to ${roundName}.` : event.description,
+            date: new Date()
+          });
+          await application.save();
+        }
+
+        // Send standard status update email
+        if (application.student && application.student.email) {
+          await sendStatusUpdateEmail(
+            application.student.email,
+            application.student.name,
+            companyName,
+            jobPosting.title || jobPosting.jobTitle || 'Job Role',
+            newStatus || application.status
+          );
+        }
+        successCount++;
+      }
+    }
+
+    res.json({ message: `Successfully updated ${successCount} applicants`, successCount });
+  } catch (error) {
+    console.error('Error updating applicants status:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
