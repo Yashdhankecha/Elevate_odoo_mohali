@@ -830,4 +830,132 @@ router.post('/upload-logo', auth, ensureCompany, async (req, res) => {
   }
 });
 
+// ==================== ANALYTICS & REPORTS ====================
+
+// Get recruitment analytics for company dashboard
+router.get('/analytics', auth, ensureCompany, async (req, res) => {
+  try {
+    const companyId = req.user._id;
+    const { period } = req.query;
+
+    // Build date filter based on period
+    let dateFilter = {};
+    const now = new Date();
+    if (period === 'last_6_months') {
+      dateFilter = { createdAt: { $gte: new Date(now.setMonth(now.getMonth() - 6)) } };
+    } else if (period === 'last_3_months') {
+      dateFilter = { createdAt: { $gte: new Date(now.setMonth(now.getMonth() - 3)) } };
+    } else if (period === 'current_month') {
+      dateFilter = { createdAt: { $gte: new Date(now.getFullYear(), now.getMonth(), 1) } };
+    }
+
+    // 1. Overview Stats
+    const totalJobs = await JobPosting.countDocuments({ company: companyId });
+    const activeJobs = await JobPosting.countDocuments({ company: companyId, status: 'active' });
+    const totalApplications = await JobApplication.countDocuments({ company: companyId, ...dateFilter });
+    const shortlistedCandidates = await JobApplication.countDocuments({ 
+      company: companyId, 
+      status: { $in: ['test_scheduled', 'test_completed', 'interview_scheduled', 'interview_completed'] },
+      ...dateFilter
+    });
+    const hiredCandidates = await JobApplication.countDocuments({ 
+      company: companyId, 
+      status: 'offer_received',
+      ...dateFilter
+    });
+
+    // 2. Job-wise Stats (Performance Matrix)
+    const jobs = await JobPosting.find({ company: companyId }).select('jobTitle employmentType applicationCount views');
+    
+    // For more detailed job stats, aggregate applications
+    const jobStatsRaw = await JobApplication.aggregate([
+      { $match: { company: companyId, ...dateFilter } },
+      { $group: {
+          _id: '$jobPosting',
+          applications: { $sum: 1 },
+          shortlisted: { $sum: { $cond: [{ $in: ['$status', ['test_scheduled', 'test_completed', 'interview_scheduled', 'interview_completed']] }, 1, 0] } },
+          hired: { $sum: { $cond: [{ $eq: ['$status', 'offer_received'] }, 1, 0] } }
+      }}
+    ]);
+
+    const jobStats = jobs.map(j => {
+      const stats = jobStatsRaw.find(s => s._id.toString() === j._id.toString()) || { applications: 0, shortlisted: 0, hired: 0 };
+      return {
+        _id: j._id,
+        title: j.jobTitle,
+        type: j.employmentType,
+        applications: stats.applications,
+        shortlisted: stats.shortlisted,
+        hired: stats.hired,
+        status: activeJobs > 0 ? 'Active' : 'Closed' // Simple logic
+      };
+    }).sort((a, b) => b.applications - a.applications);
+
+    // 3. Recent Hires (Delta Log)
+    const recentHires = await JobApplication.find({ 
+      company: companyId, 
+      status: 'offer_received' 
+    })
+    .populate('student', 'name department')
+    .sort({ updatedAt: -1 })
+    .limit(5);
+
+    // 4. Upcoming Interviews
+    const upcomingInterviews = await Interview.find({
+      company: companyId,
+      status: 'Scheduled',
+      date: { $gte: new Date() }
+    })
+    .sort({ date: 1, time: 1 })
+    .limit(5);
+
+    // 5. Response Time (Approximate - Difference between applied and last update)
+    // In a real app, you'd track specific state transitions. 
+    // Here we'll take a sample and average it.
+    const responseSample = await JobApplication.find({ 
+      company: companyId, 
+      status: { $ne: 'applied' } 
+    }).limit(50);
+    
+    let avgResponse = 0;
+    if (responseSample.length > 0) {
+      const totalDiff = responseSample.reduce((acc, curr) => {
+        return acc + (curr.updatedAt - curr.appliedDate);
+      }, 0);
+      avgResponse = (totalDiff / responseSample.length / (1000 * 60 * 60 * 24)).toFixed(1);
+    }
+
+    res.json({
+      overview: {
+        totalJobs,
+        activeJobs,
+        totalApplications,
+        shortlistedCandidates,
+        hiredCandidates,
+        averageResponseTime: avgResponse || 1.5,
+        topPerformingJob: jobStats[0]?.title || 'N/A',
+        mostAppliedJob: jobStats[0]?.title || 'N/A'
+      },
+      jobStats,
+      recentHires: recentHires.map(h => ({
+        candidate: h.student?.name || 'Unknown',
+        position: jobStats.find(s => s._id.toString() === h.jobPosting.toString())?.title || 'Position',
+        department: h.student?.department || 'N/A',
+        hireDate: h.updatedAt.toISOString().split('T')[0]
+      })),
+      upcomingInterviews: upcomingInterviews.map(i => ({
+        candidate: i.candidate,
+        position: i.role,
+        date: i.date.toISOString().split('T')[0],
+        time: i.time,
+        type: i.type,
+        status: 'Locked'
+      }))
+    });
+  } catch (error) {
+    console.error('Error fetching analytics:', error);
+    res.status(500).json({ message: 'Server error fetching intelligence' });
+  }
+});
+
 module.exports = router;

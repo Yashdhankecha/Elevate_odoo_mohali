@@ -11,9 +11,8 @@ import AICareerCoach from './components/AICareerCoach';
 import ProfileApproval from './components/ProfileApproval';
 import InternshipOffers from './components/InternshipOffers';
 import ApplicationTracking from './components/ApplicationTracking';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Menu } from 'lucide-react';
 
-// Map URL slug → internal section key
 const SLUG_TO_SECTION = {
   'browse-jobs': 'jobs',
   'internships': 'internships',
@@ -26,28 +25,24 @@ const SLUG_TO_SECTION = {
   'application-tracking': 'tracking',
 };
 
-// Map internal section key → URL slug (reverse of above)
 const SECTION_TO_SLUG = Object.fromEntries(
-  Object.entries(SLUG_TO_SECTION).map(([slug, section]) => [slug, section])
+  Object.entries(SLUG_TO_SECTION).map(([slug, section]) => [section, slug])
 );
 
 const StudentDashboard = () => {
-  const { section: sectionParam, id } = useParams();   // URL slugs: section and optional id
+  const { section: sectionParam } = useParams();
   const navigate = useNavigate();
 
-  // Derive the active section from the URL param; default to 'dashboard'
-  const activeSection = SLUG_TO_SECTION[sectionParam] || (sectionParam ? 'dashboard' : 'dashboard');
+  const activeSection = SLUG_TO_SECTION[sectionParam] || 'dashboard';
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [error] = useState(null);
 
   useEffect(() => {
     setLoading(false);
   }, []);
 
-  // Navigate to a section by pushing the correct URL
   const setActiveSection = (sectionKey) => {
     if (sectionKey === 'dashboard') {
       navigate('/student-dashboard');
@@ -79,40 +74,7 @@ const StudentDashboard = () => {
     return (
       <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center justify-center space-y-4">
         <Loader2 size={36} className="text-slate-700 animate-spin" />
-        <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">
-          Loading Data...
-        </p>
-      </div>
-    );
-  }
-
-  // FORCE FULL PAGE FOR SOLVE SECTION
-  if (activeSection === 'solve') {
-    return (
-      <div className="h-screen w-screen bg-white overflow-hidden">
-        {renderContent()}
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-6">
-        <div className="bg-white p-12 rounded border border-slate-200 max-w-lg w-full text-center shadow-sm">
-          <div className="w-16 h-16 bg-rose-50 text-rose-500 rounded flex items-center justify-center mx-auto mb-6 border border-rose-100">
-            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-          </div>
-          <h2 className="text-xl font-bold text-slate-900 mb-2">Failed to load</h2>
-          <p className="text-slate-500 mb-8 text-sm font-medium">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="w-full py-3 bg-slate-900 text-white rounded font-bold hover:bg-slate-800 transition-colors shadow-sm"
-          >
-            Retry
-          </button>
-        </div>
+        <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">Loading Data...</p>
       </div>
     );
   }
@@ -131,11 +93,18 @@ const StudentDashboard = () => {
         transition-all duration-500 ease-in-out min-h-screen flex-1 relative z-10
         ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'}
       `}>
-        <main className="p-6 md:p-10 pt-8">
-          <div className="max-w-[1600px] mx-auto">
-            <div>
-              {renderContent()}
-            </div>
+        {/* Mobile Nav Header */}
+        <header className="lg:hidden bg-white border-b border-slate-200 sticky top-0 z-40 px-4 py-3 flex items-center justify-between">
+           <button onClick={toggleSidebar} className="p-2 text-slate-600 hover:bg-slate-50 rounded-lg">
+              <Menu size={24} />
+           </button>
+           <h1 className="text-lg font-black text-slate-900 tracking-tighter">ELEVATE</h1>
+           <div className="w-10" /> {/* Spacer */}
+        </header>
+
+        <main className="p-4 md:p-8 pt-4 lg:pt-8 overflow-x-hidden">
+          <div className="max-w-[1600px] mx-auto animate-fade-in pb-10">
+            {renderContent()}
           </div>
         </main>
       </div>

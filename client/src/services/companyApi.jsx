@@ -265,3 +265,13 @@ export const advanceApplicantsToRound = async (jobId, applicantIds, newStatus, r
     throw error;
   }
 };
+
+export const getCompanyAnalytics = async (period = '2024') => {
+  try {
+    const response = await apiCall('GET', `/company/analytics?period=${period}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching company analytics:', error);
+    throw error;
+  }
+};

@@ -8,6 +8,7 @@ import ReportsAnalytics from './components/ReportsAnalytics';
 import ApprovalPending from '../tpo/components/ApprovalPending';
 import JobDetailedView from './components/JobDetailedView';
 import Notifications from './components/Notifications';
+import TopNavbar from './components/TopNavbar';
 
 const CompanyDashboard = () => {
   const { section, id } = useParams();
@@ -80,20 +81,18 @@ const CompanyDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/30">
-      {/* Sidebar - Desktop */}
+    <div className="min-h-screen bg-slate-50 flex relative overflow-hidden">
       <Sidebar
         activeSection={activeSection}
         setActiveSection={setActiveSection}
         isCollapsed={sidebarCollapsed}
         setSidebarCollapsed={setSidebarCollapsed}
+        isMobileOpen={isMobileSidebarOpen}
+        setIsMobileOpen={setIsMobileSidebarOpen}
       />
-
-      {/* Sidebar Mobile Overlay - can be added if needed, Sidebar.jsx handles mobile usually if implemented similarly */}
-
-      {/* Main Content Area */}
-      <div className={`transition-all duration-500 ease-in-out min-h-screen ${sidebarCollapsed ? 'lg:pl-20' : 'lg:pl-72'}`}>
-        {/* Main Content */}
+      
+      <div className={`transition-all duration-500 ease-in-out min-h-screen flex-1 relative z-10 ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-72'}`}>
+        <TopNavbar toggleSidebar={toggleSidebar} sidebarCollapsed={sidebarCollapsed} />
         <main className="p-4 sm:p-6 lg:p-8 pt-6">
           <div className="max-w-[1600px] mx-auto animate-fade-in">
             {renderContent()}

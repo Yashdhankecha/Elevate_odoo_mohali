@@ -4,34 +4,31 @@ import { useAuth } from '../../contexts/AuthContext';
 import { studentApi } from '../../services/studentApi';
 import { getUserDisplayName, getUserInitials } from '../../utils/helpers';
 import { HiShieldCheck, HiKey, HiBadgeCheck } from 'react-icons/hi';
-import { Loader2, Camera, Mail } from 'lucide-react';
+import { Loader2, Camera, Mail, Menu } from 'lucide-react';
 import { FaUser, FaGraduationCap, FaGlobe, FaEdit, FaSave, FaTimes, FaSpinner, FaLock, FaExclamationCircle } from 'react-icons/fa';
 import toast from 'react-hot-toast';
-
 import Sidebar from './components/Sidebar';
-import TopNavbar from './components/TopNavbar';
 
-// Valid branches matching the Student schema enum
 const BRANCHES = ['CSE', 'IT', 'ECE', 'ME', 'CE', 'EE', 'AI&DS', 'Other'];
 
 const Field = ({ label, children }) => (
-    <div>
-        <label className="block text-sm font-semibold text-gray-600 mb-1">{label}</label>
+    <div className="w-full">
+        <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">{label}</label>
         {children}
     </div>
 );
 
-const inputCls = "w-full px-3 py-2.5 border border-gray-200 rounded text-sm text-gray-800 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all disabled:opacity-60 disabled:cursor-not-allowed";
+const inputCls = "w-full px-4 py-3 border border-slate-200 rounded text-sm font-bold text-slate-800 bg-white focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-400 transition-all disabled:opacity-60 disabled:bg-slate-50";
 
 const SectionCard = ({ title, icon: Icon, children }) => (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-5">
-        <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex items-center gap-3">
-            <div className="p-2 bg-blue-100 text-blue-600 rounded">
+    <div className="bg-white rounded border border-slate-200 overflow-hidden mb-6 shadow-sm">
+        <div className="bg-slate-50 px-6 py-4 border-b border-slate-200 flex items-center gap-3">
+            <div className="p-2 bg-white border border-slate-200 text-slate-800 rounded shadow-sm">
                 <Icon className="w-4 h-4" />
             </div>
-            <h2 className="text-base font-semibold text-gray-800">{title}</h2>
+            <h2 className="text-xs font-black text-slate-900 uppercase tracking-widest">{title}</h2>
         </div>
-        <div className="p-6">{children}</div>
+        <div className="p-4 sm:p-8">{children}</div>
     </div>
 );
 
@@ -43,7 +40,7 @@ const StudentProfilePage = () => {
     const [saving, setSaving] = useState(false);
     const [savingPic, setSavingPic] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
-    const [saveError, setSaveError] = useState('');   // inline error below Save
+    const [saveError, setSaveError] = useState('');
 
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
@@ -58,7 +55,6 @@ const StudentProfilePage = () => {
         linkedinUrl: '', githubUrl: '', portfolioUrl: '', profilePicture: ''
     });
 
-    /* ─── Load profile from DB ──────────────────────────────────────────────── */
     const fetchProfile = async () => {
         try {
             setLoading(true);
@@ -89,23 +85,14 @@ const StudentProfilePage = () => {
 
     useEffect(() => { if (user) fetchProfile(); }, [user]);
 
-    /* ─── Helpers ────────────────────────────────────────────────────────────── */
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
-        if (saveError) setSaveError(''); // clear error on any edit
+        if (saveError) setSaveError('');
     };
 
-    const handleSidebarNavigation = (section) => {
-        if (section === 'profile') return;
-        navigate(`/student-dashboard?section=${section}`);
-    };
-
-    /* ─── Save profile ───────────────────────────────────────────────────────── */
     const handleSaveProfile = async () => {
         setSaveError('');
-
-        // Simple front-end validation
         if (!formData.name.trim()) { setSaveError('Name is required.'); return; }
 
         try {
@@ -114,7 +101,6 @@ const StudentProfilePage = () => {
             const payload = {
                 name: formData.name,
                 phone: formData.phone,
-                phoneNumber: formData.phone,
                 summary: formData.summary,
                 degree: formData.degree,
                 branch: formData.branch,
@@ -125,19 +111,16 @@ const StudentProfilePage = () => {
                     github: formData.githubUrl,
                     portfolio: formData.portfolioUrl
                 },
-                address: formData.address   // flat string — backend maps to address.city
+                address: formData.address
             };
 
             await studentApi.updateProfile(payload);
             setIsEditing(false);
             toast.success('Profile saved!', { id: loadingToast });
             verifyAuth();
-            fetchProfile(); // re-sync form from DB to confirm saved values
+            fetchProfile();
         } catch (err) {
-            const msg =
-                err?.response?.data?.details ||
-                err?.response?.data?.message ||
-                'Failed to save profile. Please try again.';
+            const msg = err?.response?.data?.message || 'Failed to save profile.';
             setSaveError(msg);
             toast.error(msg);
         } finally {
@@ -145,13 +128,9 @@ const StudentProfilePage = () => {
         }
     };
 
-    /* ─── Profile picture ───────────────────────────────────────────────────── */
     const handleLogoUpload = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        if (!file.type.startsWith('image/')) { toast.error('Please select an image file'); return; }
-        if (file.size > 5 * 1024 * 1024) { toast.error('Image must be under 5MB'); return; }
-
         setSavingPic(true);
         try {
             const url = await studentApi.uploadProfilePicture(file);
@@ -165,15 +144,8 @@ const StudentProfilePage = () => {
         }
     };
 
-    /* ─── Password ──────────────────────────────────────────────────────────── */
     const handlePasswordSubmit = async (e) => {
         e.preventDefault();
-        if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-            toast.error('Passwords do not match'); return;
-        }
-        if (passwordForm.newPassword.length < 6) {
-            toast.error('Password must be at least 6 characters'); return;
-        }
         setPasswordLoading(true);
         try {
             const result = await changePassword(passwordForm.currentPassword, passwordForm.newPassword);
@@ -188,20 +160,19 @@ const StudentProfilePage = () => {
         }
     };
 
-    /* ─── Render ────────────────────────────────────────────────────────────── */
     if (loading) {
         return (
-            <div className="min-h-screen bg-[#f8fafc] flex justify-center items-center">
-                <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
+            <div className="min-h-screen bg-slate-50 flex justify-center items-center">
+                <Loader2 className="w-10 h-10 animate-spin text-slate-900" />
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-[#f8fafc] flex relative overflow-hidden">
+        <div className="min-h-screen bg-slate-50 flex relative overflow-hidden">
             <Sidebar
                 activeSection="profile"
-                setActiveSection={handleSidebarNavigation}
+                setActiveSection={(s) => navigate(`/student-dashboard/${s}`)}
                 isCollapsed={sidebarCollapsed}
                 setSidebarCollapsed={setSidebarCollapsed}
                 isMobileOpen={isMobileSidebarOpen}
@@ -209,33 +180,34 @@ const StudentProfilePage = () => {
             />
 
             <div className={`transition-all duration-500 ease-in-out min-h-screen flex-1 relative z-10 min-w-0 ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'}`}>
-                <TopNavbar toggleSidebar={() => setIsMobileSidebarOpen(v => !v)} isMobileSidebarOpen={isMobileSidebarOpen} />
+                {/* Mobile Header */}
+                <header className="lg:hidden bg-white border-b border-slate-200 sticky top-0 z-40 px-4 py-3 flex items-center justify-between">
+                    <button onClick={() => setIsMobileSidebarOpen(true)} className="p-2 text-slate-600">
+                        <Menu size={24} />
+                    </button>
+                    <h1 className="text-lg font-black text-slate-900 tracking-tighter">PROFILE</h1>
+                    <div className="w-10" />
+                </header>
 
-                <main className="p-4 sm:p-6 md:p-10 pt-8">
-                    <div className="max-w-4xl mx-auto pb-16 animate-fade-in">
+                <main className="p-4 sm:p-8 lg:p-12 overflow-x-hidden">
+                    <div className="max-w-4xl mx-auto pb-20 animate-fade-in">
 
-                        {/* ── Header card ── */}
-                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                            <div className="flex items-center gap-4">
-                                {/* Avatar */}
-                                <div className="relative group">
-                                    <div className="w-20 h-20 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center overflow-hidden border-2 border-white shadow-md text-white font-bold text-2xl uppercase">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-6 bg-white p-6 sm:p-10 rounded border border-slate-200 shadow-sm relative overflow-hidden">
+                             <div className="absolute top-0 right-0 w-64 h-64 bg-slate-50 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none" />
+                            
+                            <div className="relative z-10 flex items-center gap-6">
+                                <div className="relative">
+                                    <div className="w-24 h-24 bg-slate-900 rounded flex items-center justify-center overflow-hidden border-2 border-slate-100 shadow-xl text-white font-black text-3xl">
                                         {formData.profilePicture
                                             ? <img src={formData.profilePicture} alt={formData.name} className="w-full h-full object-cover" />
                                             : getUserInitials(formData.name || user?.name)
                                         }
-                                        {savingPic && (
-                                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center rounded-lg">
-                                                <FaSpinner className="text-white animate-spin" size={22} />
-                                            </div>
-                                        )}
+                                        {savingPic && <div className="absolute inset-0 bg-slate-900/60 flex items-center justify-center"><Loader2 className="text-white animate-spin" size={24} /></div>}
                                     </div>
                                     <button
                                         type="button"
                                         onClick={() => logoInputRef.current?.click()}
-                                        disabled={savingPic}
-                                        className="absolute -bottom-2 -right-2 p-2 bg-white text-blue-600 hover:bg-blue-600 hover:text-white border border-gray-100 rounded-lg shadow transition-all disabled:opacity-60"
-                                        title="Upload photo"
+                                        className="absolute -bottom-2 -right-2 p-2 bg-white text-slate-900 border border-slate-200 rounded shadow-lg hover:bg-slate-50 transition-all"
                                     >
                                         <Camera className="w-4 h-4" />
                                     </button>
@@ -243,163 +215,88 @@ const StudentProfilePage = () => {
                                 </div>
 
                                 <div>
-                                    <div className="flex items-center gap-2 mb-0.5">
-                                        <h1 className="text-xl font-bold text-gray-900">{formData.name || getUserDisplayName(user)}</h1>
-                                        {user?.googleId && (
-                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded-lg border border-emerald-100">
-                                                <HiBadgeCheck className="w-3 h-3" /> Google
-                                            </span>
-                                        )}
-                                    </div>
-                                    <p className="text-gray-500 text-sm flex items-center gap-1.5">
+                                    <h1 className="text-2xl font-black text-slate-900 tracking-tight mb-1 capitalize">{formData.name || getUserDisplayName(user)}</h1>
+                                    <p className="text-slate-500 text-sm font-bold flex items-center gap-2">
                                         <Mail className="w-3.5 h-3.5" /> {user?.email}
                                     </p>
+                                    <div className="mt-3 flex gap-2">
+                                         <span className="px-3 py-1 bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-widest border border-slate-200 rounded">Student ID: {user?._id?.slice(-8).toUpperCase()}</span>
+                                    </div>
                                 </div>
                             </div>
 
-                            {/* Edit / Save buttons */}
-                            <div className="flex gap-2 flex-shrink-0">
+                            <div className="relative z-10 flex gap-3 w-full sm:w-auto mt-4 sm:mt-0">
                                 {!isEditing ? (
-                                    <button
-                                        onClick={() => { setIsEditing(true); setSaveError(''); }}
-                                        className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded flex items-center gap-2 text-sm font-semibold transition-colors shadow-sm"
-                                    >
+                                    <button onClick={() => setIsEditing(true)} className="flex-1 sm:flex-none bg-slate-900 text-white px-8 py-3 rounded text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-sm flex items-center justify-center gap-2">
                                         <FaEdit /> Edit Profile
                                     </button>
                                 ) : (
                                     <>
-                                        <button
-                                            onClick={() => { setIsEditing(false); setSaveError(''); fetchProfile(); }}
-                                            className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2.5 rounded flex items-center gap-2 text-sm font-semibold border border-gray-200 transition-colors"
-                                        >
-                                            <FaTimes /> Discard
+                                        <button onClick={() => { setIsEditing(false); fetchProfile(); }} className="flex-1 sm:flex-none bg-white border border-slate-200 text-slate-600 px-6 py-3 rounded text-xs font-black uppercase tracking-widest hover:bg-slate-50 transition-all">
+                                            Cancel
                                         </button>
-                                        <button
-                                            onClick={handleSaveProfile}
-                                            disabled={saving}
-                                            className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded flex items-center gap-2 text-sm font-semibold transition-colors shadow-sm disabled:opacity-60"
-                                        >
-                                            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <FaSave />}
-                                            {saving ? 'Saving…' : 'Save Profile'}
+                                        <button onClick={handleSaveProfile} disabled={saving} className="flex-1 sm:flex-none bg-slate-900 text-white px-8 py-3 rounded text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg disabled:opacity-50 flex items-center justify-center gap-2">
+                                            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <FaSave />} Save Protocol
                                         </button>
                                     </>
                                 )}
                             </div>
                         </div>
 
-                        {/* ── Inline save error ── */}
                         {saveError && (
-                            <div className="mb-4 flex items-start gap-3 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm font-medium">
-                                <FaExclamationCircle className="mt-0.5 flex-shrink-0" />
-                                <span>{saveError}</span>
+                            <div className="mb-6 p-4 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold rounded flex items-center gap-3">
+                                <FaExclamationCircle /> {saveError}
                             </div>
                         )}
 
-                        {/* ── Form sections — pointer-events disabled when not editing ── */}
-                        <div className={!isEditing ? 'pointer-events-none opacity-80' : ''}>
-
-                            {/* Section 1: Personal */}
-                            <SectionCard title="Personal Details" icon={FaUser}>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                    <Field label="Full Name *">
-                                        <input type="text" name="name" value={formData.name} onChange={handleChange} disabled={!isEditing} className={inputCls} placeholder="e.g. Harsh Sharma" />
-                                    </Field>
-                                    <Field label="Phone Number">
-                                        <input type="text" name="phone" value={formData.phone} onChange={handleChange} disabled={!isEditing} className={inputCls} placeholder="+91 9876543210" />
-                                    </Field>
-                                    <div className="md:col-span-2">
-                                        <Field label="City / Location">
-                                            <input type="text" name="address" value={formData.address} onChange={handleChange} disabled={!isEditing} className={inputCls} placeholder="e.g. Mohali, Punjab" />
-                                        </Field>
-                                    </div>
-                                    <div className="md:col-span-2">
-                                        <Field label="Professional Summary">
-                                            <textarea name="summary" value={formData.summary} onChange={handleChange} disabled={!isEditing} rows={3} className={inputCls} placeholder="Brief career objective or professional bio…" />
-                                        </Field>
-                                    </div>
+                        <div className="grid grid-cols-1 gap-6">
+                            <SectionCard title="Personal Dossier" icon={FaUser}>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <Field label="Full Name"><input name="name" value={formData.name} onChange={handleChange} disabled={!isEditing} className={inputCls} /></Field>
+                                    <Field label="Phone Protocol"><input name="phone" value={formData.phone} onChange={handleChange} disabled={!isEditing} className={inputCls} /></Field>
+                                    <div className="md:col-span-2"><Field label="Operations Base (Address)"><input name="address" value={formData.address} onChange={handleChange} disabled={!isEditing} className={inputCls} /></Field></div>
+                                    <div className="md:col-span-2"><Field label="Professional Summary"><textarea name="summary" value={formData.summary} onChange={handleChange} disabled={!isEditing} rows={4} className={`${inputCls} resize-none`} /></Field></div>
                                 </div>
                             </SectionCard>
 
-                            {/* Section 2: Academic */}
-                            <SectionCard title="Academic Details" icon={FaGraduationCap}>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                    <Field label="Degree Program">
-                                        <input type="text" name="degree" value={formData.degree} onChange={handleChange} disabled={!isEditing} className={inputCls} placeholder="e.g. B.Tech, MCA" />
-                                    </Field>
-                                    <Field label="Branch / Specialization">
-                                        {/* Select dropdown prevents enum mismatch errors */}
+                            <SectionCard title="Academic Matrix" icon={FaGraduationCap}>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <Field label="Academic Degree"><input name="degree" value={formData.degree} onChange={handleChange} disabled={!isEditing} className={inputCls} /></Field>
+                                    <Field label="Departmental Branch">
                                         <select name="branch" value={formData.branch} onChange={handleChange} disabled={!isEditing} className={inputCls}>
-                                            <option value="">-- Select Branch --</option>
-                                            {BRANCHES.map(b => (
-                                                <option key={b} value={b}>{b}</option>
-                                            ))}
+                                            <option value="">Select Branch</option>
+                                            {BRANCHES.map(b => <option key={b} value={b}>{b}</option>)}
                                         </select>
                                     </Field>
-                                    <Field label="Current CGPA">
-                                        <input type="number" step="0.01" min="0" max="10" name="cgpa" value={formData.cgpa} onChange={handleChange} disabled={!isEditing} className={inputCls} placeholder="e.g. 8.5" />
-                                    </Field>
-                                    <Field label="Graduation Year">
-                                        <input type="number" name="graduationYear" value={formData.graduationYear} onChange={handleChange} disabled={!isEditing} className={inputCls} placeholder="e.g. 2025" />
-                                    </Field>
+                                    <Field label="Current CGPA"><input type="number" step="0.01" name="cgpa" value={formData.cgpa} onChange={handleChange} disabled={!isEditing} className={inputCls} /></Field>
+                                    <Field label="Graduation Cycle"><input type="number" name="graduationYear" value={formData.graduationYear} onChange={handleChange} disabled={!isEditing} className={inputCls} /></Field>
                                 </div>
                             </SectionCard>
 
-                            {/* Section 3: Links */}
-                            <SectionCard title="Social & Portfolio Links" icon={FaGlobe}>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                    <Field label="LinkedIn Profile">
-                                        <input type="url" name="linkedinUrl" value={formData.linkedinUrl} onChange={handleChange} disabled={!isEditing} className={inputCls} placeholder="https://linkedin.com/in/username" />
-                                    </Field>
-                                    <Field label="GitHub Profile">
-                                        <input type="url" name="githubUrl" value={formData.githubUrl} onChange={handleChange} disabled={!isEditing} className={inputCls} placeholder="https://github.com/username" />
-                                    </Field>
-                                    <div className="md:col-span-2">
-                                        <Field label="Portfolio / Website">
-                                            <input type="url" name="portfolioUrl" value={formData.portfolioUrl} onChange={handleChange} disabled={!isEditing} className={inputCls} placeholder="https://myportfolio.com" />
-                                        </Field>
-                                    </div>
+                            <SectionCard title="External Nexus" icon={FaGlobe}>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <Field label="LinkedIn Hub"><input name="linkedinUrl" value={formData.linkedinUrl} onChange={handleChange} disabled={!isEditing} className={inputCls} /></Field>
+                                    <Field label="GitHub Vault"><input name="githubUrl" value={formData.githubUrl} onChange={handleChange} disabled={!isEditing} className={inputCls} /></Field>
+                                    <div className="md:col-span-2"><Field label="Personal Terminal (Portfolio)"><input name="portfolioUrl" value={formData.portfolioUrl} onChange={handleChange} disabled={!isEditing} className={inputCls} /></Field></div>
                                 </div>
                             </SectionCard>
-                        </div>
 
-                        {/* ── Security (always editable) ── */}
-                        <div className="mt-2">
-                            <SectionCard title="Change Password" icon={FaLock}>
+                             <SectionCard title="Security Protocol" icon={FaLock}>
                                 {user?.googleId ? (
-                                    <div className="py-6 text-center">
-                                        <HiShieldCheck className="w-10 h-10 text-blue-400 mx-auto mb-3" />
-                                        <p className="font-semibold text-gray-700 text-sm">Google Managed Account</p>
-                                        <p className="text-gray-400 text-xs mt-1 max-w-xs mx-auto">Password management is handled by Google. Visit your Google Account to update security settings.</p>
-                                    </div>
+                                    <div className="py-2 text-slate-500 text-sm font-medium">Managed via Google Identity.</div>
                                 ) : (
-                                    <form onSubmit={handlePasswordSubmit} className="space-y-4 max-w-lg">
-                                        <Field label="Current Password">
-                                            <input type="password" required value={passwordForm.currentPassword}
-                                                onChange={e => setPasswordForm(p => ({ ...p, currentPassword: e.target.value }))}
-                                                className={inputCls} placeholder="Enter current password" />
-                                        </Field>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <Field label="New Password">
-                                                <input type="password" required value={passwordForm.newPassword}
-                                                    onChange={e => setPasswordForm(p => ({ ...p, newPassword: e.target.value }))}
-                                                    className={inputCls} placeholder="Min 6 characters" />
-                                            </Field>
-                                            <Field label="Confirm Password">
-                                                <input type="password" required value={passwordForm.confirmPassword}
-                                                    onChange={e => setPasswordForm(p => ({ ...p, confirmPassword: e.target.value }))}
-                                                    className={inputCls} placeholder="Repeat new password" />
-                                            </Field>
-                                        </div>
-                                        <button type="submit" disabled={passwordLoading}
-                                            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm disabled:opacity-60">
-                                            {passwordLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <HiKey className="w-4 h-4" />}
-                                            {passwordLoading ? 'Updating…' : 'Update Password'}
+                                    <form onSubmit={handlePasswordSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <Field label="Current Key"><input type="password" value={passwordForm.currentPassword} onChange={e => setPasswordForm(p => ({ ...p, currentPassword: e.target.value }))} className={inputCls} /></Field>
+                                        <div className="hidden sm:block" />
+                                        <Field label="New Key"><input type="password" value={passwordForm.newPassword} onChange={e => setPasswordForm(p => ({ ...p, newPassword: e.target.value }))} className={inputCls} /></Field>
+                                        <Field label="Re-enter Key"><input type="password" value={passwordForm.confirmPassword} onChange={e => setPasswordForm(p => ({ ...p, confirmPassword: e.target.value }))} className={inputCls} /></Field>
+                                        <button className="sm:col-span-2 mt-2 bg-slate-900 text-white py-3 rounded text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition-all flex items-center justify-center gap-2">
+                                            {passwordLoading ? <Loader2 className="animate-spin w-4 h-4" /> : <HiKey />} Update Security Protocol
                                         </button>
                                     </form>
                                 )}
                             </SectionCard>
                         </div>
-
                     </div>
                 </main>
             </div>

@@ -14,6 +14,7 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
+  Menu,
   CheckSquare,
   Bell,
   User,
@@ -124,7 +125,11 @@ const Sidebar = ({ activeSection, setActiveSection, isCollapsed, setSidebarColla
         <div className="flex flex-col h-full">
           {/* Brand Header */}
           <div className={`flex items-center justify-between p-6 border-b border-slate-200 ${isCollapsed ? 'px-4' : ''}`}>
-            {!isCollapsed && (
+            {isCollapsed && !isMobileOpen ? (
+              <div className="w-10 h-10 bg-slate-900 rounded flex items-center justify-center shadow-sm mx-auto">
+                <GraduationCap className="text-white w-5 h-5" strokeWidth={2} />
+              </div>
+            ) : (
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-slate-900 rounded flex items-center justify-center shadow-sm">
                   <GraduationCap className="text-white w-5 h-5" strokeWidth={2} />
@@ -135,12 +140,6 @@ const Sidebar = ({ activeSection, setActiveSection, isCollapsed, setSidebarColla
                   </h1>
                   <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mt-1">Student Portal</p>
                 </div>
-              </div>
-            )}
-
-            {isCollapsed && (
-              <div className="w-10 h-10 bg-slate-900 rounded flex items-center justify-center shadow-sm mx-auto">
-                <GraduationCap className="text-white w-5 h-5" strokeWidth={2} />
               </div>
             )}
 
@@ -187,8 +186,6 @@ const Sidebar = ({ activeSection, setActiveSection, isCollapsed, setSidebarColla
                   {!isCollapsed && (
                     <span className="flex-1 text-left truncate">{item.label}</span>
                   )}
-
-
                 </button>
               );
             })}

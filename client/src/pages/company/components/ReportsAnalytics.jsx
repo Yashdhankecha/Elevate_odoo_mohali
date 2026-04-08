@@ -28,7 +28,9 @@ import {
 } from 'lucide-react';
 import { usePDF } from 'react-to-pdf';
 import * as XLSX from 'xlsx';
+import { getCompanyAnalytics } from '../../../services/companyApi';
 import { toast } from 'react-hot-toast';
+import { useAuth } from '../../../contexts/AuthContext';
 
 const ReportsAnalytics = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('2024');
@@ -37,6 +39,7 @@ const ReportsAnalytics = () => {
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [exporting, setExporting] = useState({ pdf: false, excel: false, csv: false });
   const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
   const { toPDF, targetRef } = usePDF({ filename: `Elevate_Sector_Analysis_${new Date().toISOString().split('T')[0]}.pdf` });
   
   const [analyticsData, setAnalyticsData] = useState({
@@ -58,12 +61,6 @@ const ReportsAnalytics = () => {
     upcomingInterviews: []
   });
 
-  const periods = [
-    { value: '2024', label: 'Cycle 2024' },
-    { value: 'last_6_months', label: 'T-6 Months' },
-    { value: 'last_3_months', label: 'T-3 Months' },
-    { value: 'current_month', label: 'Current Phase' }
-  ];
 
   useEffect(() => {
     fetchAnalyticsData();
@@ -76,70 +73,42 @@ const ReportsAnalytics = () => {
   const fetchAnalyticsData = async () => {
     try {
       setLoading(true);
-      // Simulate API lag for neural sync feel
-      await new Promise(r => setTimeout(r, 600));
-      const dynamicData = generateDynamicData();
-      setAnalyticsData(dynamicData);
+      const res = await getCompanyAnalytics(selectedPeriod);
+      if (res) {
+        setAnalyticsData(res);
+      }
     } catch (error) {
+      console.error('Analytics error:', error);
       toast.error('Data stream interrupted');
     } finally {
       setLoading(false);
     }
   };
 
-  const generateDynamicData = () => {
-    const baseMultiplier = selectedPeriod === 'current_month' ? 0.3 : 1;
-    const jobTitles = ['Cloud Architect', 'Systems Lead', 'AI Researcher', 'Product Core', 'Fullstack Sigma'];
-    
-    const jobStats = jobTitles.map(title => {
-      const appCount = Math.floor(Math.random() * 150) + 10;
-      return {
-        title,
-        type: ['Full-time', 'Internship'][Math.floor(Math.random() * 2)],
-        applications: Math.floor(appCount * baseMultiplier),
-        shortlisted: Math.floor(appCount * 0.2 * baseMultiplier),
-        hired: Math.floor(appCount * 0.05 * baseMultiplier),
-        status: Math.random() > 0.2 ? 'Active' : 'Closed',
-        postedDate: '2024-11-01',
-        salary: Math.floor(80000 + Math.random() * 40000)
-      };
-    });
-
-    return {
-      overview: {
-        totalJobs: 12,
-        activeJobs: 8,
-        totalApplications: 842,
-        shortlistedCandidates: 124,
-        hiredCandidates: 42,
-        averageResponseTime: 1.8,
-        topPerformingJob: 'Cloud Architect',
-        mostAppliedJob: 'Fullstack Sigma'
-      },
-      jobStats,
-      recentHires: Array.from({length: 4}, (_, i) => ({
-        candidate: `Candidate Alpha-${i+1}`,
-        position: jobTitles[i % jobTitles.length],
-        department: 'Core Eng',
-        hireDate: '2024-11-15'
-      })),
-      upcomingInterviews: Array.from({length: 3}, (_, i) => ({
-        candidate: `Vector-${i+100}`,
-        position: jobTitles[i % jobTitles.length],
-        date: '2024-11-20',
-        time: '14:00 GMT',
-        type: 'Neural Sync',
-        status: 'Locked'
-      }))
-    };
-  };
-
-  const exportReport = async (format) => {
+  const exportReport = (format) => {
     setExporting(prev => ({ ...prev, [format]: true }));
     try {
-      await new Promise(r => setTimeout(r, 1000));
-      if (format === 'pdf') toPDF();
-      toast.success(`${format.toUpperCase()} Manifest Exported`);
+      if (format === 'pdf') {
+        toPDF();
+      } else if (format === 'excel') {
+        const wsData = analyticsData.jobStats.map(j => ({
+          'Job Title': j.title,
+          'Sector Type': j.type,
+          'Total Impressions': j.applications,
+          'Alpha Candidates': j.shortlisted,
+          'Final Hires': j.hired,
+          'Status': j.status,
+          'Conversion %': `${Math.round((j.hired / (j.applications || 1)) * 100)}%`
+        }));
+        const ws = XLSX.utils.json_to_sheet(wsData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Recruitment Overview");
+        XLSX.writeFile(wb, `Elevate_Sector_Analysis_${new Date().toISOString().split('T')[0]}.xlsx`);
+      }
+      toast.success(`${format.toUpperCase()} Intelligence Exported`);
+    } catch (err) {
+      console.error('Export error:', err);
+      toast.error('Manifest Export Failed');
     } finally {
       setExporting(prev => ({ ...prev, [format]: false }));
     }
@@ -147,10 +116,92 @@ const ReportsAnalytics = () => {
 
   return (
     <div className="space-y-8 pb-20">
-      {/* Hidden PDF Container */}
-      <div ref={targetRef} className="absolute left-[-9999px] p-10 bg-white w-[1000px]">
-         <h1 className="text-3xl font-black">Elevate Recruitment Intelligence</h1>
-         <p className="text-slate-500">Generated: {new Date().toLocaleString()}</p>
+      {/* Hidden PDF Container for Export Generation */}
+      <div ref={targetRef} className="absolute left-[-9999px] p-10 bg-white w-[1000px] text-slate-900 border-[10px] border-slate-900">
+         <div className="border-b-8 border-slate-900 pb-8 mb-10">
+           <h1 className="text-5xl font-black uppercase tracking-tighter">Elevate Recruiting Intelligence</h1>
+           <p className="text-slate-500 font-bold uppercase tracking-[0.2em] text-sm mt-3 flex justify-between">
+             <span>Company: {user?.companyName || 'Corporate Internal'}</span>
+             <span>Phase: {new Date().toLocaleDateString()}</span>
+           </p>
+         </div>
+
+         <div className="grid grid-cols-4 gap-4 mb-12">
+            {[
+              { label: 'Total Vectors', val: analyticsData.overview.totalJobs },
+              { label: 'Market Flow', val: analyticsData.overview.totalApplications },
+              { label: 'Alpha Conversion', val: analyticsData.overview.hiredCandidates },
+              { label: 'Sync Latency', val: analyticsData.overview.averageResponseTime + ' Days' }
+            ].map((s, i) => (
+              <div key={i} className="border-4 border-slate-900 p-6 bg-slate-50">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">{s.label}</p>
+                <p className="text-3xl font-black italic">{s.val}</p>
+              </div>
+            ))}
+         </div>
+
+         <h2 className="text-2xl font-black uppercase tracking-widest mb-6 bg-slate-900 text-white px-4 py-2 inline-block">Performance Matrix</h2>
+         <table className="w-full text-left mb-12 border-collapse border-4 border-slate-900">
+            <thead>
+              <tr className="bg-slate-900 text-white">
+                <th className="p-4 text-xs font-black uppercase italic">Vector Position</th>
+                <th className="p-4 text-xs font-black uppercase italic text-center">Impressions</th>
+                <th className="p-4 text-xs font-black uppercase italic text-center">Alpha</th>
+                <th className="p-4 text-xs font-black uppercase italic text-right">Conversion</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y-4 divide-slate-900">
+              {analyticsData.jobStats.map((job, i) => (
+                <tr key={i} className="hover:bg-slate-50 font-bold">
+                  <td className="p-4 border-r-4 border-slate-900">
+                    <p className="text-lg leading-none">{job.title}</p>
+                    <p className="text-[10px] text-slate-500 mt-1 uppercase leading-none">{job.type} Sector</p>
+                  </td>
+                  <td className="p-4 border-r-4 border-slate-900 text-center text-xl">{job.applications}</td>
+                  <td className="p-4 border-r-4 border-slate-900 text-center text-xl">{job.shortlisted}</td>
+                  <td className="p-4 text-right text-xl">{Math.round((job.hired/(job.applications||1))*100)}%</td>
+                </tr>
+              ))}
+            </tbody>
+         </table>
+
+         <div className="grid grid-cols-2 gap-12">
+            <div>
+              <h2 className="text-xl font-black uppercase mb-6 border-b-4 border-slate-900 pb-2 italic">Delta Log (Personnel)</h2>
+              <div className="space-y-4">
+                {analyticsData.recentHires.map((h, i) => (
+                  <div key={i} className="flex justify-between items-center border-b border-slate-200 pb-2">
+                    <div>
+                      <p className="font-black text-sm uppercase">{h.candidate}</p>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase">{h.position}</p>
+                    </div>
+                    <p className="text-[10px] font-black italic text-slate-400">{h.hireDate}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div>
+              <h2 className="text-xl font-black uppercase mb-6 border-b-4 border-slate-900 pb-2 italic">Timeline Locked</h2>
+              <div className="space-y-4">
+                {analyticsData.upcomingInterviews.map((int, i) => (
+                  <div key={i} className="flex justify-between items-center border-b border-slate-200 pb-2">
+                    <div>
+                      <p className="font-black text-sm uppercase">{int.candidate}</p>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase">{int.type}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] font-black uppercase leading-none">{int.date}</p>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase mt-1 leading-none">{int.time}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+         </div>
+         
+         <div className="mt-20 text-center border-t-2 border-slate-100 pt-8 opacity-30">
+            <p className="text-[10px] font-black uppercase tracking-[0.5em]">End of Automated Intel Report</p>
+         </div>
       </div>
 
       {/* Header */}
@@ -182,43 +233,6 @@ const ReportsAnalytics = () => {
         </div>
       </div>
 
-      {/* Control Panel */}
-      <div className="bg-white rounded border border-slate-200 p-4 flex flex-wrap items-center justify-between gap-4 shadow-sm">
-         <div className="flex items-center gap-8 pl-4">
-            <div className="flex items-center gap-2">
-               <Target size={16} className="text-slate-500" />
-               <span className="text-xs font-semibold text-slate-600">Analysis Axis</span>
-            </div>
-            
-            <select
-              value={selectedPeriod}
-              onChange={(e) => setSelectedPeriod(e.target.value)}
-              className="bg-transparent border-none text-sm font-semibold text-slate-900 focus:ring-0 cursor-pointer p-0"
-            >
-              {periods.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
-            </select>
-
-            <label className="flex items-center gap-2 cursor-pointer group">
-               <div className="relative flex items-center">
-                  <input type="checkbox" checked={autoRefresh} onChange={e => setAutoRefresh(e.target.checked)} className="sr-only" />
-                  <div className={`w-8 h-4 rounded-full transition-colors ${autoRefresh ? 'bg-slate-800' : 'bg-slate-200'}`}></div>
-                  <div className={`absolute left-0.5 w-3 h-3 bg-white rounded-full transition-transform ${autoRefresh ? 'translate-x-4' : ''}`}></div>
-               </div>
-               <span className="text-xs font-semibold text-slate-500">Auto-Sync</span>
-            </label>
-         </div>
-
-         <div className="relative group flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-slate-600 transition-colors" size={16} />
-            <input 
-              type="text" 
-              placeholder="Query position benchmarks..." 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded text-sm focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 transition-colors"
-            />
-         </div>
-      </div>
 
       {/* Intelligence Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -369,3 +383,9 @@ const ReportsAnalytics = () => {
 };
 
 export default ReportsAnalytics;
+
+
+
+
+
+

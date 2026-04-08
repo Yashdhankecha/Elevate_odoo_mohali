@@ -16,10 +16,11 @@ import {
   ChevronRight,
   PlusCircle,
   BarChart3,
-  Bell
+  Bell,
+  X
 } from 'lucide-react';
 
-const Sidebar = ({ activeSection, setActiveSection, isCollapsed, setSidebarCollapsed }) => {
+const Sidebar = ({ activeSection, setActiveSection, isCollapsed, setSidebarCollapsed, isMobileOpen, setIsMobileOpen }) => {
   const { user, logout } = useAuth();
   const { unreadCount } = useNotifications();
   const navigate = useNavigate();
@@ -37,11 +38,21 @@ const Sidebar = ({ activeSection, setActiveSection, isCollapsed, setSidebarColla
   };
 
   return (
-    <aside className={`
-      fixed left-0 top-0 h-screen bg-white border-r border-gray-100 shadow-xl z-40 transition-all duration-500 ease-in-out
-      ${isCollapsed ? 'w-20' : 'w-72'}
-      hidden lg:flex flex-col
-    `}>
+    <>
+      {/* Mobile Overlay */}
+      {isMobileOpen && (
+        <div
+          className="fixed inset-0 bg-[#0f172a]/60 backdrop-blur-sm z-[60] lg:hidden transition-opacity"
+          onClick={() => setIsMobileOpen(false)}
+        />
+      )}
+
+      <aside className={`
+        fixed left-0 top-0 h-screen bg-white border-r border-gray-100 shadow-xl z-[70] transition-all duration-500 ease-in-out
+        ${isCollapsed ? 'w-20' : 'w-72'}
+        ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        flex flex-col
+      `}>
       {/* Header */}
       <div className={`flex items-center justify-between p-6 border-b border-gray-50 ${isCollapsed ? 'px-4' : ''}`}>
         {!isCollapsed && (
@@ -57,6 +68,14 @@ const Sidebar = ({ activeSection, setActiveSection, isCollapsed, setSidebarColla
             </div>
           </div>
         )}
+
+        {/* Mobile Close Button */}
+        <button
+          onClick={() => setIsMobileOpen(false)}
+          className="lg:hidden w-8 h-8 flex items-center justify-center rounded border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+        >
+          <X size={18} />
+        </button>
 
         <button
           onClick={() => setSidebarCollapsed(!isCollapsed)}
@@ -134,6 +153,7 @@ const Sidebar = ({ activeSection, setActiveSection, isCollapsed, setSidebarColla
         </button>
       </div>
     </aside>
+    </>
   );
 };
 
