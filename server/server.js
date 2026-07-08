@@ -17,6 +17,10 @@ const errorHandler     = require('./middleware/errorHandler');
 
 const app    = express();
 const server = http.createServer(app);
+
+// ── Trust Proxy for Rate Limiting behind Render ───────────────────────────────
+app.set('trust proxy', 1);
+
 initSocket(server);
 
 // ── Security ──────────────────────────────────────────────────────────────────

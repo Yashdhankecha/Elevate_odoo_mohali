@@ -7,4 +7,7 @@ export default defineConfig({
         open: false,   // don't auto-open browser
         port: 3000,
     },
+    build: {
+        outDir: 'bin'
+    }
 })
