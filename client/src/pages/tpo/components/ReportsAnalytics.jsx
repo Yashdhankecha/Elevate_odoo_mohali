@@ -1,339 +1,430 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { 
-  BarChart3, 
-  LineChart, 
-  PieChart, 
-  Download, 
-  Calendar,
-  Users,
-  Building2,
-  Trophy,
-  CheckCircle2,
-  XCircle,
-  Clock,
-  Filter,
-  FileSpreadsheet,
-  FileType,
-  Eye,
-  RefreshCcw,
-  Search,
-  Zap,
-  Target,
-  Award,
-  Activity,
-  ArrowUpRight,
-  TrendingUp,
-  BrainCircuit,
-  ShieldCheck,
-  ChevronRight,
-  X,
-  Loader2
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  BarChart3, Download, Users, Building2, Trophy, Target,
+  FileSpreadsheet, Search, Loader2, RefreshCw, AlertCircle,
+  ChevronLeft, ChevronRight, GraduationCap, Activity, Filter,
+  CheckCircle2, XCircle, ArrowUpRight
 } from 'lucide-react';
-import { usePDF } from 'react-to-pdf';
 import * as XLSX from 'xlsx';
 import { toast } from 'react-hot-toast';
 import tpoApi from '../../../services/tpoApi';
 
-const ReportsAnalytics = () => {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [selectedPeriod, setSelectedPeriod] = useState('all');
-  const [selectedDepartment, setSelectedDepartment] = useState('all');
-  const [selectedCompany, setSelectedCompany] = useState('all');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [autoRefresh, setAutoRefresh] = useState(false);
-  const [exporting, setExporting] = useState({ pdf: false, excel: false });
-  const { toPDF, targetRef } = usePDF({ filename: `Placement_Report_${new Date().toISOString().split('T')[0]}.pdf` });
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const fmtPkg = (v) => {
+  const n = Number(v);
+  return !isNaN(n) && n > 0 ? `₹${(n / 100000).toFixed(1)}L` : '—';
+};
+const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
 
-  const [analyticsData, setAnalyticsData] = useState({
-    overview: {
-      totalStudents: 0, placedStudents: 0, placementRate: 0, totalApplications: 0,
-      totalOffers: 0, averagePackage: 0, topPerformingDept: '', topRecruiter: ''
-    },
-    departmentStats: [], companyStats: [], monthlyTrends: [], recentPlacements: [], upcomingDrives: []
-  });
+// ─── Tabs definition ──────────────────────────────────────────────────────────
+const TABS = [
+  { id: 'overview',   label: 'Overview',          icon: BarChart3 },
+  { id: 'records',    label: 'Placement Records',  icon: Trophy },
+  { id: 'master',     label: 'Master Data',        icon: Users },
+];
+
+const PAGE_SIZE = 15;
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+const ReportsAnalytics = () => {
+  const [tab, setTab]           = useState('overview');
+  const [loading, setLoading]   = useState(true);
+  const [error, setError]       = useState(null);
+  const [analytics, setAnalytics] = useState({ overview: {}, departmentStats: [], companyStats: [], recentPlacements: [] });
+
+  // Master Data state
+  const [students, setStudents]   = useState([]);
+  const [stuLoading, setStuLoading] = useState(false);
+  const [stuSearch, setStuSearch] = useState('');
+  const [stuDept, setStuDept]     = useState('');
+  const [stuStatus, setStuStatus] = useState('');
+  const [stuPage, setStuPage]     = useState(1);
+  const [stuTotal, setStuTotal]   = useState(0);
+  const [stuPages, setStuPages]   = useState(1);
+
+  // ── Fetch overview analytics ─────────────────────────────────────────────
+  const fetchAnalytics = useCallback(async () => {
+    try {
+      setLoading(true); setError(null);
+      const res = await tpoApi.getReportsAnalytics();
+      if (res) setAnalytics(res);
+    } catch { setError('Failed to load analytics.'); }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { fetchAnalytics(); }, [fetchAnalytics]);
+
+  // ── Fetch master data students ────────────────────────────────────────────
+  const fetchStudents = useCallback(async (page = 1) => {
+    setStuLoading(true);
+    try {
+      const params = { page, limit: PAGE_SIZE };
+      if (stuSearch) params.search = stuSearch;
+      if (stuDept)   params.department = stuDept;
+      if (stuStatus) params.status = stuStatus;
+      const res = await tpoApi.getStudents(params);
+      setStudents(res?.students || []);
+      setStuTotal(res?.pagination?.total || 0);
+      setStuPages(res?.pagination?.totalPages || 1);
+      setStuPage(page);
+    } catch { toast.error('Failed to load students.'); }
+    finally { setStuLoading(false); }
+  }, [stuSearch, stuDept, stuStatus]);
 
   useEffect(() => {
-    fetchAnalyticsData();
-    const interval = setInterval(() => { if (autoRefresh) fetchAnalyticsData(); }, 30000);
-    return () => clearInterval(interval);
-  }, [selectedPeriod, selectedDepartment, selectedCompany, searchTerm, autoRefresh]);
+    if (tab === 'master') fetchStudents(1);
+  }, [tab, stuSearch, stuDept, stuStatus, fetchStudents]);
 
-  const fetchAnalyticsData = async () => {
+  // ── Export helpers ────────────────────────────────────────────────────────
+  const exportExcel = async () => {
     try {
-      setLoading(true);
-      const response = await tpoApi.getReportsAnalytics();
-      const dynamicData = generateDynamicData();
-      setAnalyticsData(response && response.overview ? { ...dynamicData, ...response } : dynamicData);
-    } catch (err) {
-      setAnalyticsData(generateDynamicData());
-    } finally {
-      setLoading(false);
-    }
+      toast.loading('Preparing export…', { id: 'exp' });
+      // Fetch ALL students for export (no pagination)
+      const res = await tpoApi.getStudents({ limit: 9999 });
+      const rows = (res?.students || []).map(s => ({
+        'Name':           s.name || '',
+        'Email':          s.email || '',
+        'Roll No':        s.rollNumber || '',
+        'Branch':         s.branch || '',
+        'CGPA':           s.cgpa ?? '',
+        'Graduation Year':s.graduationYear || '',
+        'Phone':          s.phoneNumber || '',
+        'Status':         s.isPlaced ? 'Placed' : 'Not Placed',
+        'Company':        s.placementDetails?.company || '',
+        'Package (LPA)':  s.placementDetails?.package?.amount ? (s.placementDetails.package.amount / 100000).toFixed(2) : '',
+        'Role':           s.placementDetails?.role || '',
+        'Placement Date': fmtDate(s.placementDetails?.placementDate),
+        'Verification':   s.verificationStatus || '',
+      }));
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Master_Data');
+      XLSX.writeFile(wb, `TPO_Master_Data_${new Date().toISOString().slice(0, 10)}.xlsx`);
+      toast.success('Excel exported!', { id: 'exp' });
+    } catch { toast.error('Export failed.', { id: 'exp' }); }
   };
 
-  const generateDynamicData = () => {
-    const departments = ['Computer Science', 'Electronics', 'Information Technology', 'Mechanical', 'Civil'];
-    const deptStats = departments.map(dept => ({
-      department: dept, total: 200, placed: 160 + Math.floor(Math.random() * 30),
-      rate: 80 + Math.random() * 15, applications: 500, avgPackage: 850000 + Math.floor(Math.random() * 400000)
+  const exportPlacementExcel = () => {
+    const placed = (analytics.recentPlacements || []);
+    if (!placed.length) { toast.error('No placement data to export.'); return; }
+    const rows = placed.map(p => ({
+      'Student':   p.student,
+      'Branch':    p.department,
+      'Company':   p.company,
+      'Package':   fmtPkg(p.package),
+      'Date':      fmtDate(p.date),
     }));
-
-    return {
-      overview: {
-        totalStudents: 1240, placedStudents: 980, placementRate: 79.2, totalApplications: 4500,
-        totalOffers: 1100, averagePackage: 720000, topPerformingDept: 'Computer Science', topRecruiter: 'TechCorp Meta'
-      },
-      departmentStats: deptStats,
-      companyStats: departments.map(d => ({ company: d + ' Corp', applications: 200, offers: 40, successRate: 20, averagePackage: 650000 })),
-      monthlyTrends: Array.from({ length: 6 }, (_, i) => ({ month: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'][i], placements: 40 + i * 10 })),
-      recentPlacements: Array.from({ length: 5 }, (_, i) => ({ student: 'Candidate ' + (i+1), company: 'Nexus Tech', department: 'CS', package: 1200000, date: '2023-11-20' })),
-      upcomingDrives: Array.from({ length: 3 }, (_, i) => ({ company: 'Global AI', date: '2023-12-15', positions: 25, status: 'Confirmed' }))
-    };
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Placements');
+    XLSX.writeFile(wb, `Placement_Records_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    toast.success('Placement records exported!');
   };
 
-  const formatPackage = (v) => {
-    const num = Number(v);
-    if (!isNaN(num) && num > 0) return `₹${(num / 100000).toFixed(1)}L`;
-    return v ? `₹${v}` : 'N/A';
-  };
+  const ov = analytics.overview || {};
 
-  const exportReport = (format) => {
-    if (format === 'excel') {
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(analyticsData.departmentStats), 'Placement_Data');
-        XLSX.writeFile(wb, `Placement_Report_${new Date().toISOString()}.xlsx`);
-        toast.success('Excel report exported');
-    } else {
-        toPDF();
-        toast.success('PDF report exported');
-    }
-  };
-
+  // ─── Loading ──────────────────────────────────────────────────────────────
   if (loading) return (
-     <div className="flex flex-col items-center justify-center min-h-[500px]">
-        <Loader2 className="animate-spin w-12 h-12 text-blue-600 mb-4" />
-        <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Loading Analytics...</p>
-     </div>
+    <div className="flex flex-col items-center justify-center min-h-[500px]">
+      <Loader2 className="animate-spin w-10 h-10 text-slate-400 mb-4" />
+      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Loading Analytics…</p>
+    </div>
   );
 
   return (
-    <div className="space-y-8 pb-24">
+    <div className="space-y-6 pb-20">
+
       {/* Header */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
-         <div className="space-y-1">
-            <h1 className="text-3xl font-black text-slate-900 tracking-tighter flex items-center gap-3 uppercase">
-               <BarChart3 size={32} className="text-blue-600" />
-               Reports & Analytics
-            </h1>
-            <p className="text-slate-500 font-medium tracking-tight">Track placement performance, department-wise stats, and company trends.</p>
-         </div>
-         
-         <div className="flex items-center gap-3">
-            <button onClick={fetchAnalyticsData} className="p-3 bg-white border border-slate-100 rounded-2xl hover:bg-slate-50 transition-all text-slate-400">
-               <RefreshCcw size={18} />
-            </button>
-            <div className="h-10 w-px bg-slate-100 mx-2 hidden lg:block" />
-            <button onClick={() => exportReport('excel')} className="flex items-center gap-2 px-6 py-3.5 bg-white border border-slate-100 rounded-2xl shadow-sm hover:bg-slate-50 transition-all font-bold uppercase text-[10px] tracking-widest text-emerald-600">
-               <FileSpreadsheet size={16} /> Excel Report
-            </button>
-            <button onClick={() => exportReport('pdf')} className="flex items-center gap-2 px-6 py-3.5 bg-slate-900 text-white rounded-2xl shadow-xl hover:shadow-2xl transition-all font-bold uppercase text-[10px] tracking-widest active:scale-95 group">
-               <FileType size={16} /> Export PDF
-            </button>
-         </div>
-      </div>
-
-      {/* Stats HUD */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-         {[
-           { label: 'Total Students', value: analyticsData.overview.totalStudents, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50', trend: '+12% increase' },
-           { label: 'Placement Rate', value: `${analyticsData.overview.placementRate}%`, icon: Target, color: 'text-emerald-600', bg: 'bg-emerald-50', trend: 'Growing speed' },
-           { label: 'Average Package', value: formatPackage(analyticsData.overview.averagePackage), icon: Trophy, color: 'text-amber-600', bg: 'bg-amber-50', trend: '+5% this year' },
-           { label: 'Total Applications', value: analyticsData.overview.totalApplications, icon: Activity, color: 'text-indigo-600', bg: 'bg-indigo-50', trend: 'High activity' },
-         ].map((stat, i) => (
-           <div key={i} className="glass-card p-6 rounded-[2.5rem] border-white/50 hover-lift relative overflow-hidden">
-              <div className="flex justify-between items-start relative z-10">
-                 <div>
-                    <p className="text-[10px] font-bold uppercase text-slate-400 tracking-widest mb-1">{stat.label}</p>
-                    <h3 className="text-2xl font-black text-slate-900 tracking-tight">{stat.value}</h3>
-                    <p className="text-[9px] font-bold text-emerald-600 mt-2 flex items-center gap-1">
-                       <TrendingUp size={10} /> {stat.trend}
-                    </p>
-                 </div>
-                 <div className={`p-4 rounded-2xl ${stat.bg} ${stat.color}`}>
-                    <stat.icon size={20} />
-                 </div>
-              </div>
-              <div className="absolute -bottom-4 -right-4 opacity-10 pointer-events-none">
-                 <stat.icon size={80} />
-              </div>
-           </div>
-         ))}
-      </div>
-
-      {/* Filtering */}
-      <div className="glass-card rounded-[2.5rem] p-6 border-white/50 shadow-2xl shadow-slate-200/40">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-           <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest pl-2">Time Period</label>
-              <select value={selectedPeriod} onChange={e => setSelectedPeriod(e.target.value)} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-3xl text-sm font-bold text-slate-900 focus:outline-none appearance-none cursor-pointer">
-                 <option value="all">All Time</option>
-                 <option value="current_year">Current Batch</option>
-                 <option value="last_6_months">Last 6 Months</option>
-              </select>
-           </div>
-           <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest pl-2">Department</label>
-              <select value={selectedDepartment} onChange={e => setSelectedDepartment(e.target.value)} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-3xl text-sm font-bold text-slate-900 focus:outline-none appearance-none cursor-pointer">
-                 <option value="all">All Departments</option>
-                 <option value="CS">Computer Science</option>
-                 <option value="IT">Information Technology</option>
-              </select>
-           </div>
-           <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest pl-2">Search Student</label>
-              <div className="relative">
-                 <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                 <input type="text" placeholder="Search by name or email..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-3xl text-sm font-bold text-slate-900 focus:outline-none shadow-inner" />
-              </div>
-           </div>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+            <BarChart3 size={24} className="text-blue-600" /> Reports &amp; Analytics
+          </h1>
+          <p className="text-xs text-slate-500 font-medium mt-1">Placement performance, department stats, and complete student records.</p>
         </div>
+        <button onClick={fetchAnalytics} className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors shadow-sm">
+          <RefreshCw size={14} /> Refresh
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-         {/* Department Performance */}
-         <div className="glass-card rounded-[3rem] p-10 border-white/50 space-y-8">
-            <div className="flex justify-between items-center">
-               <div>
-                  <h4 className="text-xl font-black text-slate-900 tracking-tight uppercase">Department Performance</h4>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Placement rate by department</p>
-               </div>
-               <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl">
-                  <BarChart3 size={20} />
-               </div>
-            </div>
-            
-            <div className="space-y-6">
-               {(analyticsData.departmentStats || []).map((dept, i) => (
-                  <div key={i} className="space-y-3">
-                     <div className="flex justify-between items-end">
-                        <div>
-                           <p className="text-sm font-bold text-slate-900 uppercase tracking-tight">{dept.department}</p>
-                           <p className="text-[10px] font-bold text-slate-400">{dept.placed}/{dept.total} Students Placed</p>
-                        </div>
-                        <div className="text-right">
-                           <p className="text-sm font-black text-slate-900">{Number(dept.rate || 0).toFixed(1)}%</p>
-                           <p className="text-[10px] font-bold text-blue-600 uppercase">{formatPackage(dept.avgPackage)} Avg</p>
-                        </div>
-                     </div>
-                     <div className="w-full h-3 bg-slate-50 rounded-full overflow-hidden border border-slate-100">
-                        <div className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 shadow-[0_0_20px_rgba(59,130,246,0.5)] transition-all duration-1000" style={{ width: `${dept.rate}%` }} />
-                     </div>
-                  </div>
-               ))}
-            </div>
-         </div>
+      {/* Error */}
+      {error && (
+        <div className="flex items-center gap-3 p-4 bg-rose-50 border border-rose-200 rounded text-sm text-rose-700 font-medium">
+          <AlertCircle size={16} /> {error}
+        </div>
+      )}
 
-         {/* Corporate Impact */}
-         <div className="glass-card rounded-[3rem] p-10 border-white/50 flex flex-col justify-between">
-            <div className="flex justify-between items-center mb-8">
-               <div>
-                  <h4 className="text-xl font-black text-slate-900 tracking-tight uppercase">Recruiter Trends</h4>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Top companies hiring students</p>
-               </div>
-               <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl">
-                  <PieChart size={20} />
-               </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-               {analyticsData.companyStats.slice(0, 4).map((c, i) => (
-                  <div key={i} className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 hover:border-blue-200 transition-all group">
-                     <div className="flex items-center gap-3 mb-4">
-                        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm font-black group-hover:scale-110 transition-transform">{c.company[0]}</div>
-                        <p className="text-sm font-black text-slate-900 leading-tight truncate">{c.company}</p>
-                     </div>
-                     <div className="flex justify-between items-end">
-                        <div>
-                           <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Offers</p>
-                           <p className="text-lg font-black text-slate-900">{c.offers}</p>
-                        </div>
-                        <div className="text-right">
-                           <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Success</p>
-                           <p className="text-lg font-black text-emerald-600">{c.successRate}%</p>
-                        </div>
-                     </div>
-                  </div>
-               ))}
-            </div>
-
-            <button className="w-full mt-8 py-4 bg-slate-900 text-white rounded-[1.5rem] font-bold uppercase text-[10px] tracking-widest hover:shadow-2xl transition-all flex items-center justify-center gap-2 group">
-               View All Companies <ArrowUpRight size={14} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+      {/* Tabs */}
+      <div className="flex border-b border-slate-200 bg-white rounded-t overflow-x-auto">
+        {TABS.map(t => {
+          const Icon = t.icon;
+          return (
+            <button key={t.id} onClick={() => setTab(t.id)}
+              className={`flex items-center gap-2 px-6 py-3.5 text-xs font-bold uppercase tracking-widest border-b-2 transition-all whitespace-nowrap
+                ${tab === t.id ? 'border-blue-600 text-blue-600 bg-blue-50/40' : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'}`}>
+              <Icon size={14} /> {t.label}
             </button>
-         </div>
+          );
+        })}
       </div>
 
-      {/* Recent Success Feed */}
-      <div className="glass-card rounded-[3rem] border-white/50 overflow-hidden shadow-2xl shadow-slate-200/50">
-         <div className="p-8 border-b border-slate-50 flex justify-between items-center">
-            <h4 className="text-lg font-black text-slate-900 tracking-tight uppercase">Recent Placements</h4>
-            <span className="flex items-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-[9px] font-bold uppercase tracking-widest animate-pulse">
-               <div className="w-1.5 h-1.5 bg-emerald-600 rounded-full" /> Live Updates
-            </span>
-         </div>
-         <div className="overflow-x-auto">
-            <table className="w-full">
-               <thead>
-                  <tr className="bg-slate-50/50">
-                     <th className="px-8 py-5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest">Student</th>
-                     <th className="px-6 py-5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest">Department</th>
-                     <th className="px-6 py-5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest">Company</th>
-                     <th className="px-6 py-5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest">Package</th>
-                     <th className="px-8 py-5 text-right text-[10px] font-bold text-slate-400 uppercase tracking-widest">Date</th>
-                  </tr>
-               </thead>
-               <tbody className="divide-y divide-slate-50">
-                  {analyticsData.recentPlacements.map((p, i) => (
-                     <tr key={i} className="hover:bg-slate-50/50 transition-all group">
-                        <td className="px-8 py-5">
-                           <p className="text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight">{p.student}</p>
-                        </td>
-                        <td className="px-6 py-5">
-                           <span className="bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-lg font-bold uppercase tracking-widest text-[9px]">{p.department}</span>
-                        </td>
-                        <td className="px-6 py-5">
-                           <p className="text-xs font-bold text-slate-600 flex items-center gap-2"><Building2 size={12} className="text-slate-400" /> {p.company}</p>
-                        </td>
-                        <td className="px-6 py-5">
-                           <p className="text-sm font-bold text-slate-900">{formatPackage(p.package)}</p>
-                        </td>
-                        <td className="px-8 py-5 text-right">
-                           <p className="text-[10px] font-bold text-slate-400">{p.date}</p>
-                        </td>
-                     </tr>
-                  ))}
-               </tbody>
-            </table>
-         </div>
-      </div>
+      {/* ═══════════════════════════════════════════════════════════════════════
+          TAB: OVERVIEW
+      ═══════════════════════════════════════════════════════════════════════ */}
+      {tab === 'overview' && (
+        <div className="space-y-6">
+          {/* KPI Strip */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              { label: 'Total Students',   val: ov.totalStudents ?? 0,       icon: Users,    c: 'text-blue-600',   bg: 'bg-blue-50' },
+              { label: 'Placed Students',  val: ov.placedStudents ?? 0,      icon: Trophy,   c: 'text-emerald-600',bg: 'bg-emerald-50' },
+              { label: 'Placement Rate',   val: `${ov.placementRate ?? 0}%`, icon: Target,   c: 'text-purple-600', bg: 'bg-purple-50' },
+              { label: 'Total Applications',val:ov.totalApplications ?? 0,   icon: Activity, c: 'text-amber-600',  bg: 'bg-amber-50' },
+            ].map((k, i) => {
+              const Icon = k.icon;
+              return (
+                <div key={i} className="bg-white rounded border border-slate-200 shadow-sm p-5 flex items-start justify-between">
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{k.label}</p>
+                    <p className="text-2xl font-black text-slate-900">{k.val}</p>
+                  </div>
+                  <div className={`p-3 rounded ${k.bg} ${k.c}`}><Icon size={18} /></div>
+                </div>
+              );
+            })}
+          </div>
 
-      {/* Hidden Export Template */}
-      <div ref={targetRef} className="absolute left-[-9999px] top-0 w-[800px] bg-white text-slate-900 p-20 space-y-20">
-         <div className="text-center space-y-4">
-            <h1 className="text-5xl font-black tracking-tighter uppercase">Placement Summary Report</h1>
-            <p className="text-slate-400 font-bold uppercase tracking-[0.5em]">TPO OFFICE • {new Date().toLocaleDateString()}</p>
-         </div>
-         <div className="grid grid-cols-2 gap-20">
-            <div className="space-y-4">
-               <p className="text-xl font-black uppercase">Overall Statistics</p>
-               <div className="space-y-2 text-sm">
-                  <p>Total Students: {analyticsData.overview.totalStudents}</p>
-                  <p>Students Placed: {analyticsData.overview.placedStudents}</p>
-                  <p>Placement Rate: {analyticsData.overview.placementRate}%</p>
-               </div>
+          {/* Dept + Company grid */}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            {/* Department Performance */}
+            <div className="bg-white rounded border border-slate-200 shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
+                <BarChart3 size={15} className="text-blue-500" />
+                <h3 className="text-sm font-bold text-slate-900">Department Performance</h3>
+              </div>
+              <div className="p-6 space-y-5">
+                {(analytics.departmentStats || []).length === 0 && (
+                  <p className="text-sm text-slate-400 text-center py-8">No department data available.</p>
+                )}
+                {(analytics.departmentStats || []).map((d, i) => (
+                  <div key={i}>
+                    <div className="flex justify-between text-xs font-bold text-slate-700 mb-1.5">
+                      <span>{d.department}</span>
+                      <span className="text-slate-500">{d.placed}/{d.total} · <span className="text-blue-600">{Number(d.rate || 0).toFixed(1)}%</span></span>
+                    </div>
+                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-blue-500 rounded-full transition-all duration-700" style={{ width: `${Math.min(100, d.rate || 0)}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-         </div>
-      </div>
+
+            {/* Top Recruiters */}
+            <div className="bg-white rounded border border-slate-200 shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
+                <Building2 size={15} className="text-emerald-500" />
+                <h3 className="text-sm font-bold text-slate-900">Top Recruiters</h3>
+              </div>
+              <div className="divide-y divide-slate-100">
+                {(analytics.companyStats || []).length === 0 && (
+                  <p className="text-sm text-slate-400 text-center py-12">No recruiter data available.</p>
+                )}
+                {(analytics.companyStats || []).slice(0, 6).map((c, i) => (
+                  <div key={i} className="flex items-center justify-between px-6 py-3 hover:bg-slate-50 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-slate-900 rounded text-white flex items-center justify-center font-bold text-xs">
+                        {(c.company || '?')[0].toUpperCase()}
+                      </div>
+                      <span className="text-sm font-bold text-slate-800 truncate max-w-[160px]">{c.company}</span>
+                    </div>
+                    <div className="flex items-center gap-4 text-right">
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase">Offers</p>
+                        <p className="text-sm font-black text-slate-900">{c.offers ?? 0}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase">Rate</p>
+                        <p className="text-sm font-black text-emerald-600">{c.successRate ?? 0}%</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          TAB: PLACEMENT RECORDS
+      ═══════════════════════════════════════════════════════════════════════ */}
+      {tab === 'records' && (
+        <div className="bg-white rounded border border-slate-200 shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Trophy size={15} className="text-amber-500" />
+              <h3 className="text-sm font-bold text-slate-900">Recent Placement Records</h3>
+              <span className="text-[10px] font-bold bg-slate-100 text-slate-500 px-2 py-0.5 rounded">
+                {(analytics.recentPlacements || []).length} records
+              </span>
+            </div>
+            <button onClick={exportPlacementExcel}
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded text-xs font-bold hover:bg-emerald-100 transition-colors">
+              <FileSpreadsheet size={13} /> Export Excel
+            </button>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200">
+                  {['Student', 'Branch', 'Company', 'Package', 'Placement Date'].map(h => (
+                    <th key={h} className="px-6 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-widest">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {(analytics.recentPlacements || []).length === 0 ? (
+                  <tr><td colSpan={5} className="px-6 py-16 text-center text-sm text-slate-400">No placement records found.</td></tr>
+                ) : (
+                  (analytics.recentPlacements || []).map((p, i) => (
+                    <tr key={i} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-6 py-4 font-bold text-slate-900">{p.student}</td>
+                      <td className="px-6 py-4">
+                        <span className="bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded text-[10px] font-bold uppercase">{p.department || '—'}</span>
+                      </td>
+                      <td className="px-6 py-4 text-slate-700 font-semibold">{p.company || '—'}</td>
+                      <td className="px-6 py-4 font-bold text-slate-900">{fmtPkg(p.package)}</td>
+                      <td className="px-6 py-4 text-slate-500 text-xs">{fmtDate(p.date)}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          TAB: MASTER DATA
+      ═══════════════════════════════════════════════════════════════════════ */}
+      {tab === 'master' && (
+        <div className="space-y-4">
+          {/* Controls */}
+          <div className="bg-white rounded border border-slate-200 shadow-sm p-4">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input value={stuSearch} onChange={e => { setStuSearch(e.target.value); setStuPage(1); }}
+                  placeholder="Search by name, roll no, email…"
+                  className="w-full pl-9 pr-4 py-2.5 text-sm border border-slate-200 rounded focus:outline-none focus:border-slate-400 bg-slate-50 placeholder-slate-400" />
+              </div>
+              <select value={stuDept} onChange={e => { setStuDept(e.target.value); setStuPage(1); }}
+                className="px-4 py-2.5 text-sm border border-slate-200 rounded bg-slate-50 font-bold text-slate-700 focus:outline-none focus:border-slate-400 appearance-none cursor-pointer">
+                <option value="">All Branches</option>
+                {['CSE','IT','ECE','ME','CE','EE','AI&DS','Other'].map(b => <option key={b} value={b}>{b}</option>)}
+              </select>
+              <select value={stuStatus} onChange={e => { setStuStatus(e.target.value); setStuPage(1); }}
+                className="px-4 py-2.5 text-sm border border-slate-200 rounded bg-slate-50 font-bold text-slate-700 focus:outline-none focus:border-slate-400 appearance-none cursor-pointer">
+                <option value="">All Students</option>
+                <option value="Placed">Placed</option>
+                <option value="Not Placed">Not Placed</option>
+              </select>
+              <button onClick={exportExcel}
+                className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white text-xs font-bold rounded hover:bg-slate-800 transition-colors shrink-0">
+                <FileSpreadsheet size={13} /> Export Excel
+              </button>
+            </div>
+          </div>
+
+          {/* Table */}
+          <div className="bg-white rounded border border-slate-200 shadow-sm overflow-hidden">
+            <div className="px-6 py-3 border-b border-slate-100 flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-500">{stuTotal} students total</span>
+              <span className="text-xs text-slate-400">Page {stuPage} of {stuPages}</span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm min-w-[900px]">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-200">
+                    {['#','Name','Roll No','Branch','CGPA','Grad Year','Phone','Status','Company','Package','Verification'].map(h => (
+                      <th key={h} className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {stuLoading ? (
+                    <tr><td colSpan={11} className="py-16 text-center">
+                      <Loader2 className="animate-spin w-6 h-6 text-slate-400 mx-auto" />
+                    </td></tr>
+                  ) : students.length === 0 ? (
+                    <tr><td colSpan={11} className="py-16 text-center text-sm text-slate-400">No students found.</td></tr>
+                  ) : students.map((s, i) => (
+                    <tr key={s._id || i} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-4 py-3 text-xs text-slate-400 font-bold">{(stuPage - 1) * PAGE_SIZE + i + 1}</td>
+                      <td className="px-4 py-3 font-bold text-slate-900 whitespace-nowrap">{s.name}</td>
+                      <td className="px-4 py-3 text-slate-600 font-mono text-xs">{s.rollNumber || '—'}</td>
+                      <td className="px-4 py-3">
+                        <span className="bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded text-[10px] font-bold">{s.branch || '—'}</span>
+                      </td>
+                      <td className="px-4 py-3 font-bold text-slate-800">{s.cgpa ?? '—'}</td>
+                      <td className="px-4 py-3 text-slate-600">{s.graduationYear || '—'}</td>
+                      <td className="px-4 py-3 text-slate-600 text-xs">{s.phoneNumber || '—'}</td>
+                      <td className="px-4 py-3">
+                        {s.isPlaced
+                          ? <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded"><CheckCircle2 size={10} />Placed</span>
+                          : <span className="flex items-center gap-1 text-[10px] font-bold text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded"><XCircle size={10} />Not Placed</span>}
+                      </td>
+                      <td className="px-4 py-3 text-slate-700 text-xs whitespace-nowrap">{s.placementDetails?.company || '—'}</td>
+                      <td className="px-4 py-3 font-bold text-slate-900 whitespace-nowrap">{fmtPkg(s.placementDetails?.package?.amount)}</td>
+                      <td className="px-4 py-3">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase
+                          ${s.verificationStatus === 'verified'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : s.verificationStatus === 'rejected'
+                            ? 'bg-rose-50 text-rose-700 border-rose-200'
+                            : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                          {s.verificationStatus || 'pending'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination */}
+            {stuPages > 1 && (
+              <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between">
+                <span className="text-xs text-slate-500 font-medium">
+                  Showing {(stuPage - 1) * PAGE_SIZE + 1}–{Math.min(stuPage * PAGE_SIZE, stuTotal)} of {stuTotal}
+                </span>
+                <div className="flex items-center gap-2">
+                  <button disabled={stuPage <= 1} onClick={() => fetchStudents(stuPage - 1)}
+                    className="w-8 h-8 rounded border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                    <ChevronLeft size={14} />
+                  </button>
+                  {Array.from({ length: Math.min(5, stuPages) }, (_, i) => {
+                    const p = stuPage <= 3 ? i + 1 : stuPage - 2 + i;
+                    if (p < 1 || p > stuPages) return null;
+                    return (
+                      <button key={p} onClick={() => fetchStudents(p)}
+                        className={`w-8 h-8 rounded border text-xs font-bold transition-colors
+                          ${p === stuPage ? 'bg-slate-900 text-white border-slate-900' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                        {p}
+                      </button>
+                    );
+                  })}
+                  <button disabled={stuPage >= stuPages} onClick={() => fetchStudents(stuPage + 1)}
+                    className="w-8 h-8 rounded border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                    <ChevronRight size={14} />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

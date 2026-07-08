@@ -251,7 +251,26 @@ const jobPostingSchema = new mongoose.Schema({
   },
   deadline: Date,
   postedAt: { type: Date, default: Date.now },
-  targetColleges: [{ type: String, trim: true }]
+  targetColleges: [{ type: String, trim: true }],
+
+  // On-campus: TPOs selected by company for this drive
+  targetTPOs: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'TPO'
+  }],
+
+  // Per-TPO approval status (populated on submission)
+  collegeApprovals: [{
+    tpo: { type: mongoose.Schema.Types.ObjectId, ref: 'TPO', required: true },
+    instituteName: { type: String, trim: true },
+    status: {
+      type: String,
+      enum: ['pending', 'approved', 'rejected'],
+      default: 'pending'
+    },
+    comment: { type: String, trim: true },
+    respondedAt: { type: Date }
+  }]
 }, {
   timestamps: true
 });
@@ -315,6 +334,8 @@ jobPostingSchema.index({ eligibleBranches: 1 });   // split from compound
 jobPostingSchema.index({ isActive: 1, category: 1 });
 jobPostingSchema.index({ type: 1, isActive: 1 });
 jobPostingSchema.index({ targetColleges: 1, isActive: 1 });
+jobPostingSchema.index({ 'targetTPOs': 1 });
+jobPostingSchema.index({ 'collegeApprovals.tpo': 1, 'collegeApprovals.status': 1 });
 jobPostingSchema.index({ createdBy: 1, isActive: 1 });
 jobPostingSchema.index({ postedAt: -1 });
 

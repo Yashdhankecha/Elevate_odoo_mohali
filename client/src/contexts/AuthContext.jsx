@@ -15,6 +15,16 @@ import {
 
 const AuthContext = createContext();
 
+// Safely parse a JSON string from localStorage; returns null on any failure
+const safeParseJSON = (str) => {
+  if (!str || str === 'undefined' || str === 'null') return null;
+  try {
+    return JSON.parse(str);
+  } catch {
+    return null;
+  }
+};
+
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -23,91 +33,89 @@ export const useAuth = () => {
   return context;
 };
 
+// Read token from localStorage safely — treats 'undefined'/'null' strings as absent
+const safeGetToken = () => {
+  const t = localStorage.getItem('token');
+  if (!t || t === 'undefined' || t === 'null') {
+    localStorage.removeItem('token');
+    return null;
+  }
+  return t;
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [token, setToken] = useState(localStorage.getItem('token'));
+  const [token, setToken] = useState(safeGetToken);
   const navigate = useNavigate();
 
   // Check if user is authenticated on app load
   useEffect(() => {
     const checkAuth = async (retryCount = 0) => {
-      if (token) {
-        try {
+      try {
+        if (token) {
           const response = await getCurrentUser();
-          setUser(response.user);
+          // ApiResponse shape: { statusCode, data: { user }, message, success }
+          const userData = response.data?.user ?? response.user;
+          setUser(userData);
 
           // Check if user is not verified (email) and redirect to not-verified page
-          if (response.user && !response.user.isVerified) {
+          if (userData && !userData.isVerified) {
             navigate('/not-verified', {
               state: {
-                email: response.user.email,
-                role: response.user.role,
+                email: userData.email,
+                role: userData.role,
                 type: 'email',
                 message: 'Please verify your email address to access your dashboard.'
               }
             });
           }
           // Check if student is pending TPO approval
-          else if (response.user && response.user.role === 'student' && response.user.verificationStatus && response.user.verificationStatus !== 'verified') {
+          else if (userData && userData.role === 'student' && userData.verificationStatus && userData.verificationStatus !== 'verified') {
             navigate('/not-verified', {
               state: {
-                email: response.user.email,
-                role: response.user.role,
+                email: userData.email,
+                role: userData.role,
                 type: 'tpo_approval',
-                verificationStatus: response.user.verificationStatus,
-                message: response.user.verificationStatus === 'rejected'
+                verificationStatus: userData.verificationStatus,
+                message: userData.verificationStatus === 'rejected'
                   ? 'Your profile has been rejected by the TPO. Please contact your college administration.'
                   : 'Your profile is pending approval from your TPO. Please wait for verification.'
               }
             });
           }
-        } catch (error) {
-          console.error('Auth check failed:', error);
+        } else {
+          // No token — clear any stale user data and reset state
+          localStorage.removeItem('user');
+          setUser(null);
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error);
 
-          // Only remove token if it's a 401 (unauthorized) or 403 (forbidden) error
-          // This indicates the token is invalid or expired
-          if (error.response?.status === 401 || error.response?.status === 403) {
-            console.log('Token is invalid or expired, removing from storage');
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            setToken(null);
-            setUser(null);
-          } else {
-            // For other errors (network issues, server errors), keep the token
-            // and try to get user from localStorage as fallback
-            console.log('Non-auth error, keeping token and trying localStorage fallback');
-            const storedUser = localStorage.getItem('user');
-            if (storedUser) {
-              try {
-                const userData = JSON.parse(storedUser);
-                setUser(userData);
-              } catch (parseError) {
-                console.error('Failed to parse stored user data:', parseError);
-              }
-            }
+        // Remove token on 401/403 — it is invalid or expired
+        if (error.response?.status === 401 || error.response?.status === 403) {
+          console.log('Token is invalid or expired, removing from storage');
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          setToken(null);
+          setUser(null);
+        } else {
+          // Network / server error — use cached user as fallback
+          console.log('Non-auth error, falling back to localStorage');
+          const storedUser = safeParseJSON(localStorage.getItem('user'));
+          if (storedUser) setUser(storedUser);
 
-            // Retry once for network errors (but not for auth errors)
-            if (retryCount === 0 && (!error.response || error.response.status >= 500)) {
-              console.log('Retrying auth check due to server error...');
-              setTimeout(() => checkAuth(1), 1000);
-              return; // Don't set loading to false yet
-            }
+          // Retry once on server errors (5xx / no response)
+          if (retryCount === 0 && (!error.response || error.response.status >= 500)) {
+            console.log('Retrying auth check due to server error...');
+            setTimeout(() => checkAuth(1), 1000);
+            return; // keep loading true while retrying
           }
         }
-      } else {
-        // No token, try to get user from localStorage as fallback
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-          try {
-            const userData = JSON.parse(storedUser);
-            setUser(userData);
-          } catch (parseError) {
-            console.error('Failed to parse stored user data:', parseError);
-          }
-        }
+      } finally {
+        // Always release the loading gate unless we explicitly returned above
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     checkAuth();
@@ -133,7 +141,8 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const response = await loginUser({ email, password });
-      const { token: newToken, user: userData } = response;
+      // Server wraps payload in ApiResponse: { statusCode, data: { token, user }, message, success }
+      const { token: newToken, user: userData } = response.data ?? response;
 
       localStorage.setItem('token', newToken);
       localStorage.setItem('user', JSON.stringify(userData));
@@ -229,7 +238,8 @@ export const AuthProvider = ({ children }) => {
   const verifyOTP = async (userId, otp) => {
     try {
       const response = await verifyOTPApi(userId, otp);
-      const { token: newToken, user: userData } = response;
+      // Server wraps payload in ApiResponse: { statusCode, data: { token, user }, message, success }
+      const { token: newToken, user: userData } = response.data ?? response;
 
       localStorage.setItem('token', newToken);
       localStorage.setItem('user', JSON.stringify(userData));
@@ -311,6 +321,7 @@ export const AuthProvider = ({ children }) => {
       console.error('Logout error:', error);
     } finally {
       localStorage.removeItem('token');
+      localStorage.removeItem('user');
       setToken(null);
       setUser(null);
       toast.success('Logged out successfully');

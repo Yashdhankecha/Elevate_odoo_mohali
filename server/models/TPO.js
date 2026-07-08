@@ -106,6 +106,15 @@ const tpoSchema = new mongoose.Schema({
     placedStudents: Number,
     averagePackage: Number,
     highestPackage: Number
+  }],
+
+  // Companies that have conducted approved on-campus drives at this college
+  partnerCompanies: [{
+    company: { type: mongoose.Schema.Types.ObjectId, ref: 'Company' },
+    companyName: { type: String, trim: true },
+    industry: { type: String, trim: true },
+    addedAt: { type: Date, default: Date.now },
+    jobPostingId: { type: mongoose.Schema.Types.ObjectId, ref: 'JobPosting' }
   }]
 }, {
   timestamps: true
@@ -189,6 +198,10 @@ tpoSchema.methods.toJSON = function() {
   delete tpo.passwordResetToken;
   return tpo;
 };
+
+// Indexes for efficient queries
+tpoSchema.index({ status: 1 });
+tpoSchema.index({ instituteName: 1 });
 
 module.exports = mongoose.model('TPO', tpoSchema);
 

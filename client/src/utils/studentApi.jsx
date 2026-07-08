@@ -4,10 +4,10 @@ import api from './api';
 export const getStudentProfile = async () => {
   try {
     const response = await api.get('/auth/me');
-    if (response.success) {
-      return response.user;
+    if (response.data.success) {
+      return response.data.user;
     }
-    throw new Error(response.message || 'Failed to fetch profile');
+    throw new Error(response.data.message || 'Failed to fetch profile');
   } catch (error) {
     console.error('Error fetching student profile:', error);
     throw error;
@@ -18,10 +18,10 @@ export const getStudentProfile = async () => {
 export const getStudentDetails = async (studentId) => {
   try {
     const response = await api.get(`/user/students/${studentId}`);
-    if (response.success) {
-      return response.data;
+    if (response.data.success) {
+      return response.data.data;
     }
-    throw new Error(response.message || 'Failed to fetch student details');
+    throw new Error(response.data.message || 'Failed to fetch student details');
   } catch (error) {
     console.error('Error fetching student details:', error);
     throw error;
@@ -39,10 +39,10 @@ export const getStudentApplications = async (filters = {}) => {
     });
 
     const response = await api.get(`/user/applications?${queryParams.toString()}`);
-    if (response.success) {
-      return response.data;
+    if (response.data.success) {
+      return response.data.data;
     }
-    throw new Error(response.message || 'Failed to fetch applications');
+    throw new Error(response.data.message || 'Failed to fetch applications');
   } catch (error) {
     console.error('Error fetching applications:', error);
     throw error;
@@ -53,10 +53,10 @@ export const getStudentApplications = async (filters = {}) => {
 export const getStudentStats = async () => {
   try {
     const response = await api.get('/user/student-stats');
-    if (response.success) {
-      return response.data;
+    if (response.data.success) {
+      return response.data.data;
     }
-    throw new Error(response.message || 'Failed to fetch student statistics');
+    throw new Error(response.data.message || 'Failed to fetch student statistics');
   } catch (error) {
     console.error('Error fetching student statistics:', error);
     throw error;
@@ -67,10 +67,10 @@ export const getStudentStats = async () => {
 export const updateStudentProfile = async (profileData) => {
   try {
     const response = await api.put('/user/student-profile', profileData);
-    if (response.success) {
-      return response.data;
+    if (response.data.success) {
+      return response.data.data;
     }
-    throw new Error(response.message || 'Failed to update profile');
+    throw new Error(response.data.message || 'Failed to update profile');
   } catch (error) {
     console.error('Error updating student profile:', error);
     throw error;
@@ -81,10 +81,10 @@ export const updateStudentProfile = async (profileData) => {
 export const getSkillProgress = async () => {
   try {
     const response = await api.get('/user/skill-progress');
-    if (response.success) {
-      return response.data;
+    if (response.data.success) {
+      return response.data.data;
     }
-    throw new Error(response.message || 'Failed to fetch skill progress');
+    throw new Error(response.data.message || 'Failed to fetch skill progress');
   } catch (error) {
     console.error('Error fetching skill progress:', error);
     throw error;
@@ -95,10 +95,10 @@ export const getSkillProgress = async () => {
 export const getPracticeHistory = async () => {
   try {
     const response = await api.get('/user/practice-history');
-    if (response.success) {
-      return response.data;
+    if (response.data.success) {
+      return response.data.data;
     }
-    throw new Error(response.message || 'Failed to fetch practice history');
+    throw new Error(response.data.message || 'Failed to fetch practice history');
   } catch (error) {
     console.error('Error fetching practice history:', error);
     throw error;
@@ -109,10 +109,10 @@ export const getPracticeHistory = async () => {
 export const getStudentAchievements = async () => {
   try {
     const response = await api.get('/user/achievements');
-    if (response.success) {
-      return response.data;
+    if (response.data.success) {
+      return response.data.data;
     }
-    throw new Error(response.message || 'Failed to fetch achievements');
+    throw new Error(response.data.message || 'Failed to fetch achievements');
   } catch (error) {
     console.error('Error fetching achievements:', error);
     throw error;
@@ -123,10 +123,10 @@ export const getStudentAchievements = async () => {
 export const getStudentExperience = async () => {
   try {
     const response = await api.get('/user/experience');
-    if (response.success) {
-      return response.data;
+    if (response.data.success) {
+      return response.data.data;
     }
-    throw new Error(response.message || 'Failed to fetch experience');
+    throw new Error(response.data.message || 'Failed to fetch experience');
   } catch (error) {
     console.error('Error fetching experience:', error);
     throw error;
@@ -137,10 +137,10 @@ export const getStudentExperience = async () => {
 export const getStudentAlerts = async () => {
   try {
     const response = await api.get('/user/alerts');
-    if (response.success) {
-      return response.data;
+    if (response.data.success) {
+      return response.data.data;
     }
-    throw new Error(response.message || 'Failed to fetch alerts');
+    throw new Error(response.data.message || 'Failed to fetch alerts');
   } catch (error) {
     console.error('Error fetching alerts:', error);
     throw error;
@@ -151,10 +151,10 @@ export const getStudentAlerts = async () => {
 export const getPerformanceAnalytics = async (timeRange = '30days') => {
   try {
     const response = await api.get(`/user/performance-analytics?range=${timeRange}`);
-    if (response.success) {
-      return response.data;
+    if (response.data.success) {
+      return response.data.data;
     }
-    throw new Error(response.message || 'Failed to fetch performance analytics');
+    throw new Error(response.data.message || 'Failed to fetch performance analytics');
   } catch (error) {
     console.error('Error fetching performance analytics:', error);
     throw error;

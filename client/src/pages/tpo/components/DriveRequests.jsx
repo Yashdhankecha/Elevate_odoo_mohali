@@ -706,7 +706,8 @@ const DriveRequests = () => {
         setLoading(true);
         try {
             const data = await tpoApi.getDriveRequests({ status: statusFilter, search });
-            setDrives(data?.drives || []);
+            // API returns driveRequests array
+            setDrives(data?.driveRequests || data?.drives || []);
         } catch {
             toast.error('Failed to load drive requests');
         } finally {

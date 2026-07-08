@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
     Briefcase,
@@ -13,17 +13,138 @@ import {
     CheckCircle2,
     Sparkles,
     Globe,
-    Zap
+    Zap,
+    GraduationCap,
+    Award
 } from 'lucide-react';
+import axios from 'axios';
+
+// ── Animated counter hook ──────────────────────────────
+const useCountUp = (target, duration = 1800, start = false) => {
+    const [count, setCount] = useState(0);
+    useEffect(() => {
+        if (!start || target === 0) return;
+        let startTime = null;
+        const step = (timestamp) => {
+            if (!startTime) startTime = timestamp;
+            const progress = Math.min((timestamp - startTime) / duration, 1);
+            // easeOutQuart
+            const eased = 1 - Math.pow(1 - progress, 4);
+            setCount(Math.floor(eased * target));
+            if (progress < 1) requestAnimationFrame(step);
+            else setCount(target);
+        };
+        requestAnimationFrame(step);
+    }, [target, duration, start]);
+    return count;
+};
+
+// ── Single stat display ────────────────────────────────
+const StatCard = ({ label, rawValue, suffix = '', prefix = '', icon: Icon, loading, started }) => {
+    const numericValue = typeof rawValue === 'number' ? rawValue : parseFloat(rawValue) || 0;
+    const isDecimal = String(rawValue).includes('.');
+    const animated = useCountUp(
+        isDecimal ? Math.floor(numericValue * 10) : numericValue,
+        1800,
+        started && !loading
+    );
+
+    const displayValue = loading
+        ? '—'
+        : isDecimal
+            ? (animated / 10).toFixed(1)
+            : animated;
+
+    return (
+        <div className="text-center group">
+            <div className="flex justify-center mb-4 text-slate-900">
+                <div className="w-12 h-12 bg-white border border-slate-200 rounded-xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-300">
+                    <Icon className="w-6 h-6" />
+                </div>
+            </div>
+            <div className="text-4xl lg:text-5xl font-bold text-slate-900 mb-2 tracking-tight tabular-nums">
+                {prefix}{displayValue}{suffix}
+            </div>
+            <div className="text-slate-500 font-medium uppercase tracking-wider text-sm">{label}</div>
+        </div>
+    );
+};
 
 const Home = () => {
     const [scrolled, setScrolled] = useState(false);
+    const [stats, setStats] = useState(null);
+    const [statsLoading, setStatsLoading] = useState(true);
+    const [statsStarted, setStatsStarted] = useState(false);
+    const statsRef = useRef(null);
 
+    // Scroll listener for navbar
     useEffect(() => {
         const handleScroll = () => setScrolled(window.scrollY > 20);
         window.addEventListener('scroll', handleScroll);
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
+
+    // Fetch real stats from DB
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const base = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+                const { data } = await axios.get(`${base}/stats/public`);
+                if (data.success) setStats(data.data);
+            } catch (err) {
+                console.warn('Could not fetch homepage stats:', err.message);
+            } finally {
+                setStatsLoading(false);
+            }
+        };
+        fetchStats();
+    }, []);
+
+    // Intersection observer to trigger count-up when stats section is visible
+    useEffect(() => {
+        if (!statsRef.current) return;
+        const observer = new IntersectionObserver(
+            ([entry]) => { if (entry.isIntersecting) setStatsStarted(true); },
+            { threshold: 0.3 }
+        );
+        observer.observe(statsRef.current);
+        return () => observer.disconnect();
+    }, [statsRef]);
+
+    // Build stats array from live data (with fallback labels)
+    const statItems = stats
+        ? [
+            {
+                label: 'Registered Students',
+                rawValue: stats.totalStudents,
+                suffix: stats.totalStudents >= 1000 ? '+' : '',
+                icon: Users,
+            },
+            {
+                label: 'Partner Companies',
+                rawValue: stats.totalCompanies,
+                suffix: stats.totalCompanies >= 100 ? '+' : '',
+                icon: Building2,
+            },
+            {
+                label: 'Placement Rate',
+                rawValue: stats.placementRate,
+                suffix: '%',
+                icon: CheckCircle2,
+            },
+            {
+                label: 'Avg Package (LPA)',
+                rawValue: stats.avgPackageLPA || 0,
+                prefix: '₹',
+                icon: TrendingUp,
+            },
+        ]
+        : [
+            { label: 'Active Students', rawValue: 0, suffix: '', icon: Users },
+            { label: 'Partner Companies', rawValue: 0, suffix: '', icon: Building2 },
+            { label: 'Placement Rate', rawValue: 0, suffix: '%', icon: CheckCircle2 },
+            { label: 'Avg Package (LPA)', rawValue: 0, prefix: '₹', icon: TrendingUp },
+        ];
 
     return (
         <div className="min-h-screen bg-white font-sans text-slate-900 selection:bg-slate-100 selection:text-slate-900">
@@ -120,7 +241,6 @@ const Home = () => {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
                     <p className="text-sm font-semibold text-slate-500 uppercase tracking-widest mb-6">Trusted by leading institutions</p>
                     <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16 opacity-50 grayscale hover:grayscale-0 transition-all duration-500">
-                        {/* Placeholder Company Logos - Using text for simplicity, replace with SVGs */}
                         <span className="text-xl font-bold font-serif">ACME Corp</span>
                         <span className="text-xl font-bold font-mono">GlobalTech</span>
                         <span className="text-xl font-bold">InfiniteLoop</span>
@@ -200,25 +320,52 @@ const Home = () => {
                 </div>
             </div>
 
-            {/* METRICS / STATS */}
-            <div className="py-24 bg-slate-50 border-y border-slate-200">
+            {/* METRICS / STATS — Live from DB */}
+            <div ref={statsRef} className="py-24 bg-slate-50 border-y border-slate-200">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    {/* Section header */}
+                    <div className="text-center mb-16">
+                        <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">Live Platform Numbers</p>
+                        <h2 className="text-3xl md:text-4xl font-bold text-slate-900">
+                            Real impact, real results
+                        </h2>
+                    </div>
+
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-8 lg:gap-12">
-                        {[
-                            { label: 'Active Students', value: '10k+', icon: Users },
-                            { label: 'Partner Companies', value: '500+', icon: Building2 },
-                            { label: 'Successful Hires', value: '85%', icon: CheckCircle2 },
-                            { label: 'Avg Package (LPA)', value: '12', icon: TrendingUp },
-                        ].map((stat, idx) => (
-                            <div key={idx} className="text-center">
-                                <div className="flex justify-center mb-4 text-slate-900">
-                                    <stat.icon className="w-8 h-8" />
-                                </div>
-                                <div className="text-4xl lg:text-5xl font-bold text-slate-900 mb-2 tracking-tight">{stat.value}</div>
-                                <div className="text-slate-500 font-medium uppercase tracking-wider text-sm">{stat.label}</div>
-                            </div>
+                        {statItems.map((stat, idx) => (
+                            <StatCard
+                                key={idx}
+                                label={stat.label}
+                                rawValue={stat.rawValue}
+                                suffix={stat.suffix || ''}
+                                prefix={stat.prefix || ''}
+                                icon={stat.icon}
+                                loading={statsLoading}
+                                started={statsStarted}
+                            />
                         ))}
                     </div>
+
+                    {/* Additional secondary stats row */}
+                    {stats && (
+                        <div className="mt-14 grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-3xl mx-auto">
+                            {[
+                                { label: 'Active Job Postings', value: stats.activeJobs, icon: Briefcase },
+                                { label: 'Total Applications', value: stats.totalApplications, icon: Award },
+                                { label: 'Registered Colleges', value: stats.totalTPOs, icon: GraduationCap },
+                            ].map((item, i) => (
+                                <div key={i} className="flex items-center gap-4 bg-white border border-slate-200 rounded-xl px-5 py-4 shadow-sm">
+                                    <div className="w-10 h-10 bg-slate-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                                        <item.icon className="w-5 h-5 text-slate-700" />
+                                    </div>
+                                    <div>
+                                        <p className="text-xl font-bold text-slate-900 tabular-nums">{item.value.toLocaleString()}</p>
+                                        <p className="text-xs text-slate-500 font-medium">{item.label}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -226,7 +373,7 @@ const Home = () => {
             <div className="py-24 bg-white">
                 <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
                     <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6">
-                        Ready to transform specific <br />
+                        Ready to transform <br />
                         <span className="text-slate-900">campus placements?</span>
                     </h2>
                     <p className="text-xl text-slate-600 mb-10 max-w-2xl mx-auto">
@@ -283,7 +430,6 @@ const Home = () => {
                     <div className="pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
                         <p>&copy; {new Date().getFullYear()} Elevate Inc. All rights reserved.</p>
                         <div className="flex gap-6">
-                            {/* Social Icons Placeholder */}
                             <div className="w-6 h-6 bg-slate-800 rounded hover:bg-slate-700 transition-colors cursor-pointer"></div>
                             <div className="w-6 h-6 bg-slate-800 rounded hover:bg-slate-700 transition-colors cursor-pointer"></div>
                             <div className="w-6 h-6 bg-slate-800 rounded hover:bg-slate-700 transition-colors cursor-pointer"></div>

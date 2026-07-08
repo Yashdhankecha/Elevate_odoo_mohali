@@ -7,7 +7,6 @@ import { Loader2, ShieldCheck, Key, Trash2, Camera, Mail, Calendar, Settings, Bu
 import toast from 'react-hot-toast';
 
 import Sidebar from './components/Sidebar';
-import TopNavbar from './components/TopNavbar';
 import CompanyProfileComponent from './components/CompanyProfile';
 
 const CompanyProfilePage = () => {
@@ -75,8 +74,6 @@ const CompanyProfilePage = () => {
             </div>
 
             <div className={`flex-1 transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-72'} relative min-w-0`}>
-                <TopNavbar toggleSidebar={toggleSidebar} sidebarCollapsed={sidebarCollapsed} />
-
                 <main className="pt-8 px-4 sm:px-6 lg:px-8 pb-12 w-full max-w-[1600px] mx-auto">
                     {/* Enhanced Profile Header */}
                     <div className="bg-white border border-slate-200 shadow-sm rounded p-6 sm:p-8 lg:p-10 mb-8 relative">

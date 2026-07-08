@@ -8,19 +8,19 @@
  * Run: node scripts/seedJobs.js
  */
 
+require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 const mongoose = require('mongoose');
 const JobPosting = require('../models/JobPosting');
 const Company = require('../models/Company');
 const TPO = require('../models/TPO');
 
-const MONGODB_DIRECT_URI =
-    'mongodb://tripod:karanharshyash@ac-kauqk1j-shard-00-00.lb9dcwd.mongodb.net:27017,' +
-    'ac-kauqk1j-shard-00-01.lb9dcwd.mongodb.net:27017,' +
-    'ac-kauqk1j-shard-00-02.lb9dcwd.mongodb.net:27017/' +
-    'elevate_odoo_mohali?ssl=true&replicaSet=atlas-rh3iy8-shard-0&authSource=admin&retryWrites=true&w=majority';
+if (!process.env.MONGODB_URI) {
+    console.error('❌ MONGODB_URI not set — add it to server/.env');
+    process.exit(1);
+}
 
 async function seed() {
-    await mongoose.connect(MONGODB_DIRECT_URI, { family: 4 });
+    await mongoose.connect(process.env.MONGODB_URI, { family: 4 });
     console.log('✅ Connected to MongoDB');
 
     // ── Lookup company ──────────────────────────────────────────────────────────

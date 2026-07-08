@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { Menu } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import DashboardOverview from './components/DashboardOverview';
 import JobManagement from './components/JobManagement';
@@ -8,7 +9,7 @@ import ReportsAnalytics from './components/ReportsAnalytics';
 import ApprovalPending from '../tpo/components/ApprovalPending';
 import JobDetailedView from './components/JobDetailedView';
 import Notifications from './components/Notifications';
-import TopNavbar from './components/TopNavbar';
+
 
 const CompanyDashboard = () => {
   const { section, id } = useParams();
@@ -92,7 +93,15 @@ const CompanyDashboard = () => {
       />
       
       <div className={`transition-all duration-500 ease-in-out min-h-screen flex-1 relative z-10 ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-72'}`}>
-        <TopNavbar toggleSidebar={toggleSidebar} sidebarCollapsed={sidebarCollapsed} />
+        {/* Mobile Header */}
+        <header className="lg:hidden bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-40 px-4 py-3 flex items-center justify-between">
+           <button onClick={toggleSidebar} className="p-2 text-slate-600 hover:bg-slate-50 rounded-lg">
+              <Menu size={24} />
+           </button>
+           <h1 className="text-lg font-black text-slate-900 tracking-tighter uppercase">Company</h1>
+           <div className="w-10" />
+        </header>
+
         <main className="p-4 sm:p-6 lg:p-8 pt-6">
           <div className="max-w-[1600px] mx-auto animate-fade-in">
             {renderContent()}

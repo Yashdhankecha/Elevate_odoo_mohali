@@ -7,7 +7,7 @@ import { Loader2, ShieldCheck, Key, Trash2, Camera, Mail, Calendar, Settings } f
 import toast from 'react-hot-toast';
 
 import Sidebar from './components/Sidebar';
-import TopNavbar from './components/TopNavbar';
+    
 
 const TPOProfilePage = () => {
     const { user, changePassword, deleteAccount } = useAuth();

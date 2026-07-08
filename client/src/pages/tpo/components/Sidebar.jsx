@@ -38,7 +38,6 @@ const Sidebar = ({
     { id: 'students', label: 'Student Management', icon: Users },
     { id: 'companies', label: 'Company Partners', icon: Building2 },
     { id: 'drive-requests', label: 'Drive Requests', icon: Briefcase },
-    { id: 'interviews', label: 'Interview Desk', icon: Calendar },
     { id: 'reports', label: 'Reports & Analytics', icon: FilePieChart },
   ];
 

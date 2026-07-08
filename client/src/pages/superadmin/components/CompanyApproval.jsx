@@ -50,8 +50,16 @@ const CompanyApproval = ({ onApprovalProcessed }) => {
       try {
          setLoading(true);
          const response = await api.get('/admin/pending-registrations');
-         setCompanyRequests(response.data.pendingUsers.filter(user => user.role === 'company'));
+         // ApiResponse envelope: response.data = { statusCode, data: { pendingUsers: [] }, message }
+         const payload = response.data?.data ?? response.data;
+         const users = Array.isArray(payload?.pendingUsers)
+            ? payload.pendingUsers
+            : Array.isArray(payload)
+               ? payload
+               : [];
+         setCompanyRequests(users.filter(user => user.role === 'company'));
       } catch (err) {
+         console.error('Company fetch error:', err);
          toast.error('Failed to load company requests');
       } finally {
          setLoading(false);

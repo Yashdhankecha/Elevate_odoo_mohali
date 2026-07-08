@@ -6,10 +6,6 @@ import {
   Trophy,
   Clock,
   TrendingUp,
-  Calendar,
-  ChevronRight,
-  Plus,
-  Settings,
   Loader2,
   AlertCircle,
   Activity
@@ -358,40 +354,67 @@ const DashboardOverview = () => {
           </div>
         </div>
 
-        {/* Quick Operations Console */}
+        {/* Recruitment Intelligence */}
         <div className="space-y-4">
           <h3 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2 px-1">
-            <Settings size={20} className="text-slate-500" />
-            Operations Console
+            <TrendingUp size={20} className="text-slate-500" />
+            Recruitment Intelligence
           </h3>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="bg-white rounded border border-slate-200 shadow-sm divide-y divide-slate-100">
+            {/* Conversion funnel */}
             {[
-              { title: 'Job Board', desc: 'Manage active roles', icon: Briefcase },
-              { title: 'Talent Pool', desc: 'Review applications', icon: Users },
-              { title: 'Interviews', desc: 'Coordinate syncs', icon: Calendar },
-              { title: 'Offer Lab', desc: 'Release contracts', icon: Trophy }
-            ].map((action, i) => (
-              <button key={i} className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-3 p-4 bg-white border border-slate-200 rounded shadow-sm hover:border-slate-300 hover:bg-slate-50 transition-colors group">
-                <div className={`w-10 h-10 rounded bg-slate-100 flex items-center justify-center flex-shrink-0 text-slate-500 group-hover:bg-white group-hover:border group-hover:border-slate-200`}>
-                  <action.icon size={18} />
+              { label: 'Total Applications', value: stats?.totalApplications ?? 0, color: 'bg-blue-500', max: stats?.totalApplications ?? 1 },
+              { label: 'Shortlisted', value: stats?.shortlistedApplications ?? 0, color: 'bg-purple-500', max: stats?.totalApplications ?? 1 },
+              { label: 'Interviews Scheduled', value: stats?.scheduledInterviews ?? 0, color: 'bg-amber-500', max: stats?.totalApplications ?? 1 },
+              { label: 'Interviews Completed', value: stats?.completedInterviews ?? 0, color: 'bg-emerald-500', max: stats?.totalApplications ?? 1 },
+            ].map(({ label, value, color, max }) => (
+              <div key={label} className="px-5 py-4">
+                <div className="flex justify-between mb-1.5">
+                  <span className="text-xs font-semibold text-slate-600">{label}</span>
+                  <span className="text-xs font-black text-slate-900">{value}</span>
                 </div>
-                <div>
-                  <h4 className="font-bold text-slate-800 text-sm">{action.title}</h4>
-                  <p className="text-xs text-slate-500 font-medium leading-relaxed mt-0.5">{action.desc}</p>
+                <div className="w-full bg-slate-100 rounded-full h-1.5">
+                  <div
+                    className={`h-1.5 rounded-full ${color} transition-all duration-700`}
+                    style={{ width: max > 0 ? `${Math.min(100, Math.round((value / max) * 100))}%` : '0%' }}
+                  />
                 </div>
-              </button>
-            ))}
-
-            <div className="sm:col-span-2 p-6 bg-slate-900 border border-slate-800 rounded shadow-sm relative overflow-hidden group cursor-pointer block">
-              <div className="relative z-10">
-                <h4 className="text-base font-bold text-white mb-1">Recruitment Analytics</h4>
-                <p className="text-slate-400 text-sm font-medium mb-4 leading-relaxed">Live metrics powered by your recruitment data.</p>
-                <button className="flex items-center gap-1 text-slate-300 font-semibold text-xs hover:text-white transition-colors">
-                  Access Intelligence Suite
-                  <ChevronRight size={14} />
-                </button>
               </div>
+            ))}
+          </div>
+
+          {/* Top jobs by applications */}
+          <div className="bg-white rounded border border-slate-200 shadow-sm p-5">
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Pipeline Breakdown</p>
+            {[
+              { title: 'Active Roles', value: stats?.activeJobs ?? 0, sub: 'currently open' },
+              { title: 'Draft Roles', value: stats?.draftJobs ?? 0, sub: 'not yet posted' },
+              { title: 'Pending Applications', value: stats?.pendingApplications ?? 0, sub: 'need action' },
+            ].map(({ title, value, sub }) => (
+              <div key={title} className="flex items-center justify-between py-2.5 border-b border-slate-50 last:border-0">
+                <div>
+                  <p className="text-sm font-bold text-slate-800">{title}</p>
+                  <p className="text-[11px] text-slate-400 font-medium">{sub}</p>
+                </div>
+                <span className="text-xl font-black text-slate-900">{value}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Offer rate chip */}
+          <div className="p-5 bg-slate-900 rounded border border-slate-800 flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">Offer Conversion Rate</p>
+              <p className="text-2xl font-black text-white">
+                {stats?.totalApplications > 0
+                  ? `${((( stats?.completedInterviews ?? 0) / stats.totalApplications) * 100).toFixed(1)}%`
+                  : '—'}
+              </p>
+              <p className="text-xs text-slate-500 mt-0.5">interviews completed / total applied</p>
+            </div>
+            <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
+              <Activity size={22} className="text-white" />
             </div>
           </div>
         </div>

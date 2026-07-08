@@ -1,70 +1,112 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
+const express      = require('express');
+const mongoose     = require('mongoose');
+const cors         = require('cors');
+const helmet       = require('helmet');
+const compression  = require('compression');
 const cookieParser = require('cookie-parser');
-const http = require('http');
-const { initSocket } = require('./utils/socket');
+const http         = require('http');
+const rateLimit    = require('express-rate-limit');
 require('dotenv').config();
-console.log('🔄 Reloading configuration...');
 
-const app = express();
+// ── Step 1: Validate env vars before anything else ────────────────────────────
+const validateEnv = require('./utils/validateEnv');
+validateEnv();
+
+const { initSocket }   = require('./utils/socket');
+const errorHandler     = require('./middleware/errorHandler');
+
+const app    = express();
 const server = http.createServer(app);
 initSocket(server);
 
-// Middleware
+// ── Security ──────────────────────────────────────────────────────────────────
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' }, // allow Cloudinary image embeds
+}));
+
+app.use(cors({
+  origin: process.env.CLIENT_URL || 'http://localhost:3000',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+
+// ── Compression ──────────────────────────────────────────────────────────────
+// Gzip all responses > 1KB — reduces payload size by 70-85%
+app.use(compression({ threshold: 1024 }));
+
+// ── Body parsing ──────────────────────────────────────────────────────────────
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
-app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:3000',
-  credentials: true
-}));
 
-// Database connection — using direct connection string to bypass SRV DNS lookup issues
-const MONGODB_DIRECT_URI = 'mongodb://tripod:karanharshyash@ac-kauqk1j-shard-00-00.lb9dcwd.mongodb.net:27017,ac-kauqk1j-shard-00-01.lb9dcwd.mongodb.net:27017,ac-kauqk1j-shard-00-02.lb9dcwd.mongodb.net:27017/elevate_odoo_mohali?ssl=true&replicaSet=atlas-rh3iy8-shard-0&authSource=admin&retryWrites=true&w=majority&appName=ClusterCGC';
+// ── Rate Limiting ─────────────────────────────────────────────────────────────
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 1000, // Limit each IP to 1000 requests per windowMs
+  message: { success: false, message: 'Too many requests from this IP, please try again after 15 minutes' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use('/api', globalLimiter); // apply to all API routes
 
-mongoose.connect(process.env.MONGODB_URI || MONGODB_DIRECT_URI, {
-  family: 4,  // Force IPv4
-})
-  .then(() => console.log('✅ Connected to MongoDB - Elevate Placement Tracker'))
-  .catch(err => console.error('❌ MongoDB connection error:', err));
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20, // 20 requests per 15 minutes for auth
+  message: { success: false, message: 'Too many authentication attempts, please try again later' }
+});
 
-// Health check route (must come before chat routes)
+// ── Database ──────────────────────────────────────────────────────────────────
+if (!process.env.MONGODB_URI) {
+  console.error('❌ MONGODB_URI is not set in .env — server cannot start');
+  process.exit(1);
+}
+
+mongoose.connect(process.env.MONGODB_URI, { family: 4 })
+  .then(() => console.log('✅ Connected to MongoDB — Elevate Placement Tracker'))
+  .catch(err => {
+    console.error('❌ MongoDB connection error:', err.message);
+    process.exit(1);
+  });
+
+// ── Redis (optional — app works without it) ──────────────────────────────────
+const { getRedis } = require('./utils/redisClient');
+getRedis(); // Initialize connection (non-blocking)
+
+// ── Health check ──────────────────────────────────────────────────────────────
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', message: 'Server is running' });
+  res.json({
+    status: 'OK',
+    message: 'Server is running',
+    env: process.env.NODE_ENV || 'development',
+    db: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+  });
 });
 
-// Routes
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/user', require('./routes/user'));
-app.use('/api/student', require('./routes/student'));
-app.use('/api/practice', require('./routes/practice'));
-app.use('/api/tpo', require('./routes/tpo'));
-app.use('/api/superadmin', require('./routes/superadmin'));
-app.use('/api/admin', require('./routes/admin'));
-app.use('/api/company', require('./routes/company'));
+// ── Routes ────────────────────────────────────────────────────────────────────
+app.use('/api/auth',          authLimiter, require('./routes/auth'));
+app.use('/api/user',          require('./routes/user'));
+app.use('/api/student',       require('./routes/student'));
+app.use('/api/practice',      require('./routes/practice'));
+app.use('/api/tpo',           require('./routes/tpo'));
+app.use('/api/superadmin',    require('./routes/superadmin'));
+app.use('/api/admin',         require('./routes/admin'));
+app.use('/api/company',       require('./routes/company'));
 app.use('/api/notifications', require('./routes/notifications'));
-// Chatbot routes (career chat)
-app.use('/api', require('./routes/chat'));
+app.use('/api/proxy',         require('./routes/proxy'));
+app.use('/api',               require('./routes/chat'));          // /api/chat, /api/health (chat)
+app.use('/api/stats',         require('./routes/stats'));
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({
-    success: false,
-    message: 'Something went wrong!'
-  });
-});
-
-// 404 handler
+// ── 404 ───────────────────────────────────────────────────────────────────────
 app.use('*', (req, res) => {
-  res.status(404).json({
-    success: false,
-    message: 'Route not found'
-  });
+  res.status(404).json({ success: false, message: `Route ${req.originalUrl} not found` });
 });
 
+// ── Global error handler (MUST be last) ──────────────────────────────────────
+app.use(errorHandler);
+
+// ── Start ─────────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
-  console.log(`🚀 Elevate Placement Tracker Server running on port ${PORT}`);
+  console.log(`🚀 Elevate server running on port ${PORT} [${process.env.NODE_ENV || 'development'}]`);
 });

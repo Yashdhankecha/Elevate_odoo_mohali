@@ -1,168 +1,72 @@
 import React, { useState, useEffect } from 'react';
 import {
-  FaBuilding,
-  FaPlus,
-  FaSearch,
-  FaFilter,
-  FaEdit,
-  FaEye,
-  FaTrash,
-  FaCheckCircle,
-  FaTimesCircle,
-  FaClock,
-  FaMapMarkerAlt,
-  FaEnvelope,
-  FaPhone,
-  FaChevronLeft,
-  FaChevronRight,
-  FaTimes,
-  FaGlobe,
-  FaDownload,
-  FaBriefcase
-} from 'react-icons/fa';
+  Building2, Search, Globe, Mail, Phone, MapPin, Briefcase,
+  ChevronDown, ChevronUp, Star, Award, Calendar, ExternalLink,
+  RefreshCw, Users, TrendingUp, CheckCircle2, Clock
+} from 'lucide-react';
 import tpoApi from '../../../services/tpoApi';
 
 const CompanyManagement = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState('All');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [companies, setCompanies] = useState([]);
-  const [selectedCompany, setSelectedCompany] = useState(null);
-  const [showCompanyModal, setShowCompanyModal] = useState(false);
-  const [pagination, setPagination] = useState({
-    currentPage: 1,
-    totalPages: 1,
-    totalCompanies: 0,
-    hasNext: false,
-    hasPrev: false
-  });
-
-  const statuses = ['All', 'active', 'pending', 'inactive'];
+  const [expandedId, setExpandedId] = useState(null);
 
   useEffect(() => {
-    fetchCompanies();
-  }, [searchQuery, filterStatus, pagination.currentPage]);
+    fetchPartnerCompanies();
+  }, []);
 
-  const fetchCompanies = async () => {
+  const fetchPartnerCompanies = async () => {
     try {
       setLoading(true);
       setError(null);
-
-      const params = {};
-
-      if (searchQuery) params.search = searchQuery;
-      if (filterStatus !== 'All') params.status = filterStatus;
-
-      const response = await tpoApi.getCompanies(params);
-
-      // Handle both response formats:
-      // 1. Array of companies (current API)
-      // 2. Object with { companies, pagination } (future API)
-      let companiesList = [];
-      let paginationData = null;
-
-      if (Array.isArray(response)) {
-        companiesList = response;
-      } else if (response && Array.isArray(response.companies)) {
-        companiesList = response.companies;
-        paginationData = response.pagination;
-      } else if (response && typeof response === 'object') {
-        companiesList = Object.values(response).find(Array.isArray) || [];
-      }
-
-      setCompanies(companiesList);
-
-      // Use server pagination if available, otherwise build from full list
-      if (paginationData) {
-        setPagination(paginationData);
-      } else {
-        const page = pagination.currentPage || 1;
-        const limit = 10;
-        const total = companiesList.length;
-        setPagination({
-          currentPage: page,
-          totalPages: Math.max(1, Math.ceil(total / limit)),
-          totalCompanies: total,
-          hasNext: page * limit < total,
-          hasPrev: page > 1
-        });
-      }
+      const data = await tpoApi.getPartnerCompanies();
+      setCompanies(data?.companies || []);
     } catch (err) {
-      console.error('Error fetching companies:', err);
-      setError(err.message || 'Failed to load companies');
+      console.error('Error fetching partner companies:', err);
+      setError(err?.message || 'Failed to load partner companies');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    setPagination(prev => ({ ...prev, currentPage: 1 }));
-  };
-
-  const handleFilterChange = () => {
-    setPagination(prev => ({ ...prev, currentPage: 1 }));
-  };
-
-  const handlePageChange = (newPage) => {
-    setPagination(prev => ({ ...prev, currentPage: newPage }));
-  };
-
-  const handleViewCompany = (company) => {
-    setSelectedCompany(company);
-    setShowCompanyModal(true);
-  };
-
-  const handleCloseModal = () => {
-    setShowCompanyModal(false);
-    setSelectedCompany(null);
-  };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'active': return 'bg-green-100 text-green-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'inactive': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'active': return <FaCheckCircle className="w-4 h-4" />;
-      case 'pending': return <FaClock className="w-4 h-4" />;
-      case 'inactive': return <FaTimesCircle className="w-4 h-4" />;
-      default: return <FaClock className="w-4 h-4" />;
-    }
-  };
-
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
-
-  const exportCompanyData = () => {
-    // Implementation for exporting company data
-    console.log('Exporting company data...');
-  };
-
-  if (loading && companies.length === 0) {
+  const filtered = companies.filter(c => {
+    const q = searchQuery.toLowerCase();
     return (
-      <div className="space-y-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-300 rounded w-1/4 mb-4"></div>
-            <div className="space-y-3">
-              {[...Array(5)].map((_, index) => (
-                <div key={index} className="h-16 bg-gray-200 rounded"></div>
-              ))}
-            </div>
-          </div>
-        </div>
+      (c.companyName || '').toLowerCase().includes(q) ||
+      (c.industry || '').toLowerCase().includes(q)
+    );
+  });
+
+  const getIndustryColor = (industry = '') => {
+    const map = {
+      'IT/Software': 'bg-blue-100 text-blue-700',
+      'Finance': 'bg-emerald-100 text-emerald-700',
+      'Manufacturing': 'bg-orange-100 text-orange-700',
+      'Consulting': 'bg-purple-100 text-purple-700',
+      'E-commerce': 'bg-pink-100 text-pink-700',
+      'Healthcare': 'bg-red-100 text-red-700',
+      'Education': 'bg-yellow-100 text-yellow-700',
+    };
+    for (const k of Object.keys(map)) {
+      if (industry.toLowerCase().includes(k.toLowerCase())) return map[k];
+    }
+    return 'bg-gray-100 text-gray-700';
+  };
+
+  const formatDate = (d) => {
+    if (!d) return '—';
+    return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-4 animate-pulse">
+        <div className="h-10 bg-gray-200 rounded-xl w-64" />
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="h-28 bg-gray-100 rounded-2xl" />
+        ))}
       </div>
     );
   }
@@ -172,365 +76,221 @@ const CompanyManagement = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Company Management</h1>
-          <p className="text-gray-600">Manage and track company partnerships</p>
+          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <Award className="text-indigo-600" size={26} />
+            Company Partners
+          </h1>
+          <p className="text-gray-500 text-sm mt-1">
+            Companies that have conducted approved on-campus drives at your college
+          </p>
         </div>
-        <div className="flex items-center space-x-3">
-          <button
-            onClick={exportCompanyData}
-            className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center space-x-2"
-          >
-            <FaDownload className="w-4 h-4" />
-            <span>Export Data</span>
-          </button>
-          <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2">
-            <FaPlus className="w-4 h-4" />
-            <span>Add Company</span>
-          </button>
+        <button
+          onClick={fetchPartnerCompanies}
+          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors text-sm font-semibold shadow-sm"
+        >
+          <RefreshCw size={15} /> Refresh
+        </button>
+      </div>
+
+      {/* Stats bar */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+        <div className="bg-gradient-to-br from-indigo-50 to-blue-50 border border-indigo-100 rounded-2xl p-4">
+          <p className="text-xs font-semibold text-indigo-500 uppercase tracking-wider">Total Partners</p>
+          <p className="text-3xl font-bold text-indigo-700 mt-1">{companies.length}</p>
+        </div>
+        <div className="bg-gradient-to-br from-emerald-50 to-green-50 border border-emerald-100 rounded-2xl p-4">
+          <p className="text-xs font-semibold text-emerald-500 uppercase tracking-wider">Total Drives</p>
+          <p className="text-3xl font-bold text-emerald-700 mt-1">
+            {companies.reduce((s, c) => s + (c.totalDrives || 0), 0)}
+          </p>
+        </div>
+        <div className="bg-gradient-to-br from-purple-50 to-violet-50 border border-purple-100 rounded-2xl p-4 col-span-2 sm:col-span-1">
+          <p className="text-xs font-semibold text-purple-500 uppercase tracking-wider">Industries</p>
+          <p className="text-3xl font-bold text-purple-700 mt-1">
+            {new Set(companies.map(c => c.industry).filter(Boolean)).size}
+          </p>
         </div>
       </div>
 
-      {/* Search and Filters */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <form onSubmit={handleSearch} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Search */}
-            <div className="relative">
-              <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <input
-                type="text"
-                placeholder="Search companies..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-
-            {/* Status Filter */}
-            <select
-              value={filterStatus}
-              onChange={(e) => {
-                setFilterStatus(e.target.value);
-                handleFilterChange();
-              }}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              {statuses.map((status) => (
-                <option key={status} value={status}>
-                  {status.charAt(0).toUpperCase() + status.slice(1)}
-                </option>
-              ))}
-            </select>
-
-            {/* Search Button */}
-            <button
-              type="submit"
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
-            >
-              <FaSearch className="w-4 h-4" />
-              <span>Search</span>
-            </button>
-          </div>
-        </form>
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={17} />
+        <input
+          type="text"
+          placeholder="Search by company name or industry..."
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 outline-none"
+        />
       </div>
 
-      {/* Error Display */}
+      {/* Error */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-          <div className="flex items-center">
-            <FaTimesCircle className="w-5 h-5 text-red-500 mr-3" />
-            <div>
-              <h3 className="text-red-800 font-medium">Error Loading Companies</h3>
-              <p className="text-red-600 text-sm mt-1">{error}</p>
-              <button
-                onClick={fetchCompanies}
-                className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-              >
-                Retry
-              </button>
-            </div>
-          </div>
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm flex items-center gap-2">
+          <span className="font-semibold">Error:</span> {error}
+          <button onClick={fetchPartnerCompanies} className="ml-auto underline text-red-600 hover:text-red-800">Retry</button>
         </div>
       )}
 
-      {/* Companies Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Company
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Contact
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Location
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Jobs Posted
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Active Jobs
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {companies.map((company) => (
-                <tr key={company._id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0 h-10 w-10">
-                        <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                          <FaBuilding className="w-5 h-5 text-blue-600" />
-                        </div>
-                      </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">{company.companyName}</div>
-                        <div className="text-sm text-gray-500">{company.industry || 'N/A'}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{company.email}</div>
-                    <div className="text-sm text-gray-500">{company.contactNumber || 'N/A'}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      {company.address?.city}, {company.address?.state}
-                    </div>
-                    <div className="text-sm text-gray-500">{typeof company.address?.country === 'object' ? (company.address.country.name || JSON.stringify(company.address.country)) : company.address?.country}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(company.status)}`}>
-                      {getStatusIcon(company.status)}
-                      <span className="ml-1 capitalize">{company.status}</span>
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {company.totalJobs || 0}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {company.activeJobs || 0}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => handleViewCompany(company)}
-                        className="text-blue-600 hover:text-blue-900"
-                        title="View Details"
-                      >
-                        <FaEye className="w-4 h-4" />
-                      </button>
-                      <button className="text-green-600 hover:text-green-900" title="Edit">
-                        <FaEdit className="w-4 h-4" />
-                      </button>
-                      <button className="text-red-600 hover:text-red-900" title="Delete">
-                        <FaTrash className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination */}
-        {pagination.totalPages > 1 && (
-          <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-            <div className="flex-1 flex justify-between sm:hidden">
-              <button
-                onClick={() => handlePageChange(pagination.currentPage - 1)}
-                disabled={!pagination.hasPrev}
-                className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Previous
-              </button>
-              <button
-                onClick={() => handlePageChange(pagination.currentPage + 1)}
-                disabled={!pagination.hasNext}
-                className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Next
-              </button>
-            </div>
-            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-              <div>
-                <p className="text-sm text-gray-700">
-                  Showing <span className="font-medium">{((pagination.currentPage - 1) * 10) + 1}</span> to{' '}
-                  <span className="font-medium">
-                    {Math.min(pagination.currentPage * 10, pagination.totalCompanies)}
-                  </span>{' '}
-                  of <span className="font-medium">{pagination.totalCompanies}</span> results
-                </p>
-              </div>
-              <div>
-                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                  <button
-                    onClick={() => handlePageChange(pagination.currentPage - 1)}
-                    disabled={!pagination.hasPrev}
-                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <FaChevronLeft className="w-4 h-4" />
-                  </button>
-
-                  {[...Array(pagination.totalPages)].map((_, index) => {
-                    const pageNumber = index + 1;
-                    const isCurrentPage = pageNumber === pagination.currentPage;
-
-                    return (
-                      <button
-                        key={pageNumber}
-                        onClick={() => handlePageChange(pageNumber)}
-                        className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${isCurrentPage
-                            ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                          }`}
-                      >
-                        {pageNumber}
-                      </button>
-                    );
-                  })}
-
-                  <button
-                    onClick={() => handlePageChange(pagination.currentPage + 1)}
-                    disabled={!pagination.hasNext}
-                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <FaChevronRight className="w-4 h-4" />
-                  </button>
-                </nav>
-              </div>
-            </div>
+      {/* Empty state */}
+      {!loading && !error && filtered.length === 0 && (
+        <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-gray-300">
+          <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Building2 className="text-indigo-400" size={28} />
           </div>
-        )}
-      </div>
+          <h3 className="text-lg font-semibold text-gray-700 mb-2">
+            {searchQuery ? 'No matching partners found' : 'No company partners yet'}
+          </h3>
+          <p className="text-gray-500 text-sm max-w-sm mx-auto leading-relaxed">
+            {searchQuery
+              ? 'Try a different search term.'
+              : 'Companies will appear here once they submit an on-campus drive request and you approve it from the Drive Requests section.'}
+          </p>
+          {!searchQuery && (
+            <div className="mt-6 flex items-center justify-center gap-2 text-xs text-indigo-600 font-medium bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-3 w-fit mx-auto">
+              <CheckCircle2 size={14} />
+              Approve a drive request → Company becomes a partner automatically
+            </div>
+          )}
+        </div>
+      )}
 
-      {/* Company Details Modal */}
-      {showCompanyModal && selectedCompany && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-800">Company Details</h2>
+      {/* Company cards */}
+      <div className="space-y-3">
+        {filtered.map(company => {
+          const isExpanded = expandedId === company._id;
+          return (
+            <div
+              key={company._id}
+              className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden"
+            >
+              {/* Card header */}
+              <div className="p-5 flex items-start gap-4">
+                {/* Logo / avatar */}
+                <div className="flex-shrink-0">
+                  {company.profilePicture ? (
+                    <img
+                      src={company.profilePicture}
+                      alt={company.companyName}
+                      className="w-14 h-14 rounded-xl object-contain border border-gray-100 bg-gray-50"
+                    />
+                  ) : (
+                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-xl shadow">
+                      {(company.companyName || 'C')[0].toUpperCase()}
+                    </div>
+                  )}
+                </div>
+
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900 leading-tight">{company.companyName}</h3>
+                      {company.industry && (
+                        <span className={`inline-block text-xs font-semibold px-2.5 py-0.5 rounded-full mt-1 ${getIndustryColor(company.industry)}`}>
+                          {company.industry}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-100 text-emerald-700 text-xs font-semibold px-3 py-1 rounded-full">
+                        <Star size={12} fill="currentColor" />
+                        {company.totalDrives} drive{company.totalDrives !== 1 ? 's' : ''}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Meta row */}
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 text-xs text-gray-500">
+                    {company.email && (
+                      <span className="flex items-center gap-1">
+                        <Mail size={11} /> {company.email}
+                      </span>
+                    )}
+                    {company.contactNumber && (
+                      <span className="flex items-center gap-1">
+                        <Phone size={11} /> {company.contactNumber}
+                      </span>
+                    )}
+                    {company.website && (
+                      <a
+                        href={company.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-indigo-500 hover:underline"
+                      >
+                        <Globe size={11} /> Website <ExternalLink size={10} />
+                      </a>
+                    )}
+                    {company.address?.city && (
+                      <span className="flex items-center gap-1">
+                        <MapPin size={11} /> {company.address.city}{company.address.state ? `, ${company.address.state}` : ''}
+                      </span>
+                    )}
+                    {company.lastDriveDate && (
+                      <span className="flex items-center gap-1">
+                        <Clock size={11} /> Last drive: {formatDate(company.lastDriveDate)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Expand toggle */}
                 <button
-                  onClick={handleCloseModal}
-                  className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                  onClick={() => setExpandedId(isExpanded ? null : company._id)}
+                  className="flex-shrink-0 p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                  title={isExpanded ? 'Collapse' : 'View drives'}
                 >
-                  <FaTimes className="w-5 h-5 text-gray-500" />
+                  {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                 </button>
               </div>
-            </div>
 
-            <div className="p-6 space-y-6">
-              {/* Basic Information */}
-              <div>
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">Company Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Company Name</label>
-                    <p className="text-gray-800">{selectedCompany.companyName}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Industry</label>
-                    <p className="text-gray-800">{selectedCompany.industry || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Email</label>
-                    <p className="text-gray-800 flex items-center">
-                      <FaEnvelope className="w-4 h-4 text-gray-400 mr-2" />
-                      {selectedCompany.email}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Phone</label>
-                    <p className="text-gray-800 flex items-center">
-                      <FaPhone className="w-4 h-4 text-gray-400 mr-2" />
-                      {selectedCompany.contactNumber || 'N/A'}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Website</label>
-                    <p className="text-gray-800 flex items-center">
-                      <FaGlobe className="w-4 h-4 text-gray-400 mr-2" />
-                      {selectedCompany.website || 'N/A'}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Status</label>
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(selectedCompany.status)}`}>
-                      {getStatusIcon(selectedCompany.status)}
-                      <span className="ml-1 capitalize">{selectedCompany.status}</span>
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Job Statistics */}
-              <div>
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">Job Statistics</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Total Jobs Posted</label>
-                    <p className="text-gray-800 flex items-center">
-                      <FaBriefcase className="w-4 h-4 text-gray-400 mr-2" />
-                      {selectedCompany.totalJobs || 0}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Active Jobs</label>
-                    <p className="text-gray-800">{selectedCompany.activeJobs || 0}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Address Information */}
-              {selectedCompany.address && (
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Address</h3>
-                  <div className="flex items-start">
-                    <FaMapMarkerAlt className="w-4 h-4 text-gray-400 mr-2 mt-1" />
-                    <div>
-                      <p className="text-gray-800">{selectedCompany.address.street}</p>
-                      <p className="text-gray-800">{selectedCompany.address.city}, {selectedCompany.address.state}</p>
-                      <p className="text-gray-800">{(typeof selectedCompany.address.country === 'object' ? (selectedCompany.address.country.name || JSON.stringify(selectedCompany.address.country)) : selectedCompany.address.country)} - {selectedCompany.address.zipCode}</p>
+              {/* Expanded: drives history */}
+              {isExpanded && (
+                <div className="border-t border-gray-100 bg-gray-50 px-5 py-4 space-y-3">
+                  {company.description && (
+                    <p className="text-sm text-gray-600 leading-relaxed">{company.description}</p>
+                  )}
+                  <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                    <Briefcase size={13} /> Drive History
+                  </h4>
+                  {(company.drives || []).length === 0 ? (
+                    <p className="text-sm text-gray-400 italic">No drive history available.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {company.drives.map((drive, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-center justify-between bg-white border border-gray-200 rounded-xl px-4 py-2.5"
+                        >
+                          <div>
+                            <p className="text-sm font-semibold text-gray-800">{drive.jobTitle || 'Drive'}</p>
+                            {drive.jobId && (
+                              <p className="text-xs text-gray-400">{drive.jobId}</p>
+                            )}
+                          </div>
+                          <div className="text-right">
+                            <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${
+                              drive.status === 'active' ? 'bg-green-100 text-green-700' :
+                              drive.status === 'closed' ? 'bg-gray-100 text-gray-500' :
+                              'bg-blue-100 text-blue-700'
+                            }`}>
+                              {drive.status}
+                            </span>
+                            {drive.driveDate && (
+                              <p className="text-xs text-gray-400 mt-0.5">{formatDate(drive.driveDate)}</p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Description */}
-              {selectedCompany.description && (
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Description</h3>
-                  <p className="text-gray-800">{selectedCompany.description}</p>
+                  )}
                 </div>
               )}
             </div>
-
-            <div className="p-6 border-t border-gray-200 flex justify-end space-x-3">
-              <button
-                onClick={handleCloseModal}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                Close
-              </button>
-              <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2">
-                <FaEdit className="w-4 h-4" />
-                <span>Edit Company</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          );
+        })}
+      </div>
     </div>
   );
 };

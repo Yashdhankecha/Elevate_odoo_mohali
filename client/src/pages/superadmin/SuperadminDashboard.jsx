@@ -6,7 +6,7 @@ import TPOApproval from './components/TPOApproval';
 import CompanyApproval from './components/CompanyApproval';
 import SecurityMonitoring from './components/SecurityMonitoring';
 import SystemSettings from './components/SystemSettings';
-import TopNavbar from './components/TopNavbar';
+import { Menu } from 'lucide-react';
 import axios from 'axios';
 
 const SuperadminDashboard = () => {
@@ -38,12 +38,15 @@ const SuperadminDashboard = () => {
   const fetchPendingCounts = async () => {
     try {
       const response = await api.get('/admin/pending-registrations');
-      const pendingUsers = response.data.pendingUsers || [];
-      const tpoCount = pendingUsers.filter(user => user.role === 'tpo').length;
-      const companyCount = pendingUsers.filter(user => user.role === 'company').length;
-
-      setPendingTPOs(tpoCount);
-      setPendingCompanies(companyCount);
+      // ApiResponse envelope: response.data = { statusCode, data: { pendingUsers: [] }, message }
+      const payload = response.data?.data ?? response.data;
+      const pendingUsers = Array.isArray(payload?.pendingUsers)
+        ? payload.pendingUsers
+        : Array.isArray(payload)
+          ? payload
+          : [];
+      setPendingTPOs(pendingUsers.filter(user => user.role === 'tpo').length);
+      setPendingCompanies(pendingUsers.filter(user => user.role === 'company').length);
     } catch (error) {
       console.error('Error fetching pending counts:', error);
     }
@@ -96,11 +99,15 @@ const SuperadminDashboard = () => {
       />
 
       <div className={`flex-1 transition-all duration-500 ease-in-out min-h-screen relative z-10 ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-72'}`}>
-        <TopNavbar 
-          toggleSidebar={toggleSidebar} 
-          sidebarCollapsed={sidebarCollapsed} 
-          isMobileSidebarOpen={isMobileSidebarOpen} 
-        />
+        {/* Mobile Header */}
+        <header className="lg:hidden bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-40 px-4 py-3 flex items-center justify-between">
+           <button onClick={toggleSidebar} className="p-2 text-slate-600 hover:bg-slate-50 rounded-lg">
+              <Menu size={24} />
+           </button>
+           <h1 className="text-lg font-black text-slate-900 tracking-tighter uppercase">Super Admin</h1>
+           <div className="w-10" />
+        </header>
+
         <main className="p-6 lg:p-10 pt-8">
           <div className="max-w-[1600px] mx-auto">
             {renderContent()}

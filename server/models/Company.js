@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const companySchema = new mongoose.Schema({
@@ -282,6 +282,10 @@ companySchema.methods.toJSON = function () {
   delete company.passwordResetToken;
   return company;
 };
+
+// Indexes for efficient queries
+companySchema.index({ status: 1 });
+companySchema.index({ isVerified: 1 });
 
 module.exports = mongoose.model('Company', companySchema);
 

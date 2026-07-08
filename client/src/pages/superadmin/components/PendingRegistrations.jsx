@@ -48,9 +48,15 @@ const PendingRegistrations = () => {
     try {
       setLoading(true);
       setError(null);
-
       const response = await api.get('/admin/pending-registrations');
-      setPendingUsers(response.data.pendingUsers || []);
+      // ApiResponse envelope: response.data = { statusCode, data: { pendingUsers: [] }, message }
+      const payload = response.data?.data ?? response.data;
+      const users = Array.isArray(payload?.pendingUsers)
+        ? payload.pendingUsers
+        : Array.isArray(payload)
+          ? payload
+          : [];
+      setPendingUsers(users);
     } catch (err) {
       console.error('Error fetching pending registrations:', err);
       setError(err.response?.data?.message || err.message || 'Failed to load pending registrations');
@@ -62,16 +68,10 @@ const PendingRegistrations = () => {
   const handleApprove = async (userId) => {
     try {
       setProcessingUsers(prev => new Set(prev).add(userId));
-
       const response = await api.post(`/admin/approve-user/${userId}`);
-
-      if (response.data.success) {
-        // Remove the approved user from the list
-        setPendingUsers(prev => prev.filter(user => user.id !== userId));
-
-        // Show success message
-        showToast('success', response.data.message);
-      }
+      // ApiResponse has no .success field — treat any 2xx as success
+      setPendingUsers(prev => prev.filter(user => user.id !== userId));
+      showToast('success', response.data?.message || 'User approved');
     } catch (err) {
       console.error('Error approving user:', err);
       showToast('error', err.response?.data?.message || 'Failed to approve user');
@@ -87,16 +87,10 @@ const PendingRegistrations = () => {
   const handleReject = async (userId) => {
     try {
       setProcessingUsers(prev => new Set(prev).add(userId));
-
       const response = await api.post(`/admin/reject-user/${userId}`);
-
-      if (response.data.success) {
-        // Remove the rejected user from the list
-        setPendingUsers(prev => prev.filter(user => user.id !== userId));
-
-        // Show success message
-        showToast('success', response.data.message);
-      }
+      // ApiResponse has no .success field — treat any 2xx as success
+      setPendingUsers(prev => prev.filter(user => user.id !== userId));
+      showToast('success', response.data?.message || 'User rejected');
     } catch (err) {
       console.error('Error rejecting user:', err);
       showToast('error', err.response?.data?.message || 'Failed to reject user');

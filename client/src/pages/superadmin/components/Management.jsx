@@ -60,8 +60,8 @@ const Management = () => {
             api.get('/superadmin/registered-tpos'),
             api.get('/superadmin/registered-companies')
          ]);
-         setTpos(tposResponse.data || []);
-         setCompanies(companiesResponse.data || []);
+         setTpos(tposResponse.data?.data || tposResponse.data || []);
+         setCompanies(companiesResponse.data?.data || companiesResponse.data || []);
       } catch (error) {
          toast.error('Failed to load registered users');
       } finally {

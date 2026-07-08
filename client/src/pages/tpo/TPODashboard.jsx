@@ -2,12 +2,11 @@ import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import DashboardOverview from './components/DashboardOverview';
 import StudentManagement from './components/StudentManagement';
-import InterviewManagement from './components/InterviewManagement';
 import DriveRequests from './components/DriveRequests';
 import ReportsAnalytics from './components/ReportsAnalytics';
 import ApprovalPending from './components/ApprovalPending';
 import CompanyManagement from './components/CompanyManagement';
-import TopNavbar from './components/TopNavbar';
+import { Menu } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 const TPODashboard = () => {
@@ -36,8 +35,6 @@ const TPODashboard = () => {
         return <StudentManagement />;
       case 'companies':
         return <CompanyManagement />;
-      case 'interviews':
-        return <InterviewManagement />;
       case 'drive-requests':
         return <DriveRequests />;
       case 'reports':
@@ -79,11 +76,15 @@ const TPODashboard = () => {
 
       {/* Main Content Area */}
       <div className={`transition-all duration-500 ease-in-out min-h-screen ${sidebarCollapsed ? 'lg:pl-20' : 'lg:pl-72'}`}>
-        <TopNavbar 
-          toggleSidebar={toggleSidebar} 
-          sidebarCollapsed={sidebarCollapsed} 
-          isMobileSidebarOpen={isMobileSidebarOpen} 
-        />
+        {/* Mobile Header */}
+        <header className="lg:hidden bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-40 px-4 py-3 flex items-center justify-between">
+           <button onClick={toggleSidebar} className="p-2 text-slate-600 hover:bg-slate-50 rounded-lg">
+              <Menu size={24} />
+           </button>
+           <h1 className="text-lg font-black text-slate-900 tracking-tighter uppercase">TPO Admin</h1>
+           <div className="w-10" />
+        </header>
+
         {/* Main Content */}
         <main className="p-4 sm:p-6 lg:p-8 pt-6">
           <div className="max-w-[1600px] mx-auto animate-fade-in">

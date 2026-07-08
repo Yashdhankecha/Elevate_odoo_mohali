@@ -5,56 +5,39 @@ const Student = require('../models/Student');
 // Middleware to ensure TPO can only access their institute's data
 const tpoInstituteAccess = async (req, res, next) => {
   try {
-    // Get TPO's institute from user document
-    // If req.user is already populated and is a TPO, use it
-    let tpoUser = req.user;
-
-    // If not fully populated or we need to be sure, fetch from TPO collection
-    if (!tpoUser || tpoUser.constructor.modelName !== 'TPO') {
-      tpoUser = await TPO.findById(req.user._id);
-    }
-
-    if (!tpoUser) {
-      // Fallback to User collection - legacy support
-      const user = await User.findById(req.user._id);
-      if (user && user.role === 'tpo') {
-        tpoUser = user;
-      }
-    }
-
-    // Check if valid TPO user found
-    if (!tpoUser) {
-      return res.status(404).json({
-        success: false,
-        message: 'TPO profile not found'
-      });
-    }
-
-    // Get institute name based on model structure
     let instituteName = null;
-    if (tpoUser.constructor.modelName === 'TPO') {
-      instituteName = tpoUser.instituteName;
-    } else if (tpoUser.tpo) {
-      // Legacy User model structure
-      instituteName = tpoUser.tpo.instituteName;
+
+    // If req.user is already a Mongoose TPO document with instituteName, use it directly
+    if (req.user?.instituteName) {
+      instituteName = req.user.instituteName;
+    } else {
+      // Otherwise fetch from TPO collection (req.user may be a plain JWT-decoded object)
+      const tpoDoc = await TPO.findById(req.user?._id).select('instituteName');
+      if (tpoDoc) {
+        instituteName = tpoDoc.instituteName;
+        req.user.instituteName = instituteName; // cache it on the request
+      } else {
+        // Legacy: try User collection
+        const legacyUser = await User.findById(req.user?._id).select('tpo role');
+        if (legacyUser?.role === 'tpo') {
+          instituteName = legacyUser.tpo?.instituteName;
+        }
+      }
     }
 
     if (!instituteName) {
       return res.status(400).json({
         success: false,
-        message: 'Institute not configured for this TPO'
+        message: 'Institute not configured for this TPO account'
       });
     }
 
-    // Add TPO's institute name to request for use in routes
+    console.log('[tpoInstituteAccess] resolved institute:', instituteName, '| for user:', req.user?._id);
     req.tpoInstitute = instituteName;
     next();
   } catch (error) {
-    console.error('Error in TPO institute access middleware:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error'
-    });
+    console.error('[tpoInstituteAccess] ERROR:', error.message, error.stack);
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 

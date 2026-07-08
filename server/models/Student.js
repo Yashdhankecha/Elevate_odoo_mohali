@@ -435,4 +435,10 @@ studentSchema.methods.toJSON = function () {
   return student;
 };
 
+// ── Performance indexes ───────────────────────────────────────────────────────
+studentSchema.index({ collegeName: 1, verificationStatus: 1 }); // TPO student list
+studentSchema.index({ branch: 1, cgpa: -1 });                    // eligibility filter
+studentSchema.index({ graduationYear: 1, isPlaced: 1 });         // placement stats
+studentSchema.index({ isActive: 1, isVerified: 1 });             // active student lookup
+
 module.exports = mongoose.model('Student', studentSchema);

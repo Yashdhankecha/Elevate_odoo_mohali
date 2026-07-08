@@ -4,7 +4,10 @@ import { apiCall } from '../utils/api';
 export const getCompanyJobs = async () => {
   try {
     const response = await apiCall('GET', '/company/jobs');
-    return response.data;
+    const body = response.data;
+    // API returns { success, data: [...], message } — unwrap to array
+    const jobs = Array.isArray(body?.data) ? body.data : (Array.isArray(body) ? body : []);
+    return jobs;
   } catch (error) {
     console.error('Error fetching company jobs:', error);
     throw error;
@@ -86,7 +89,10 @@ export const submitJobPosting = async (jobId) => {
 export const toggleJobActive = async (jobId) => {
   try {
     const response = await apiCall('PATCH', `/company/jobs/${jobId}/toggle-active`);
-    return response.data;
+    const body = response.data;
+    // Merge inner data with outer message so consumers get both isActive/status and message
+    const inner = body?.data ?? {};
+    return { message: body?.message, ...inner };
   } catch (error) {
     console.error('Error toggling job status:', error);
     throw error;
@@ -96,7 +102,8 @@ export const toggleJobActive = async (jobId) => {
 export const getJobDetails = async (jobId) => {
   try {
     const response = await apiCall('GET', `/company/jobs/${jobId}`);
-    return response.data;
+    const body = response.data;
+    return body?.data ?? body ?? {};
   } catch (error) {
     console.error('Error fetching job details:', error);
     throw error;
@@ -106,7 +113,8 @@ export const getJobDetails = async (jobId) => {
 export const getJobApplications = async (jobId) => {
   try {
     const response = await apiCall('GET', `/company/jobs/${jobId}/applications`);
-    return response.data;
+    const body = response.data;
+    return Array.isArray(body?.data) ? body.data : (Array.isArray(body) ? body : []);
   } catch (error) {
     console.error('Error fetching job applications:', error);
     throw error;
@@ -117,7 +125,8 @@ export const getJobApplications = async (jobId) => {
 export const getCompanyInterviews = async () => {
   try {
     const response = await apiCall('GET', '/company/interviews');
-    return response.data;
+    const body = response.data;
+    return Array.isArray(body?.data) ? body.data : (Array.isArray(body) ? body : []);
   } catch (error) {
     console.error('Error fetching company interviews:', error);
     throw error;
@@ -168,7 +177,9 @@ export const updateInterviewStatus = async (interviewId, status) => {
 export const getCompanyDashboardStats = async () => {
   try {
     const response = await apiCall('GET', '/company/dashboard/stats');
-    return response.data;
+    const body = response.data;
+    // Unwrap nested data object if present
+    return body?.data ?? body ?? {};
   } catch (error) {
     console.error('Error fetching dashboard stats:', error);
     throw error;
@@ -178,7 +189,8 @@ export const getCompanyDashboardStats = async () => {
 export const getCompanyProfile = async () => {
   try {
     const response = await apiCall('GET', '/company/profile');
-    return response.data;
+    const body = response.data;
+    return body?.data ?? body ?? {};
   } catch (error) {
     console.error('Error fetching company profile:', error);
     throw error;
@@ -202,7 +214,9 @@ export const uploadCompanyLogo = async (file) => {
     const response = await apiCall('POST', '/company/upload-logo', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
-    return response.data.url;
+    const body = response.data;
+    // URL may be nested under body.data.url or body.url
+    return body?.data?.url ?? body?.url ?? '';
   } catch (error) {
     console.error('Error uploading company logo:', error);
     throw error;
@@ -214,7 +228,10 @@ export const getAllApplications = async (filters = {}) => {
   try {
     const queryParams = new URLSearchParams(filters).toString();
     const response = await apiCall('GET', `/company/applications?${queryParams}`);
-    return response.data;
+    const body = response.data;
+    // API returns { success, data: [...], message } — unwrap to array
+    const apps = Array.isArray(body?.data) ? body.data : (Array.isArray(body) ? body : []);
+    return apps;
   } catch (error) {
     console.error('Error fetching applications:', error);
     throw error;
@@ -234,7 +251,8 @@ export const updateApplicationStatus = async (applicationId, status) => {
 export const getApplicationDetails = async (applicationId) => {
   try {
     const response = await apiCall('GET', `/company/applications/${applicationId}`);
-    return response.data;
+    const body = response.data;
+    return body?.data ?? body ?? {};
   } catch (error) {
     console.error('Error fetching application details:', error);
     throw error;
@@ -245,7 +263,8 @@ export const getApplicationDetails = async (applicationId) => {
 export const getTPOList = async () => {
   try {
     const response = await apiCall('GET', '/company/tpo-list');
-    return response.data;
+    const body = response.data;
+    return Array.isArray(body?.data) ? body.data : (Array.isArray(body) ? body : []);
   } catch (error) {
     console.error('Error fetching TPO list:', error);
     throw error;
@@ -269,7 +288,8 @@ export const advanceApplicantsToRound = async (jobId, applicantIds, newStatus, r
 export const getCompanyAnalytics = async (period = '2024') => {
   try {
     const response = await apiCall('GET', `/company/analytics?period=${period}`);
-    return response.data;
+    const body = response.data;
+    return body?.data ?? body ?? {};
   } catch (error) {
     console.error('Error fetching company analytics:', error);
     throw error;

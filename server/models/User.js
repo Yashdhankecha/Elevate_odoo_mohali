@@ -373,4 +373,8 @@ userSchema.methods.toJSON = function() {
   return user;
 };
 
+// Indexes for efficient queries
+userSchema.index({ role: 1, status: 1 });
+userSchema.index({ approvalStatus: 1 });
+
 module.exports = mongoose.model('User', userSchema);

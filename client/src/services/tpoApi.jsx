@@ -62,7 +62,8 @@ export const tpoApi = {
   getCompanies: async (params = {}) => {
     try {
       const response = await api.get('/tpo/companies', { params });
-      return response.data.companies || response.data; // Handle both response formats
+      // ApiResponse shape: { statusCode, data: [...], message, success }
+      return Array.isArray(response.data.data) ? response.data.data : [];
     } catch (error) {
       throw error.response?.data || error.message;
     }
@@ -388,6 +389,16 @@ export const tpoApi = {
     try {
       const response = await api.patch(`/tpo/drive-requests/${id}/status`, { status, comment });
       return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Partner Companies - only companies that have conducted approved on-campus drives
+  getPartnerCompanies: async (params = {}) => {
+    try {
+      const response = await api.get('/tpo/partner-companies', { params });
+      return response.data.data;
     } catch (error) {
       throw error.response?.data || error.message;
     }

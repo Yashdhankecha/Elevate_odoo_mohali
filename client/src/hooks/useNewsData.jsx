@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 
-const BASE_URL = "https://newsdata.io/api/1/news";
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const BASE_URL = `${API_BASE_URL}/proxy/news`;
 
 // ── Level 2: Client-side keyword filter ──────────────
 // Only keep articles relevant to engineering placements & IT hiring
@@ -35,11 +36,8 @@ export function useNewsData() {
   const [nextPage, setNextPage] = useState(null);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  const API_KEY = import.meta.env.VITE_NEWS_API || import.meta.env.NEWS_API || 'pub_d2f9571462e84cf891163c083aa529d5';
-
   // ── Level 1: Tight API query ────────────────────────
   const buildParams = (page = null) => ({
-    apikey: API_KEY,
     q: '("tech" OR "software" OR "IT") AND ("hiring" OR "jobs" OR "layoff")',
     language: "en",
     category: "technology,business",

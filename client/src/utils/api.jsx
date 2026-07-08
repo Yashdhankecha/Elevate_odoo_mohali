@@ -41,7 +41,8 @@ api.interceptors.response.use(
 
       if (!isLoginRequest) {
         // Check if user is not verified before logging out
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        const rawUser = localStorage.getItem('user');
+        const user = (rawUser && rawUser !== 'undefined' && rawUser !== 'null') ? JSON.parse(rawUser) : {};
         if (user && !user.isVerified) {
           // Don't log out, just redirect to not-verified page
           window.location.href = '/not-verified';

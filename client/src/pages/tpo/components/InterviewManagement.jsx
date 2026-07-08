@@ -78,11 +78,12 @@ const InterviewManagement = () => {
       setLoading(true);
       const params = { ...filters, page: pagination.currentPage, limit: 10 };
       const response = await tpoApi.getInterviews(params);
-      setInterviews(response.interviews);
+      // response is response.data.data = { interviews, pagination }
+      setInterviews(response?.interviews || []);
       setPagination(prev => ({
         ...prev,
-        totalPages: response.pagination.totalPages,
-        totalInterviews: response.pagination.totalInterviews
+        totalPages: response?.pagination?.totalPages ?? 1,
+        totalInterviews: response?.pagination?.totalInterviews ?? 0,
       }));
     } catch (error) {
       toast.error('Failed to fetch interviews');
@@ -101,7 +102,7 @@ const InterviewManagement = () => {
   const fetchCompanies = async () => {
     try {
       const response = await tpoApi.getCompanies();
-      setCompanies(response);
+      setCompanies(Array.isArray(response) ? response : []);
     } catch (error) {}
   };
 

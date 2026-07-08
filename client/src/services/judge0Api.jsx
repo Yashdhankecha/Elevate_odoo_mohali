@@ -1,13 +1,10 @@
 import axios from 'axios';
 
-const API_KEY = import.meta.env.VITE_JUDGE0_API_KEY || 'f5b45921ffmsh96e620f525a4114p171325jsncfdca7ef1d5f';
-const API_HOST = import.meta.env.VITE_X_RAPID_API_HOST || 'judge0-ce.p.rapidapi.com';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 const judge0 = axios.create({
-  baseURL: `https://${API_HOST}`,
+  baseURL: `${API_BASE_URL}/proxy/judge0`,
   headers: {
-    'X-RapidAPI-Key': API_KEY,
-    'X-RapidAPI-Host': API_HOST,
     'Content-Type': 'application/json'
   }
 });

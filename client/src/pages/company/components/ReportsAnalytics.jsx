@@ -15,16 +15,12 @@ import {
   Calendar,
   Building2,
   TrendingUp,
-  PieChart,
   Zap,
   ArrowUpRight,
   MoreVertical,
   Activity,
   Layers,
-  ChevronRight,
-  Target,
-  Lightbulb,
-  Rocket
+  ChevronRight
 } from 'lucide-react';
 import { usePDF } from 'react-to-pdf';
 import * as XLSX from 'xlsx';
@@ -75,7 +71,31 @@ const ReportsAnalytics = () => {
       setLoading(true);
       const res = await getCompanyAnalytics(selectedPeriod);
       if (res) {
-        setAnalyticsData(res);
+        // API returns { summary, jobStats, recentHires }
+        // Component state uses { overview, jobStats, recentHires } — map accordingly
+        const summary = res.summary || {};
+        setAnalyticsData({
+          overview: {
+            totalJobs:           summary.totalJobs           ?? res.totalJobs           ?? 0,
+            activeJobs:          summary.activeJobs          ?? res.activeJobs          ?? 0,
+            totalApplications:   summary.totalApplications   ?? res.totalApplications   ?? 0,
+            shortlistedCandidates: summary.shortlisted       ?? res.shortlisted         ?? 0,
+            hiredCandidates:     summary.hired               ?? res.hired               ?? 0,
+            averageResponseTime: summary.averageResponseTime ?? res.averageResponseTime ?? 0,
+            topPerformingJob:    summary.topPerformingJob    ?? res.topPerformingJob    ?? 'N/A',
+            mostAppliedJob:      summary.mostAppliedJob      ?? res.mostAppliedJob      ?? 'N/A',
+          },
+          jobStats:           Array.isArray(res.jobStats)           ? res.jobStats           : [],
+          applicationStats:   Array.isArray(res.applicationStats)   ? res.applicationStats   : [],
+          candidateStats:     Array.isArray(res.candidateStats)     ? res.candidateStats     : [],
+          monthlyTrends:      Array.isArray(res.monthlyTrends)      ? res.monthlyTrends      : [],
+          recentHires:        Array.isArray(res.recentHires)        ? res.recentHires.map(h => ({
+            candidate: h.studentName || h.candidate || 'Unknown',
+            position:  h.jobTitle    || h.position  || 'Unknown Role',
+            hireDate:  h.hiredAt     ? new Date(h.hiredAt).toLocaleDateString() : (h.hireDate || ''),
+          })) : [],
+          upcomingInterviews: Array.isArray(res.upcomingInterviews) ? res.upcomingInterviews : [],
+        });
       }
     } catch (error) {
       console.error('Analytics error:', error);
@@ -93,12 +113,12 @@ const ReportsAnalytics = () => {
       } else if (format === 'excel') {
         const wsData = analyticsData.jobStats.map(j => ({
           'Job Title': j.title,
-          'Sector Type': j.type,
-          'Total Impressions': j.applications,
-          'Alpha Candidates': j.shortlisted,
-          'Final Hires': j.hired,
+          'Type': j.type,
+          'Applications': j.applications,
+          'Shortlisted': j.shortlisted,
+          'Hired': j.hired,
           'Status': j.status,
-          'Conversion %': `${Math.round((j.hired / (j.applications || 1)) * 100)}%`
+          'Hire Rate': `${Math.round((j.hired / (j.applications || 1)) * 100)}%`
         }));
         const ws = XLSX.utils.json_to_sheet(wsData);
         const wb = XLSX.utils.book_new();
@@ -128,10 +148,10 @@ const ReportsAnalytics = () => {
 
          <div className="grid grid-cols-4 gap-4 mb-12">
             {[
-              { label: 'Total Vectors', val: analyticsData.overview.totalJobs },
-              { label: 'Market Flow', val: analyticsData.overview.totalApplications },
-              { label: 'Alpha Conversion', val: analyticsData.overview.hiredCandidates },
-              { label: 'Sync Latency', val: analyticsData.overview.averageResponseTime + ' Days' }
+              { label: 'Total Jobs', val: analyticsData.overview.totalJobs },
+              { label: 'Applications', val: analyticsData.overview.totalApplications },
+              { label: 'Hired', val: analyticsData.overview.hiredCandidates },
+              { label: 'Hire Rate', val: analyticsData.overview.totalApplications > 0 ? `${((analyticsData.overview.hiredCandidates / analyticsData.overview.totalApplications) * 100).toFixed(1)}%` : '—' }
             ].map((s, i) => (
               <div key={i} className="border-4 border-slate-900 p-6 bg-slate-50">
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">{s.label}</p>
@@ -140,14 +160,15 @@ const ReportsAnalytics = () => {
             ))}
          </div>
 
-         <h2 className="text-2xl font-black uppercase tracking-widest mb-6 bg-slate-900 text-white px-4 py-2 inline-block">Performance Matrix</h2>
+         <h2 className="text-2xl font-black uppercase tracking-widest mb-6 bg-slate-900 text-white px-4 py-2 inline-block">Job Performance</h2>
          <table className="w-full text-left mb-12 border-collapse border-4 border-slate-900">
             <thead>
               <tr className="bg-slate-900 text-white">
-                <th className="p-4 text-xs font-black uppercase italic">Vector Position</th>
-                <th className="p-4 text-xs font-black uppercase italic text-center">Impressions</th>
-                <th className="p-4 text-xs font-black uppercase italic text-center">Alpha</th>
-                <th className="p-4 text-xs font-black uppercase italic text-right">Conversion</th>
+                <th className="p-4 text-xs font-black uppercase">Job Title</th>
+                <th className="p-4 text-xs font-black uppercase text-center">Applications</th>
+                <th className="p-4 text-xs font-black uppercase text-center">Shortlisted</th>
+                <th className="p-4 text-xs font-black uppercase text-center">Hired</th>
+                <th className="p-4 text-xs font-black uppercase text-right">Hire Rate</th>
               </tr>
             </thead>
             <tbody className="divide-y-4 divide-slate-900">
@@ -155,49 +176,16 @@ const ReportsAnalytics = () => {
                 <tr key={i} className="hover:bg-slate-50 font-bold">
                   <td className="p-4 border-r-4 border-slate-900">
                     <p className="text-lg leading-none">{job.title}</p>
-                    <p className="text-[10px] text-slate-500 mt-1 uppercase leading-none">{job.type} Sector</p>
+                    <p className="text-[10px] text-slate-500 mt-1 uppercase leading-none">{job.type}</p>
                   </td>
                   <td className="p-4 border-r-4 border-slate-900 text-center text-xl">{job.applications}</td>
                   <td className="p-4 border-r-4 border-slate-900 text-center text-xl">{job.shortlisted}</td>
-                  <td className="p-4 text-right text-xl">{Math.round((job.hired/(job.applications||1))*100)}%</td>
+                  <td className="p-4 border-r-4 border-slate-900 text-center text-xl">{job.hired}</td>
+                  <td className="p-4 text-right text-xl">{Math.round((job.hired / (job.applications || 1)) * 100)}%</td>
                 </tr>
               ))}
             </tbody>
          </table>
-
-         <div className="grid grid-cols-2 gap-12">
-            <div>
-              <h2 className="text-xl font-black uppercase mb-6 border-b-4 border-slate-900 pb-2 italic">Delta Log (Personnel)</h2>
-              <div className="space-y-4">
-                {analyticsData.recentHires.map((h, i) => (
-                  <div key={i} className="flex justify-between items-center border-b border-slate-200 pb-2">
-                    <div>
-                      <p className="font-black text-sm uppercase">{h.candidate}</p>
-                      <p className="text-[10px] font-bold text-slate-500 uppercase">{h.position}</p>
-                    </div>
-                    <p className="text-[10px] font-black italic text-slate-400">{h.hireDate}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div>
-              <h2 className="text-xl font-black uppercase mb-6 border-b-4 border-slate-900 pb-2 italic">Timeline Locked</h2>
-              <div className="space-y-4">
-                {analyticsData.upcomingInterviews.map((int, i) => (
-                  <div key={i} className="flex justify-between items-center border-b border-slate-200 pb-2">
-                    <div>
-                      <p className="font-black text-sm uppercase">{int.candidate}</p>
-                      <p className="text-[10px] font-bold text-slate-500 uppercase">{int.type}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-[10px] font-black uppercase leading-none">{int.date}</p>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase mt-1 leading-none">{int.time}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-         </div>
          
          <div className="mt-20 text-center border-t-2 border-slate-100 pt-8 opacity-30">
             <p className="text-[10px] font-black uppercase tracking-[0.5em]">End of Automated Intel Report</p>
@@ -234,13 +222,19 @@ const ReportsAnalytics = () => {
       </div>
 
 
-      {/* Intelligence Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'Total Vectors', value: analyticsData.overview.totalJobs, icon: Briefcase, color: 'text-slate-700', bg: 'bg-slate-100', sub: `${analyticsData.overview.activeJobs} Live` },
-          { label: 'Market Flow', value: analyticsData.overview.totalApplications, icon: Activity, color: 'text-indigo-600', bg: 'bg-indigo-50', sub: 'Total Applied' },
-          { label: 'Alpha Conversion', value: '4.8%', icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50', sub: `${analyticsData.overview.hiredCandidates} Hires` },
-          { label: 'Sync Latency', value: '1.8 Days', icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50', sub: 'Avg Response' },
+          { label: 'Total Jobs Posted', value: analyticsData.overview.totalJobs, icon: Briefcase, color: 'text-slate-700', bg: 'bg-slate-100', sub: `${analyticsData.overview.activeJobs} active` },
+          { label: 'Total Applications', value: analyticsData.overview.totalApplications, icon: Activity, color: 'text-indigo-600', bg: 'bg-indigo-50', sub: 'candidates applied' },
+          {
+            label: 'Hire Rate',
+            value: analyticsData.overview.totalApplications > 0
+              ? `${((analyticsData.overview.hiredCandidates / analyticsData.overview.totalApplications) * 100).toFixed(1)}%`
+              : '—',
+            icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50',
+            sub: `${analyticsData.overview.hiredCandidates} offers made`
+          },
+          { label: 'Shortlisted', value: analyticsData.overview.shortlistedCandidates, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50', sub: 'advancing in pipeline' },
         ].map((stat, i) => (
           <div key={i} className="bg-white p-5 rounded border border-slate-200 shadow-sm flex items-start justify-between">
             <div>
@@ -259,13 +253,13 @@ const ReportsAnalytics = () => {
       </div>
 
       {/* Main Analysis Section */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-         {/* Performance Matrix */}
-         <div className="xl:col-span-2 bg-white rounded border border-slate-200 shadow-sm overflow-hidden">
+      <div className="space-y-6">
+         {/* Job Performance — full width */}
+         <div className="bg-white rounded border border-slate-200 shadow-sm overflow-hidden">
             <div className="p-5 border-b border-slate-200 flex justify-between items-center bg-slate-50/50">
                <div>
-                  <h3 className="text-lg font-bold text-slate-900 tracking-tight">Performance Matrix</h3>
-                  <p className="text-xs font-semibold text-slate-500 mt-0.5">Vector Efficiency Logs</p>
+                  <h3 className="text-lg font-bold text-slate-900 tracking-tight">Job Performance</h3>
+                  <p className="text-xs font-semibold text-slate-500 mt-0.5">Applications, shortlisted &amp; hired per role</p>
                </div>
                <button className="w-8 h-8 flex items-center justify-center rounded border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 transition-colors shadow-sm">
                   <Layers size={16} />
@@ -275,19 +269,19 @@ const ReportsAnalytics = () => {
                <table className="w-full">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-200">
-                       <th className="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase">Vector Title</th>
-                       <th className="px-5 py-3 text-center text-xs font-bold text-slate-500 uppercase">Impression</th>
-                       <th className="px-5 py-3 text-center text-xs font-bold text-slate-500 uppercase">Alpha</th>
-                       <th className="px-5 py-3 text-center text-xs font-bold text-slate-500 uppercase">Final</th>
-                       <th className="px-6 py-3 text-center text-xs font-bold text-slate-500 uppercase">Efficiency</th>
+                       <th className="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase">Job Title</th>
+                       <th className="px-5 py-3 text-center text-xs font-bold text-slate-500 uppercase">Applications</th>
+                       <th className="px-5 py-3 text-center text-xs font-bold text-slate-500 uppercase">Shortlisted</th>
+                       <th className="px-5 py-3 text-center text-xs font-bold text-slate-500 uppercase">Hired</th>
+                       <th className="px-6 py-3 text-center text-xs font-bold text-slate-500 uppercase">Hire Rate</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                     {analyticsData.jobStats.map((job, i) => (
+                     {analyticsData.jobStats.length > 0 ? analyticsData.jobStats.map((job, i) => (
                        <tr key={i} className="hover:bg-slate-50/50 transition-colors">
                           <td className="px-6 py-4">
                              <p className="text-sm font-semibold text-slate-900 mb-0.5">{job.title}</p>
-                             <p className="text-xs font-medium text-slate-500">{job.type} Sector</p>
+                             <p className="text-xs font-medium text-slate-500">{job.type}</p>
                           </td>
                           <td className="px-5 py-4 text-center text-sm font-semibold text-slate-700">{job.applications}</td>
                           <td className="px-5 py-4 text-center text-sm font-semibold text-slate-700">{job.shortlisted}</td>
@@ -295,87 +289,50 @@ const ReportsAnalytics = () => {
                           <td className="px-6 py-4">
                              <div className="flex items-center justify-center gap-3">
                                 <span className="text-xs font-bold text-slate-900 w-8">{Math.round((job.hired/(job.applications||1))*100)}%</span>
-                                <div className="w-16 h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                                   <div className="h-full bg-slate-800" style={{ width: `${(job.hired/(job.applications||1))*100}%` }}></div>
+                                <div className="w-24 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                                   <div className="h-full bg-slate-800" style={{ width: `${Math.min(100,(job.hired/(job.applications||1))*100)}%` }}></div>
                                 </div>
                              </div>
                           </td>
                        </tr>
-                     ))}
+                     )) : (
+                       <tr>
+                         <td colSpan={5} className="px-6 py-12 text-center text-sm text-slate-400 font-medium">No job data available</td>
+                       </tr>
+                     )}
                   </tbody>
                </table>
             </div>
          </div>
 
-         {/* Delta Log (Recent Hires) */}
+         {/* Recent Hires — full width below */}
          <div className="bg-white rounded border border-slate-200 p-6 shadow-sm">
             <div className="flex justify-between items-center mb-6">
                <h3 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
                   <Zap size={20} className="text-emerald-500" />
-                  Delta Log
+                  Recent Hires
                </h3>
-               <span className="text-xs font-semibold text-slate-500 uppercase">Recent Hires</span>
-            </div>
-            
-            <div className="space-y-4">
-               {analyticsData.recentHires.map((hire, i) => (
-                 <div key={i} className="flex items-start gap-3">
-                    <div className="w-10 h-10 bg-slate-100 border border-slate-200 rounded flex items-center justify-center text-slate-700 font-bold text-sm shrink-0">
-                       {hire.candidate.split(' ')[1].charAt(0)}
-                    </div>
-                    <div className="flex-1 border-b border-slate-100 pb-3">
-                       <div className="flex justify-between items-start">
-                          <p className="text-sm font-bold text-slate-900 leading-none mb-1">{hire.candidate}</p>
-                          <span className="text-xs font-semibold text-slate-400">{hire.hireDate}</span>
-                       </div>
-                       <p className="text-xs font-medium text-slate-500">{hire.position}</p>
-                    </div>
-                 </div>
-               ))}
+               <span className="text-xs font-semibold text-slate-500 uppercase">Offer Received</span>
             </div>
 
-            <button className="w-full mt-6 py-2.5 bg-slate-50 border border-slate-200 text-slate-600 rounded font-semibold text-sm flex items-center justify-center gap-2 hover:bg-slate-100 transition-colors">
-               Full Personnel Audit
-               <ChevronRight size={16} />
-            </button>
-         </div>
-      </div>
-
-      {/* Analytics Suggestions Roadmap */}
-      <div className="mt-8 bg-slate-900 rounded border border-slate-800 p-6 sm:p-8 shadow-xl relative overflow-hidden">
-         <div className="absolute top-0 right-0 w-64 h-64 bg-slate-800 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
-         
-         <div className="relative z-10">
-            <div className="flex items-center gap-3 mb-6">
-               <div className="p-3 bg-slate-800 rounded border border-slate-700 text-amber-400">
-                  <Lightbulb size={24} />
-               </div>
-               <div>
-                  <h2 className="text-xl font-bold text-white tracking-tight">Analytics Expansion Roadmap</h2>
-                  <p className="text-slate-400 text-sm font-medium mt-1">Suggested high-value metrics to implement for deeper recruitment insights.</p>
-               </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-               {[
-                  { title: 'Time-to-Hire Analytics', desc: 'Track average days from job posting to offer acceptance to identify pipeline bottlenecks.', icon: Clock, color: 'text-emerald-400' },
-                  { title: 'Funnel Drop-off Rate', desc: 'Visualization showing where candidates fall out of the pipeline (Assessment -> Technical -> HR -> Offer).', icon: Target, color: 'text-rose-400' },
-                  { title: 'Source & Channel ROI', desc: 'Pie chart or bar graph showing which colleges or sourcing channels yield the highest quality long-term hires.', icon: PieChart, color: 'text-indigo-400' },
-                  { title: 'Offer Acceptance Rate', desc: 'Trend line of offers extended vs. offers accepted to gauge company competitiveness.', icon: TrendingUp, color: 'text-amber-400' },
-                  { title: 'Diversity & Demographics', desc: 'Basic aggregate metrics on candidate backgrounds to ensure equitable hiring practices.', icon: Users, color: 'text-violet-400' },
-                  { title: 'Cost per Hire Metrics', desc: 'If budget data is available, trace recruitment spend ROI across different departments and roles.', icon: Rocket, color: 'text-cyan-400' }
-               ].map((suggestion, idx) => (
-                  <div key={idx} className="bg-slate-800/50 rounded border border-slate-700 p-5 hover:bg-slate-800 transition-colors group">
-                     <div className="flex items-center gap-3 mb-3">
-                        <suggestion.icon size={20} className={suggestion.color} />
-                        <h4 className="font-bold text-slate-200 group-hover:text-white transition-colors">{suggestion.title}</h4>
+            {analyticsData.recentHires.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {analyticsData.recentHires.map((hire, i) => (
+                  <div key={i} className="flex items-center gap-3 p-4 bg-slate-50 rounded border border-slate-100">
+                     <div className="w-10 h-10 bg-slate-900 text-white rounded flex items-center justify-center font-bold text-sm shrink-0">
+                        {(hire.candidate || '?').charAt(0).toUpperCase()}
                      </div>
-                     <p className="text-sm text-slate-400 leading-relaxed font-medium">
-                        {suggestion.desc}
-                     </p>
+                     <div className="min-w-0">
+                        <p className="text-sm font-bold text-slate-900 truncate">{hire.candidate}</p>
+                        <p className="text-xs font-medium text-slate-500 truncate">{hire.position}</p>
+                        <p className="text-[10px] font-semibold text-slate-400 mt-0.5">{hire.hireDate}</p>
+                     </div>
                   </div>
-               ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-slate-400 font-medium text-center py-8">No recent hires</p>
+            )}
          </div>
       </div>
     </div>
@@ -383,9 +340,5 @@ const ReportsAnalytics = () => {
 };
 
 export default ReportsAnalytics;
-
-
-
-
 
 

@@ -50,8 +50,16 @@ const TPOApproval = ({ onApprovalProcessed }) => {
       try {
          setLoading(true);
          const response = await api.get('/admin/pending-registrations');
-         setPendingTPOs(response.data.pendingUsers.filter(user => user.role === 'tpo'));
+         // ApiResponse envelope: response.data = { statusCode, data: { pendingUsers: [] }, message }
+         const payload = response.data?.data ?? response.data;
+         const users = Array.isArray(payload?.pendingUsers)
+            ? payload.pendingUsers
+            : Array.isArray(payload)
+               ? payload
+               : [];
+         setPendingTPOs(users.filter(user => user.role === 'tpo'));
       } catch (err) {
+         console.error('TPO fetch error:', err);
          toast.error('Failed to load TPO requests');
       } finally {
          setLoading(false);

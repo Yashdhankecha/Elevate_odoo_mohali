@@ -49,8 +49,10 @@ const jobApplicationSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Index for efficient queries
+// Indexes for efficient queries
 jobApplicationSchema.index({ student: 1, status: 1 });
 jobApplicationSchema.index({ company: 1, status: 1 });
+jobApplicationSchema.index({ jobPosting: 1 });
+jobApplicationSchema.index({ student: 1, jobPosting: 1 }, { unique: true }); // prevent duplicate applications
 
 module.exports = mongoose.model('JobApplication', jobApplicationSchema);

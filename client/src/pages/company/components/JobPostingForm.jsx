@@ -388,55 +388,99 @@ const Step2 = ({ form, setField, setNested }) => {
       {/* Target Colleges - On-Campus only */}
       {form.driveType === 'on_campus' && (
         <div className={sectionClass}>
-          <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
-            <Building2 size={17} className="text-indigo-500" />
-            Target Colleges
-            <span className="text-xs font-medium text-slate-400 ml-1">(select which colleges to approach)</span>
-          </h3>
-          <input
-            type="text"
-            value={tpoSearch}
-            onChange={e => setTpoSearch(e.target.value)}
-            placeholder="Search by college name..."
-            className={inputClass}
-          />
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
+                <Building2 size={17} className="text-indigo-500" />
+                Select Target Colleges
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Each selected college's TPO will receive a notification to approve or reject your request.
+              </p>
+            </div>
+            {(form.targetTPOs || []).length > 0 && (
+              <span className="flex-shrink-0 inline-flex items-center gap-1.5 bg-indigo-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow">
+                <CheckCircle2 size={13} />
+                {form.targetTPOs.length} selected
+              </span>
+            )}
+          </div>
+
+          <div className="relative mb-4">
+            <Tag size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={tpoSearch}
+              onChange={e => setTpoSearch(e.target.value)}
+              placeholder="Search by college name or email..."
+              className={`${inputClass} pl-9`}
+            />
+          </div>
+
           {tpoLoading ? (
-            <p className="text-sm text-slate-400 flex items-center gap-2">
-              <Loader2 size={14} className="animate-spin" /> Loading colleges...
-            </p>
+            <div className="flex items-center gap-3 py-10 justify-center text-slate-400">
+              <Loader2 size={18} className="animate-spin" />
+              <span className="text-sm">Loading registered colleges...</span>
+            </div>
           ) : filteredTPOs.length === 0 ? (
-            <p className="text-sm text-slate-400 italic">
-              {tpoSearch ? 'No colleges match your search.' : 'No active TPOs registered on this portal yet.'}
-            </p>
+            <div className="text-center py-10 rounded-xl bg-slate-50 border border-dashed border-slate-200">
+              <Building2 size={28} className="mx-auto text-slate-300 mb-2" />
+              <p className="text-sm text-slate-500 font-medium">
+                {tpoSearch ? 'No colleges match your search.' : 'No active colleges registered on this portal yet.'}
+              </p>
+            </div>
           ) : (
-            <div className="max-h-60 overflow-y-auto space-y-1.5 pr-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-80 overflow-y-auto pr-1">
               {filteredTPOs.map(tpo => {
                 const isSel = (form.targetTPOs || []).includes(tpo._id);
+                const initials = (tpo.instituteName || 'C')
+                  .split(' ')
+                  .slice(0, 2)
+                  .map(w => w[0])
+                  .join('')
+                  .toUpperCase();
                 return (
-                  <label
+                  <button
                     key={tpo._id}
-                    className={`flex items-center gap-3 p-3 rounded cursor-pointer border transition-colors ${isSel ? 'bg-slate-50 border-slate-300 text-slate-800' : 'bg-white border-slate-100 hover:bg-slate-50 text-slate-700'}`}
+                    type="button"
+                    onClick={() => toggleTPO(tpo._id)}
+                    className={`relative flex items-start gap-3 p-3.5 rounded-xl border text-left transition-all duration-150 group ${
+                      isSel
+                        ? 'bg-indigo-50 border-indigo-400 shadow-sm ring-1 ring-indigo-300'
+                        : 'bg-white border-slate-200 hover:border-indigo-200 hover:bg-indigo-50/40'
+                    }`}
                   >
-                    <input
-                      type="checkbox"
-                      checked={isSel}
-                      onChange={() => toggleTPO(tpo._id)}
-                      className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold truncate">{tpo.instituteName}</p>
-                      <p className="text-xs text-slate-400 truncate">{tpo.email}</p>
+                    <div className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-xs font-bold shadow-sm ${
+                      isSel ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 group-hover:bg-indigo-100 group-hover:text-indigo-700'
+                    }`}>
+                      {initials}
                     </div>
-                    {isSel && <CheckCircle2 size={16} className="text-indigo-500 flex-shrink-0" />}
-                  </label>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-bold leading-tight truncate ${isSel ? 'text-indigo-800' : 'text-slate-800'}`}>
+                        {tpo.instituteName}
+                      </p>
+                      <p className="text-[11px] text-slate-400 truncate mt-0.5">{tpo.email}</p>
+                      {tpo.contactNumber && (
+                        <p className="text-[11px] text-slate-400 mt-0.5">{tpo.contactNumber}</p>
+                      )}
+                    </div>
+                    {isSel && (
+                      <CheckCircle2 size={16} className="flex-shrink-0 text-indigo-500 absolute top-2.5 right-2.5" />
+                    )}
+                  </button>
                 );
               })}
             </div>
           )}
+
           {(form.targetTPOs || []).length > 0 && (
-            <p className="text-xs font-semibold text-indigo-600">
-              {'\u2713'} {form.targetTPOs.length} college{form.targetTPOs.length !== 1 ? 's' : ''} selected
-            </p>
+            <div className="mt-4 p-3 bg-indigo-50 border border-indigo-100 rounded-xl flex items-start gap-2">
+              <Info size={14} className="text-indigo-500 mt-0.5 flex-shrink-0" />
+              <p className="text-xs text-indigo-700 leading-relaxed">
+                <span className="font-bold">{form.targetTPOs.length} college{form.targetTPOs.length !== 1 ? 's' : ''} selected.</span>{' '}
+                On submission, each college's TPO will receive a notification. If approved, your company will be added to their partner list and the job will go live.
+              </p>
+            </div>
           )}
         </div>
       )}
